@@ -1,58 +1,636 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teste</title>
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        font-family: Arial, sans-serif;
-        background: #f3f4f6;
-        color: #111827;
-      }
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coordenada — fichas de personagem</title>
+<style>
+  :root{
+    --bg: #101216;
+    --panel: #171a21;
+    --panel-2: #1e222b;
+    --line: #2a2f3b;
+    --steel: #8fa3ad;
+    --steel-dim: #5b6773;
+    --brass: #b8862f;
+    --brass-soft: #8f6a26;
+    --parchment: #eee6d3;
+    --blood: #8a2f36;
+    --blood-soft: #a8434a;
+    --moss: #4d6b4f;
+    --moss-soft: #5f8062;
+    --ink: #cfd6da;
+    --ink-dim: #7c8890;
+    --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      radial-gradient(ellipse at top, rgba(184,134,47,0.06), transparent 60%);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{ display:flex; height:100vh; overflow:hidden; }
+  button{ font-family:inherit; }
+  input,select,textarea{ font-family:inherit; }
 
-      main {
-        text-align: center;
-        background: #ffffff;
-        padding: 2rem 3rem;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      }
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    width:270px; flex:none;
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    display:flex; flex-direction:column;
+    padding:20px 14px;
+    overflow-y:auto;
+  }
+  .brand{ font-family:var(--serif); font-size:21px; color:var(--parchment); margin:0 6px 2px; letter-spacing:0.01em;}
+  .brand-sub{ margin:0 6px 18px; font-size:11.5px; color:var(--steel-dim); }
+  .char-list{ display:flex; flex-direction:column; gap:4px; }
+  .char-item{
+    display:flex; align-items:center; gap:9px;
+    padding:9px 9px; border-radius:7px;
+    border-left:3px solid transparent;
+    cursor:pointer; transition:background .15s ease;
+  }
+  .char-item:hover{ background:var(--panel-2); }
+  .char-item.active{ background:var(--panel-2); border-left-color:var(--brass); }
+  .char-item-info{ flex:1; min-width:0; }
+  .char-item-name{ font-size:13.5px; color:var(--parchment); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .char-item-sub{ font-size:11px; color:var(--steel-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .icon-btn{ background:none; border:none; color:var(--steel-dim); cursor:pointer; padding:5px; border-radius:6px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .icon-btn:hover{ color:var(--blood-soft); background:rgba(138,47,54,0.14); }
+  .icon-btn svg{ width:14px; height:14px; }
+  .dup-btn:hover{ color:var(--brass); background:rgba(184,134,47,0.14); }
 
-      button {
-        margin-top: 1rem;
-        padding: 0.75rem 1.25rem;
-        border: none;
-        border-radius: 8px;
-        background: #2563eb;
-        color: white;
-        font-size: 1rem;
-        cursor: pointer;
-      }
+  .new-char-btn{
+    margin-top:12px; display:flex; align-items:center; justify-content:center; gap:7px;
+    padding:9px; border-radius:7px; border:1px dashed var(--line);
+    background:transparent; color:var(--ink); font-size:13px; cursor:pointer;
+  }
+  .new-char-btn:hover{ border-color:var(--brass-soft); color:var(--parchment); }
+  .new-char-btn svg{ width:14px; height:14px; }
 
-      button:hover {
-        background: #1d4ed8;
-      }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>Teste</h1>
-      <p id="mensagem">Clique no botão para testar.</p>
-      <button id="btnTeste" type="button">Executar teste</button>
-    </main>
+  .sidebar-foot{ margin-top:14px; padding-top:12px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:6px; }
+  .link-btn{ background:none; border:none; color:var(--steel-dim); font-size:12px; text-align:left; cursor:pointer; padding:3px 4px; display:flex; align-items:center; gap:7px; }
+  .link-btn:hover{ color:var(--parchment); }
+  .link-btn svg{ width:12.5px; height:12.5px; }
+  .save-indicator{ font-size:10.5px; color:var(--steel-dim); padding:2px 4px; }
+  .save-indicator.saved::before{ content:"● "; color:var(--moss-soft); }
+  .save-indicator.saving::before{ content:"● "; color:var(--brass); }
+  .save-indicator.error::before{ content:"● "; color:var(--blood-soft); }
 
-    <script>
-      const btnTeste = document.getElementById('btnTeste');
-      const mensagem = document.getElementById('mensagem');
+  /* ---------- Main ---------- */
+  .main{ flex:1; overflow-y:auto; padding:26px 26px 70px; }
+  .empty-state{ margin:auto; text-align:center; max-width:380px; color:var(--steel-dim); padding-top:14vh; }
+  .empty-state h2{ font-family:var(--serif); color:var(--parchment); font-weight:500; font-size:23px; margin-bottom:8px; }
+  .empty-state button{ margin-top:18px; }
 
-      btnTeste.addEventListener('click', () => {
-        mensagem.textContent = 'Teste executado com sucesso!';
-      });
-    </script>
-  </body>
+  .sheet-wrap{ max-width:980px; margin:0 auto; }
+
+  .sheet-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:16px; flex-wrap:wrap; }
+  .name-input{
+    font-family:var(--serif); font-size:28px; color:var(--parchment);
+    background:transparent; border:none; border-bottom:1px solid transparent;
+    padding:2px 0; flex:1; min-width:220px;
+  }
+  .name-input:focus{ outline:none; border-bottom:1px solid var(--brass-soft); }
+  .name-input::placeholder{ color:var(--steel-dim); }
+  .top-actions{ display:flex; gap:8px; flex:none; }
+  .btn{
+    display:flex; align-items:center; gap:7px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--ink); padding:8px 13px; border-radius:7px;
+    font-size:12.5px; cursor:pointer; white-space:nowrap;
+  }
+  .btn:hover{ border-color:var(--brass-soft); color:var(--parchment); }
+  .btn svg{ width:13px; height:13px; }
+  .btn.primary{ background:var(--brass-soft); border-color:var(--brass-soft); color:#1a1408; font-weight:600; }
+  .btn.primary:hover{ background:var(--brass); }
+
+  /* Tabs */
+  .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:20px; overflow-x:auto; }
+  .tab-btn{
+    background:none; border:none; color:var(--steel-dim); padding:9px 14px; font-size:12.5px;
+    cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;
+  }
+  .tab-btn:hover{ color:var(--parchment); }
+  .tab-btn.active{ color:var(--parchment); border-bottom-color:var(--brass); }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:16px; }
+  .card h3{ font-family:var(--serif); font-size:16px; color:var(--parchment); margin:0 0 14px; font-weight:500; }
+  .card h3 small{ font-family:var(--sans); font-size:11px; color:var(--steel-dim); font-weight:400; margin-left:8px; }
+  .grid{ display:grid; gap:12px; }
+  .grid-2{ grid-template-columns:1fr 1fr; }
+  .grid-3{ grid-template-columns:repeat(3,1fr); }
+  .grid-4{ grid-template-columns:repeat(4,1fr); }
+  .grid-5{ grid-template-columns:repeat(5,1fr); }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-size:11px; color:var(--steel-dim); }
+  .field input, .field select, .field textarea{
+    font-size:13.5px; color:var(--parchment); background:var(--panel-2);
+    border:1px solid var(--line); border-radius:6px; padding:8px 9px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--brass-soft); }
+  .field textarea{ resize:vertical; line-height:1.5; }
+  .hint{ font-size:11px; color:var(--steel-dim); margin-top:2px; line-height:1.5;}
+
+  /* attributes */
+  .attr-card{ position:relative; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:12px 10px 14px; text-align:center; }
+  .attr-card .attr-label{ font-size:11.5px; color:var(--steel-dim); margin-bottom:8px; }
+  .attr-steppers{ display:flex; align-items:center; justify-content:center; gap:6px; }
+  .step-btn{ width:24px; height:24px; border-radius:6px; border:1px solid var(--line); background:var(--panel); color:var(--parchment); cursor:pointer; font-size:14px; line-height:1; }
+  .step-btn:hover{ border-color:var(--brass-soft); }
+  .attr-value{ font-family:var(--serif); font-size:24px; color:var(--parchment); width:36px; text-align:center; }
+  .attr-temp{ margin-top:8px; }
+  .attr-temp input{ width:48px; text-align:center; font-size:12px; padding:4px; background:var(--panel); border:1px solid var(--line); border-radius:5px; color:var(--ink); }
+  .attr-temp label{ font-size:10px; color:var(--steel-dim); display:block; margin-bottom:3px; }
+  .attr-bonuses{ font-size:10.5px; color:var(--brass); margin-top:6px; line-height:1.4; min-height:14px; }
+
+  /* resources */
+  .resource-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .resource-card{ border-radius:9px; padding:14px 16px; border:1px solid var(--line); }
+  .resource-card.pv{ background:linear-gradient(180deg, rgba(138,47,54,0.14), rgba(138,47,54,0.02)); }
+  .resource-card.pde{ background:linear-gradient(180deg, rgba(184,134,47,0.13), rgba(184,134,47,0.02)); }
+  .resource-card.san{ background:linear-gradient(180deg, rgba(90,110,160,0.15), rgba(90,110,160,0.02)); }
+  .resource-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .resource-head .label{ font-size:12px; color:var(--steel-dim); font-family:var(--serif); font-size:14px; }
+  .resource-state{ font-size:10px; padding:2px 7px; border-radius:20px; text-transform:uppercase; letter-spacing:0.03em; }
+  .state-ok{ background:rgba(95,128,98,0.25); color:var(--moss-soft); }
+  .state-alert{ background:rgba(184,134,47,0.22); color:var(--brass); }
+  .state-crit{ background:rgba(168,67,74,0.25); color:var(--blood-soft); }
+  .resource-values{ display:flex; align-items:baseline; gap:6px; }
+  .resource-values input{ font-family:var(--serif); font-size:22px; width:52px; text-align:center; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--parchment); padding:2px 0; }
+  .resource-values .slash{ color:var(--steel-dim); font-size:16px; }
+  .resource-bar-track{ margin-top:9px; height:6px; border-radius:3px; background:rgba(255,255,255,0.06); overflow:hidden; }
+  .resource-bar-fill{ height:100%; border-radius:3px; transition:width .2s ease; }
+  .pv .resource-bar-fill{ background:var(--blood-soft); }
+  .pde .resource-bar-fill{ background:var(--brass); }
+  .san .resource-bar-fill{ background:#7891c9; }
+  .quick-dmg{ display:flex; gap:5px; margin-top:10px; flex-wrap:wrap; }
+  .quick-dmg button{ font-size:11px; padding:5px 8px; border-radius:5px; border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; }
+  .quick-dmg button:hover{ border-color:var(--brass-soft); color:var(--parchment); }
+  .quick-dmg button.heal{ color:var(--moss-soft); }
+  .quick-dmg button.dmg{ color:var(--blood-soft); }
+
+  .derived-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; }
+  .derived-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:10px; text-align:center; }
+  .derived-card .dv{ font-family:var(--serif); font-size:20px; color:var(--parchment); }
+  .derived-card .dl{ font-size:10.5px; color:var(--steel-dim); margin-top:2px; }
+
+  /* skills table */
+  .skills-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px 20px; }
+  .skill-row{ display:grid; grid-template-columns:1fr 60px 34px 34px 34px; align-items:center; gap:6px; padding:6px 4px; border-bottom:1px solid var(--line); }
+  .skill-row .sname{ font-size:12.5px; color:var(--ink); }
+  .skill-row select{ font-size:10.5px; padding:3px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; color:var(--steel-dim); }
+  .skill-row input.spts{ width:32px; text-align:center; font-size:12.5px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; color:var(--parchment); padding:3px 0; }
+  .skill-total{ font-family:var(--serif); font-size:14px; color:var(--brass); text-align:center; }
+  .roll-btn{ background:var(--panel-2); border:1px solid var(--line); border-radius:5px; color:var(--steel-dim); cursor:pointer; font-size:12px; padding:3px 5px; }
+  .roll-btn:hover{ border-color:var(--brass-soft); color:var(--brass); }
+
+  /* talents/defects */
+  .td-summary{ display:flex; gap:16px; margin-bottom:14px; flex-wrap:wrap; }
+  .td-stat{ font-size:12px; color:var(--steel-dim); }
+  .td-stat b{ color:var(--parchment); font-family:var(--serif); font-size:15px; }
+  .td-cols{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .td-list{ display:flex; flex-direction:column; gap:6px; max-height:360px; overflow-y:auto; padding-right:4px; }
+  .td-item{ display:flex; align-items:flex-start; gap:8px; padding:8px 9px; border-radius:7px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; }
+  .td-item:hover{ border-color:var(--brass-soft); }
+  .td-item.picked{ border-color:var(--brass); background:rgba(184,134,47,0.09); }
+  .td-item input{ margin-top:2px; }
+  .td-item-body{ flex:1; }
+  .td-item-name{ font-size:12.5px; color:var(--parchment); display:flex; justify-content:space-between; gap:6px; }
+  .td-item-cost{ color:var(--brass); font-size:11px; }
+  .td-item-desc{ font-size:11px; color:var(--steel-dim); margin-top:2px; line-height:1.4; }
+
+  /* abilities */
+  .ability-filters{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .filter-chip{ font-size:11.5px; padding:6px 11px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--steel-dim); cursor:pointer; }
+  .filter-chip:hover{ color:var(--parchment); }
+  .filter-chip.active{ border-color:var(--brass); color:var(--brass); background:rgba(184,134,47,0.1); }
+  .ability-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+  .ability-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px 13px; cursor:pointer; }
+  .ability-card:hover{ border-color:var(--brass-soft); }
+  .ability-card.acquired{ border-color:var(--moss-soft); }
+  .ability-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .ability-name{ font-size:13.5px; color:var(--parchment); font-family:var(--serif); }
+  .ability-tag{ font-size:9.5px; padding:2px 7px; border-radius:20px; background:rgba(95,128,98,0.25); color:var(--moss-soft); white-space:nowrap; }
+  .ability-desc{ font-size:11.5px; color:var(--steel-dim); margin-top:6px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal{ background:var(--panel); border:1px solid var(--line); border-radius:12px; max-width:560px; width:100%; max-height:82vh; overflow-y:auto; padding:24px; }
+  .modal h2{ font-family:var(--serif); color:var(--parchment); margin:0 0 4px; font-size:20px; }
+  .modal .modal-close{ float:right; }
+  .modal-level-tabs{ display:flex; gap:6px; margin:14px 0; }
+  .modal-level-tabs button{ flex:1; padding:7px; border-radius:6px; border:1px solid var(--line); background:var(--panel-2); color:var(--steel-dim); cursor:pointer; font-size:12px; }
+  .modal-level-tabs button.active{ border-color:var(--brass); color:var(--brass); }
+  .modal-body-text{ font-size:13px; line-height:1.7; color:var(--ink); white-space:pre-line; }
+  .modal-cost{ margin-top:12px; font-size:12px; color:var(--brass); }
+  .modal-actions{ margin-top:18px; display:flex; gap:8px; justify-content:flex-end; }
+
+  .custom-ability-card{ background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:12px 13px; margin-bottom:10px; }
+
+  /* lists: weapons / inventory */
+  .table-rows{ display:flex; flex-direction:column; gap:6px; }
+  .weapon-row{ display:grid; grid-template-columns: 1.3fr 0.6fr 0.8fr 0.6fr 0.8fr 0.8fr 1fr 30px; gap:6px; align-items:center; }
+  .item-row{ display:grid; grid-template-columns: 1.6fr 0.6fr 0.6fr 1.3fr 30px; gap:6px; align-items:center; }
+  .mount-item-row{ display:grid; grid-template-columns: 1.6fr 0.6fr 30px; gap:6px; align-items:center; }
+  .table-rows input{ font-size:12px; background:var(--panel-2); border:1px solid var(--line); border-radius:5px; padding:6px 7px; color:var(--parchment); }
+  .table-rows input:focus{ outline:none; border-color:var(--brass-soft); }
+  .row-remove{ display:flex; align-items:center; justify-content:center; background:none; border:none; cursor:pointer; color:var(--steel-dim); padding:4px; }
+  .row-remove:hover{ color:var(--blood-soft); }
+  .row-remove svg{ width:14px; height:14px; }
+  .table-add{ margin-top:8px; background:transparent; border:1px dashed var(--line); border-radius:6px; color:var(--steel-dim); cursor:pointer; font-size:12.5px; padding:8px; display:flex; align-items:center; justify-content:center; gap:6px; width:100%; }
+  .table-add:hover{ border-color:var(--brass-soft); color:var(--parchment); }
+  .table-add svg{ width:13px; height:13px; }
+  .col-labels{ display:grid; gap:6px; font-size:10px; color:var(--steel-dim); margin-bottom:4px; padding:0 2px; }
+  .list-empty{ font-size:12px; color:var(--steel-dim); font-style:italic; padding:6px 2px; }
+
+  .capacity-bar-wrap{ margin-top:6px; }
+  .capacity-label{ font-size:11.5px; color:var(--steel-dim); display:flex; justify-content:space-between; margin-bottom:4px; }
+  .capacity-bar-track{ height:8px; border-radius:4px; background:rgba(255,255,255,0.06); overflow:hidden; }
+  .capacity-bar-fill{ height:100%; background:var(--brass); border-radius:4px; }
+  .capacity-bar-fill.over{ background:var(--blood-soft); }
+  .overload-warn{ font-size:11.5px; color:var(--blood-soft); margin-top:6px; }
+
+  .roll-log{ margin-top:12px; display:flex; flex-direction:column; gap:5px; max-height:160px; overflow-y:auto; }
+  .roll-entry{ font-size:12px; color:var(--steel-dim); font-family:var(--mono); background:var(--panel-2); border-radius:5px; padding:6px 9px; display:flex; justify-content:space-between; }
+  .roll-entry b{ color:var(--brass); }
+
+  .notes-field textarea{ width:100%; min-height:100px; }
+
+  select.select-field{ width:100%; }
+
+  #import-input{ display:none; }
+
+  @media (max-width: 900px){
+    .grid-3, .grid-4, .grid-5{ grid-template-columns:repeat(2,1fr); }
+    .resource-row{ grid-template-columns:1fr; }
+    .skills-grid{ grid-template-columns:1fr; }
+    .td-cols{ grid-template-columns:1fr; }
+    .ability-grid{ grid-template-columns:1fr; }
+  }
+  @media (max-width: 760px){
+    #app{ flex-direction:column; }
+    .sidebar{ width:100%; flex-direction:row; align-items:center; padding:10px; gap:8px; overflow-x:auto; height:auto;}
+    .brand,.brand-sub{ display:none; }
+    .char-list{ flex-direction:row; }
+    .char-item{ flex:none; min-width:140px; }
+    .new-char-btn{ margin-top:0; flex:none; white-space:nowrap; }
+    .sidebar-foot{ display:none; }
+    .main{ padding:16px 12px 50px; }
+    .grid-2,.grid-3,.grid-4,.grid-5{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="import-input" accept="application/json">
+
+<script>
+/* =========================================================================
+   DADOS DO SISTEMA — Coordenada RPG (baseado no livro de regras enviado)
+   ========================================================================= */
+
+const ATRIBUTOS = [
+  {key:'agi', nome:'Agilidade'},
+  {key:'est', nome:'Estamina'},
+  {key:'for', nome:'Força'},
+  {key:'int', nome:'Intelecto'},
+  {key:'vit', nome:'Vitalidade'},
+];
+
+const PERICIAS = {
+  crime:        {nome:'Crime',        attrs:['int','agi']},
+  furtividade:  {nome:'Furtividade',  attrs:['int','agi']},
+  pontaria:     {nome:'Pontaria',     attrs:['agi']},
+  luta:         {nome:'Luta',         attrs:['for','agi']},
+  fortitude:    {nome:'Fortitude',    attrs:['vit','est']},
+  intimidacao:  {nome:'Intimidação',  attrs:['int','for']},
+  carisma:      {nome:'Carisma',      attrs:['int']},
+  exploracao:   {nome:'Exploração',   attrs:['int']},
+  historia:     {nome:'História',     attrs:['int']},
+  mecanica:     {nome:'Mecânica',     attrs:['int']},
+  medicina:     {nome:'Medicina',     attrs:['int']},
+  natureza:     {nome:'Natureza',     attrs:['int']},
+  tatica:       {nome:'Tática',       attrs:['int']},
+  vontade:      {nome:'Vontade',      attrs:['int']},
+};
+
+const ORIGENS = {
+  sangue_real:{ nome:'Sangue Real (Fritz/Reiss)', pdv:8, san:8, pde:4,
+    passiva:'Adicione +1 ao atributo de Intelecto.',
+    habOrigem:'Vontade do Rei — todas as recuperações de Sanidade feitas pelo personagem (ou por aliados próximos) recuperam 1d8 ao invés de 1d4.' },
+  fazendeiro:{ nome:'Fazendeiro (Braus)', pdv:10, san:6, pde:6,
+    passiva:'Sempre que realizar um teste de Natureza, adicione vantagem.',
+    habOrigem:'Instinto Selvagem — em áreas rurais, a margem de crítico dos testes do personagem é reduzida em -1.' },
+  cientista:{ nome:'Cientista (Zoe)', pdv:8, san:8, pde:6,
+    passiva:'Escolha: vantagem em testes de Mecânica OU vantagem em testes de Medicina.',
+    habOrigem:'Gênio — as habilidades exclusivas da subclasse têm custo de PDE reduzido em -1.' },
+  aldeao:{ nome:'Aldeão (Springer)', pdv:10, san:6, pde:4,
+    passiva:'Escolha um atributo para receber +1.',
+    habOrigem:'Faz Tudo — escolhe 3 perícias para receber +1; uma vez por dia pode realocar esses bônus para outras perícias.' },
+  cidadao:{ nome:'Cidadão (Foster/Kirstein)', pdv:8, san:8, pde:4,
+    passiva:'Escolha 4 perícias para receber +1.',
+    habOrigem:'Versatilidade — escolhe uma habilidade geral adicional para adicionar permanentemente à ficha.' },
+  esquecido:{ nome:'Esquecido', pdv:8, san:6, pde:6,
+    passiva:'Sempre que receber dano de Sanidade, reduza-o pela metade (arred. p/ cima).',
+    habOrigem:'Lembrança — ao compreender seu passado (critério do narrador, não depende do nível 8): recebe 3 pontos de perícia e +6 na Sanidade máxima.' },
+  guerreiro:{ nome:'Guerreiro (Braun/Leonhart/Galliard)', pdv:12, san:6, pde:6,
+    passiva:'Escolha: +2 em Pontaria OU +2 em Luta.',
+    habOrigem:'Corpo Resistente — todo dano recebido diretamente no corpo é reduzido em valor igual à perícia de Fortitude.' },
+  historiador:{ nome:'Historiador (Arlert/Smith)', pdv:8, san:8, pde:6,
+    passiva:'Sempre que realizar um teste de História, adicione vantagem.',
+    habOrigem:'Ver o Mundo Lá Fora — ao entrar em Morrendo, uma vez por dia pode repetir o teste de morte usando História.' },
+  revolucionario:{ nome:'Revolucionário (Yeager/Kruger)', pdv:10, san:8, pde:6,
+    passiva:'Sempre que realizar um teste de Vontade, adicione vantagem.',
+    habOrigem:'Lute, Lute, Lute… — uma vez por dia entra em adrenalina ignorando o pré-requisito de PV; o teste de Fortitude é substituído por um teste de Vontade.' },
+  ackerman:{ nome:'Ackerman', pdv:10, san:6, pde:8,
+    passiva:'Ao presenciar uma cena psicologicamente impactante (uma vez na vida): perde 2 de Sanidade permanentemente, mas recebe +1 em Força e Agilidade, e +1 em Testes de Acerto, permanentemente.',
+    habOrigem:'Potencial Sobre-humano — escolhe uma habilidade para ficar sempre +1 nível acima das demais; ao atingir nível 4 naturalmente, o custo em PDE dessa habilidade é reduzido em -1.' },
+};
+
+const CLASSES = {
+  linha_frente:{ nome:'Linha de Frente',
+    tiers:[
+      {de:1, ate:7,  texto:'+1 em Testes de Acerto e +1d4 de dano.'},
+      {de:8, ate:15, texto:'+2 em Testes de Acerto e +1d6 de dano.'},
+      {de:16,ate:20, texto:'+3 em Testes de Acerto e +1d8 de dano.'},
+    ]},
+  suporte_campo:{ nome:'Suporte de Campo',
+    tiers:[
+      {de:1, ate:7,  texto:'Equipamentos curativos recuperam +1d4 PDV; testes para reparar equipamentos recebem +1.'},
+      {de:8, ate:15, texto:'Equipamentos curativos recuperam +1d6 PDV; testes de reparo recebem +2.'},
+      {de:16,ate:20, texto:'Equipamentos curativos recuperam +1d8 PDV; testes de reparo recebem +3.'},
+    ]},
+  especialista_batalha:{ nome:'Especialista de Batalha',
+    tiers:[
+      {de:1, ate:7,  texto:'Escolhe 2 aliados (incluindo a si mesmo) para receberem +1 em Testes de Acerto enquanto estiver em combate.'},
+      {de:8, ate:15, texto:'Pode conceder o bônus de +1 em Testes de Acerto a qualquer número de aliados presentes.'},
+      {de:16,ate:20, texto:'Além do bônus de acerto, concede +1d4 de dano adicional a todos os aliados, incluindo si mesmo.'},
+    ]},
+};
+
+const SUBCLASSES = {
+  soldado:{ nome:'Soldado', classe:'linha_frente', passiva:'+1 ponto na perícia de Luta (ignora o limite máximo de perícia).' },
+  atirador:{ nome:'Atirador', classe:'linha_frente', passiva:'+1 ponto na perícia de Pontaria (ignora o limite máximo de perícia).' },
+  medico:{ nome:'Médico', classe:'suporte_campo', passiva:'+1 ponto na perícia de Medicina (ignora o limite máximo de perícia).' },
+  inventor:{ nome:'Inventor', classe:'suporte_campo', passiva:'+1 ponto na perícia de Mecânica (ignora o limite máximo de perícia).' },
+  capitao:{ nome:'Capitão', classe:'especialista_batalha', passiva:'+1 ponto nas perícias de Carisma e Tática (ignora o limite máximo de perícia).' },
+  estrategista:{ nome:'Estrategista', classe:'especialista_batalha', passiva:'+1 ponto nas perícias de Exploração e Tática (ignora o limite máximo de perícia).' },
+};
+
+// Talentos: custo em pontos (a pagar). Defeitos: valor em pontos (recebido). Todo personagem começa com 2 pontos.
+const TALENTOS = [
+  {key:'reflexos_acuados', nome:'Reflexos Aguçados', custo:4, desc:'+1 nos Testes de Defesa com esquiva.'},
+  {key:'cacador', nome:'Caçador', custo:4, desc:'Em florestas, +1 aos Testes de Acerto em ataques à longa distância.'},
+  {key:'robusto', nome:'Robusto', custo:6, desc:'+1 no atributo de Força.'},
+  {key:'sortudo', nome:'Sortudo', custo:8, desc:'A margem de crítico do personagem é diminuída em -1.'},
+  {key:'perito', nome:'Perito', custo:4, desc:'+1 ponto de perícia para distribuir na ficha.'},
+  {key:'sangue_frio', nome:'Sangue Frio', custo:4, desc:'Todo dano de sanidade recebido é reduzido em -1.'},
+  {key:'memoria_fotografica', nome:'Memória Fotográfica', custo:4, desc:'O narrador deve fornecer todos os detalhes de uma cena já vivida, mediante teste de História (dificuldade 12).'},
+  {key:'guerreiro_experiente', nome:'Guerreiro Experiente', custo:2, desc:'+2 de dano com um tipo de arma à escolha.'},
+  {key:'dom_artistico', nome:'Dom Artístico', custo:2, desc:'Talento excepcional em alguma área da arte (música, pintura, poesia, escultura, escrita ou culinária).'},
+  {key:'contra_golpe', nome:'Contra Golpe', custo:4, desc:'Os contra-ataques do personagem causam +1d10 de dano adicional.'},
+  {key:'folego_aprimorado', nome:'Fôlego Aprimorado', custo:2, desc:'Pode segurar a respiração por longos períodos.'},
+  {key:'pressentimento', nome:'Pressentimento', custo:8, desc:'Uma vez por sessão, pode pedir uma dica ao narrador sobre um perigo iminente.'},
+  {key:'aliado_misterioso', nome:'Aliado Misterioso', custo:6, desc:'Possui um contato secreto que pode fornecer informações ou recursos (a critério do narrador).'},
+  {key:'visao_acucada', nome:'Visão Aguçada', custo:2, desc:'Testes de exploração relacionados à visão recebem +1.'},
+  {key:'empatia_animal', nome:'Empatia Animal', custo:2, desc:'Testes relacionados a domesticação/guia de um animal recebem +3.'},
+  {key:'manipulador', nome:'Manipulador', custo:2, desc:'Testes de Carisma para mudar um ideal ou pensamento de alguém recebem +2.'},
+  {key:'resistencia_natural', nome:'Resistência Natural', custo:4, desc:'Reduz em 1d4 qualquer dano recebido diretamente no corpo.'},
+  {key:'bom_apetite', nome:'Bom Apetite', custo:2, desc:'Após uma boa refeição em Descanso Longo, recebe +2 em todos os Testes de Defesa até o fim do dia.'},
+  {key:'aparencia_inofensiva', nome:'Aparência Inofensiva', custo:2, desc:'+2 em testes de Carisma contra inimigos.'},
+];
+
+const DEFEITOS = [
+  {key:'amedrontado', nome:'Amedrontado', valor:4, desc:'Quando os inimigos estão em maior número em combate, recebe -2 em Testes de Acerto.'},
+  {key:'barulhento', nome:'Barulhento', valor:6, desc:'Todos os testes de Furtividade são realizados com desvantagem.'},
+  {key:'mal_encarado', nome:'Mal Encarado', valor:2, desc:'-2 em testes da perícia de Carisma.'},
+  {key:'trauma', nome:'Trauma', valor:6, desc:'O narrador cria um trauma para o personagem, ativo desde o início da campanha.'},
+  {key:'mau_nome', nome:'Mau Nome', valor:2, desc:'O personagem é mal visto na sociedade em que vive.'},
+  {key:'vicio', nome:'Vício', valor:4, desc:'Se não satisfizer seu vício durante toda uma sessão, sofre -1 em Testes de Acerto (cumulativo por sessão consecutiva).'},
+  {key:'divida', nome:'Dívida', valor:4, desc:'Possui uma dívida enorme (de vida ou bens materiais) que um dia será cobrada.'},
+  {key:'visao_fraca', nome:'Visão Fraca', valor:4, desc:'Testes de exploração relacionados à visão recebem -2.'},
+  {key:'ferida_antiga', nome:'Ferida Antiga', valor:2, desc:'-1 em todas as rolagens de Vitalidade ou Fortitude.'},
+  {key:'apego_objeto', nome:'Apego a um Objeto', valor:2, desc:'Longe do objeto, sofre -1 em Testes de Defesa; se o item for destruído, sofre 1d6 de dano de Sanidade.'},
+  {key:'medo_morte', nome:'Medo da Morte', valor:4, desc:'Com 1/4 ou menos de PV, todos os Testes de Acerto sofrem -2.'},
+  {key:'dificuldade_aprendizado', nome:'Dificuldade de Aprendizado', valor:6, desc:'Ao final da contagem de XP da sessão, reduz 50 pontos de XP dos ganhos totais (mínimo 0).'},
+  {key:'azarado', nome:'Azarado', valor:6, desc:'Uma vez por sessão, o narrador pode transformar um sucesso em um fracasso.'},
+  {key:'arrogante', nome:'Arrogante', valor:4, desc:'Lutando contra alguém de nível menor que o seu, recebe -2 em Testes de Defesa.'},
+  {key:'codigo_honra', nome:'Código de Honra', valor:4, desc:'Segue um rígido código de conduta criado junto ao narrador.'},
+  {key:'maos_tremulas', nome:'Mãos Trêmulas', valor:4, desc:'-2 em Testes de Acerto à longa distância ou rolagens que exijam muita precisão.'},
+  {key:'obcecado', nome:'Obcecado', valor:4, desc:'Quando uma escolha desvia do objetivo principal, precisa de um teste de Vontade (dificuldade 16) para executá-la.'},
+  {key:'fixacao_limpeza', nome:'Fixação em Limpeza', valor:2, desc:'Em ambiente sujo, sofre -1 em todos os Testes de Defesa.'},
+];
+
+// Tabela de níveis / XP
+const NIVEIS = [
+  {n:0, xp:0,     texto:'Origem // Atributos e Perícias iniciais'},
+  {n:1, xp:200,   texto:'Classe // Habilidade'},
+  {n:2, xp:500,   texto:'PDV // PDE // Habilidade // Perícia'},
+  {n:3, xp:800,   texto:'PDV // PDE // Subclasse // Atributo'},
+  {n:4, xp:1500,  texto:'PDV // PDE // Habilidade // Perícia // +Limite de Perícia'},
+  {n:5, xp:2000,  texto:'PDV // PDE // Aumento de Habilidade'},
+  {n:6, xp:3000,  texto:'PDV // PDE // Habilidade // Atributo'},
+  {n:7, xp:3500,  texto:'PDV // PDE // Habilidade // Perícia'},
+  {n:8, xp:4000,  texto:'PDV // PDE // Atributo // Habilidade de Origem'},
+  {n:9, xp:4500,  texto:'PDV // PDE // Habilidade // Perícia // +Limite de Perícia'},
+  {n:10,xp:5000,  texto:'PDV // PDE // Aumento de Habilidade'},
+  {n:11,xp:6000,  texto:'PDV // PDE // Habilidade // Atributo'},
+  {n:12,xp:7000,  texto:'PDV // PDE // Nova Habilidade'},
+  {n:13,xp:8000,  texto:'PDV // PDE // Habilidade // Perícia'},
+  {n:14,xp:9000,  texto:'PDV // PDE // Atributo'},
+  {n:15,xp:10000, texto:'PDV // PDE // Aumento de Habilidade'},
+  {n:16,xp:12000, texto:'PDV // PDE // Perícia // +Limite de Perícia'},
+  {n:17,xp:14000, texto:'PDV // PDE // Habilidade'},
+  {n:18,xp:16000, texto:'PDV // PDE // Habilidade // Atributo'},
+  {n:19,xp:18000, texto:'PDV // PDE // Perícia'},
+  {n:20,xp:20000, texto:'PDV // PDE // Nova Habilidade'},
+];
+
+// Habilidades Gerais (disponíveis para qualquer personagem, sem restrição de classe/subclasse)
+const HABILIDADES_GERAIS = [
+  {key:'nova_tentativa', nome:'Nova Tentativa',
+    resumo:'Permite re-rolar um dado falho, seu ou de um aliado.',
+    niveis:[
+      {n:1, texto:'Permite ao personagem ou a um aliado re-rolar um dado falho em qualquer rolagem.', custo:'8 PDE e uma Ação Bônus.'},
+      {n:2, texto:'Sem alterações em relação ao nível 1.', custo:'8 PDE e uma Ação Bônus.'},
+      {n:3, texto:'Além de re-rolar o dado falho, o novo teste é realizado com vantagem.', custo:'10 PDE e uma Ação Bônus.'},
+      {n:4, texto:'Sem alterações em relação ao nível 3.', custo:'10 PDE e uma Ação Bônus.'},
+    ], lembrete:'Só pode ser utilizada uma vez por sessão.'},
+  {key:'concentracao_total', nome:'Concentração Total',
+    resumo:'Bônus temporário em Testes de Acerto.',
+    niveis:[
+      {n:1, texto:'+2 em todos os Testes de Acerto por 2 rodadas.', custo:'4 PDE e uma Ação Bônus.'},
+      {n:2, texto:'O bônus aumenta para +3, duração de 2 rodadas.', custo:'5 PDE e uma Ação Bônus.'},
+      {n:3, texto:'Bônus de +3 mantido, duração aumenta para 4 rodadas.', custo:'6 PDE e uma Ação Bônus.'},
+      {n:4, texto:'Bônus aumenta para +4, duração de 4 rodadas.', custo:'8 PDE e uma Ação Bônus.'},
+    ]},
+  {key:'esquiva_avancada', nome:'Esquiva Avançada',
+    resumo:'Melhora a capacidade de esquiva do personagem.',
+    niveis:[
+      {n:1, texto:'Recebe vantagem no teste de esquiva.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:2, texto:'Vantagem no teste de esquiva + 2 na rolagem.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:3, texto:'Vantagem mantida, bônus aumenta para +3 na rolagem.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:4, texto:'Vantagem, +3 na rolagem, e soma o valor de Agilidade mais uma vez ao teste.', custo:'6 PDE e uma Ação de Reação.'},
+    ], lembrete:'Contra múltiplos ataques no mesmo turno, o bônus pode ser aplicado a todos, mas o custo dobra.'},
+  {key:'provocacao', nome:'Provocação',
+    resumo:'Atrai um ataque para si, protegendo um aliado.',
+    niveis:[
+      {n:1, texto:'Pode transferir um ataque (contra inimigo não-jogador) para si.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:2, texto:'Transfere o ataque e recebe +2 no Teste de Defesa contra ele.', custo:'5 PDE e uma Ação de Reação.'},
+      {n:3, texto:'Transfere o ataque; se acertado, reduz o dano em valor igual à perícia de Fortitude.', custo:'5 PDE e uma Ação de Reação.'},
+      {n:4, texto:'Transfere o ataque, +2 no Teste de Defesa, e reduz o dano (se acertado) em valor igual à Fortitude.', custo:'6 PDE e uma Ação de Reação.'},
+    ], lembrete:'Deve ser declarada antes da rolagem de acerto; se declarada depois, o personagem sofre o dano diretamente, sem Teste de Defesa.'},
+  {key:'finta', nome:'Finta',
+    resumo:'Engana o oponente para golpeá-lo com mais precisão.',
+    niveis:[
+      {n:1, texto:'Teste de Agilidade (dificuldade 14); se bem-sucedido, vantagem no próximo Teste de Acerto.', custo:'3 PDE e uma Ação Bônus.'},
+      {n:2, texto:'Além da vantagem, o ataque causa +1d8 de dano adicional.', custo:'4 PDE e uma Ação Bônus.'},
+      {n:3, texto:'Dano adicional aumenta para +1d12, mantendo a vantagem.', custo:'5 PDE e uma Ação Bônus.'},
+      {n:4, texto:'Mantém os bônus anteriores; a margem de crítico do ataque é reduzida em -2.', custo:'6 PDE e uma Ação Bônus.'},
+    ]},
+  {key:'revigoracao', nome:'Revigoração',
+    resumo:'Recupera Pontos de Estamina (PDE) em combate.',
+    niveis:[
+      {n:1, texto:'Recupera 2d4 + Estamina em PDE.', custo:'Um Turno Inteiro.'},
+      {n:2, texto:'Recupera 2d6 + Estamina em PDE.', custo:'Um Turno Inteiro.'},
+      {n:3, texto:'Recupera 3d6 + Estamina em PDE.', custo:'Um Turno Inteiro.'},
+      {n:4, texto:'Recupera 4d6 + Estamina em PDE.', custo:'Um Turno Inteiro.'},
+    ]},
+  {key:'ocultacao_treinada', nome:'Ocultação Treinada',
+    resumo:'Facilita ficar furtivo e concede bônus nesse estado.',
+    niveis:[
+      {n:1, texto:'Em ambiente favorável, vantagem no teste de Furtividade para se esconder.', custo:'2 PDE e um Turno Inteiro.'},
+      {n:2, texto:'Em ambiente favorável, entra automaticamente em estado furtivo (sem teste) por 3 rodadas.', custo:'6 PDE e um Turno Inteiro.'},
+      {n:3, texto:'Mesmas regras do nível 2, apenas o custo muda.', custo:'8 PDE e uma Ação Padrão.'},
+      {n:4, texto:'A duração da ocultação aumenta para 4 rodadas.', custo:'8 PDE e uma Ação Padrão.'},
+    ], lembrete:'Se o personagem acertar qualquer ataque, o efeito termina ao final do turno.'},
+  {key:'casca_grossa', nome:'Casca Grossa',
+    resumo:'Reduz dano recebido e melhora bloqueios.',
+    niveis:[
+      {n:1, texto:'Reduz o dano recebido em valor igual à Fortitude + Vitalidade.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:2, texto:'Mantém a redução; recebe +2 no próximo Teste de Defesa com bloqueio.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:3, texto:'Pode tentar um bloqueio contra ataque de Titã com teste de Força (dificuldade 16); sucesso aplica também o +2 do nível 2.', custo:'5 PDE e uma Ação de Reação.'},
+      {n:4, texto:'Pode bloquear ataques de Titã sem precisar do teste de Força, mantendo o +2 e a redução do nível 1.', custo:'6 PDE e uma Ação de Reação.'},
+    ]},
+  {key:'golpe_sorte', nome:'Golpe de Sorte',
+    resumo:'Reduz a margem de crítico do próximo teste.',
+    niveis:[
+      {n:1, texto:'A margem de crítico do próximo teste é reduzida em -3.', custo:'3 PDE e uma Ação Bônus.'},
+      {n:2, texto:'A redução passa a ser -4.', custo:'4 PDE e uma Ação Bônus.'},
+      {n:3, texto:'A redução passa a ser -5.', custo:'5 PDE e uma Ação Bônus.'},
+      {n:4, texto:'A redução passa a ser -6.', custo:'6 PDE e uma Ação Bônus.'},
+    ]},
+  {key:'proficiencia_dmt', nome:'Proficiência com o DMT',
+    resumo:'Habilidade passiva que aprimora o uso do DMT.',
+    niveis:[
+      {n:1, texto:'Reduz o consumo de gás em 1 unidade ao usar Ação de Movimento; +2 em Testes de Defesa com esquiva usando o DMT.', custo:'6 PDE permanentes (pagos só no desbloqueio).'},
+      {n:2, texto:'Redução de gás passa a 2 unidades; deslocamento com DMT +2 metros; vantagem em testes de fuga/velocidade com o DMT.', custo:'—'},
+      {n:3, texto:'Deslocamento adicional aumenta para +4 metros; +1 em Testes de Acerto usando o DMT.', custo:'—'},
+      {n:4, texto:'O bônus em Testes de Acerto usando o DMT passa a +2.', custo:'—'},
+    ]},
+  {key:'melhoria_geral', nome:'Melhoria Geral',
+    resumo:'Ganha +1 permanente em uma nova perícia a cada nível da habilidade.',
+    niveis:[
+      {n:1, texto:'Adiciona +1 permanente em uma perícia à escolha.', custo:'2 PDE permanentes.'},
+      {n:2, texto:'Adiciona +1 permanente em mais uma perícia diferente.', custo:'2 PDE permanentes.'},
+      {n:3, texto:'Adiciona +1 permanente em mais uma perícia diferente.', custo:'2 PDE permanentes.'},
+      {n:4, texto:'Adiciona +1 permanente em mais uma perícia diferente.', custo:'2 PDE permanentes.'},
+    ], lembrete:'Cada perícia só pode ser beneficiada uma vez por esta habilidade, independente do nível.'},
+  {key:'instinto_sobrevivencia', nome:'Instinto de Sobrevivência',
+    resumo:'Reflexos aprimorados em momentos críticos de vida.',
+    niveis:[
+      {n:1, texto:'Com menos da metade do PV, ganha vantagem em Testes de Defesa com Esquiva até o fim do próximo turno.', custo:'3 PDE e uma Ação de Reação.'},
+      {n:2, texto:'Mantém o efeito anterior; +3 nos próximos Testes de Acerto até o fim do próximo turno.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:3, texto:'Mantém os bônus; o próximo ataque bem-sucedido causa +1d10 de dano extra.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:4, texto:'Mantém tudo; além disso, recebe Vantagem no próximo Teste de Acerto.', custo:'5 PDE e uma Ação de Reação.'},
+    ]},
+  {key:'impulso_aprimorado', nome:'Impulso Aprimorado',
+    resumo:'Usa os propulsores do DMT para ataques mais poderosos.',
+    niveis:[
+      {n:1, texto:'O próximo ataque recebe +1d6 de dano adicional.', custo:'3 PDE, 4 Pontos de Gás e 4 Metros de Deslocamento.'},
+      {n:2, texto:'O dano adicional passa a +1d8.', custo:'3 PDE, 4 Pontos de Gás e 4 Metros de Deslocamento.'},
+      {n:3, texto:'Além do dano, vantagem no Teste de Acerto do próximo ataque.', custo:'4 PDE, 5 Pontos de Gás e 5 Metros de Deslocamento.'},
+      {n:4, texto:'O dano adicional passa a +1d10.', custo:'4 PDE, 5 Pontos de Gás e 5 Metros de Deslocamento.'},
+    ], lembrete:'Só pode ser usada se o personagem estiver equipado com lâminas no DMT.'},
+  {key:'critico_aprimorado', nome:'Crítico Aprimorado',
+    resumo:'Permite re-rolar ou escolher o efeito de crítico positivo.',
+    niveis:[
+      {n:1, texto:'Pode re-rolar uma vez o dado de efeito crítico e escolher o melhor resultado.', custo:'3 PDE.'},
+      {n:2, texto:'Sem alterações.', custo:'3 PDE.'},
+      {n:3, texto:'Pode escolher diretamente qualquer efeito de crítico positivo, sem rolagem.', custo:'4 PDE.'},
+      {n:4, texto:'Sem alterações.', custo:'4 PDE.'},
+    ]},
+  {key:'segunda_chance', nome:'Segunda Chance',
+    resumo:'Uma única chance na vida de escapar da morte.',
+    niveis:[
+      {n:1, texto:'Ao falhar no teste para estabilizar-se na condição Morrendo (sem ajuda de aliados), sai da condição com 1 PDV, mas fica com Ferido Permanente.', custo:'—'},
+      {n:2, texto:'Sem alterações.', custo:'—'},
+      {n:3, texto:'Sem alterações.', custo:'—'},
+      {n:4, texto:'Sem alterações.', custo:'—'},
+    ], lembrete:'Só pode ser utilizada uma única vez em toda a vida do personagem.'},
+  {key:'reviravolta', nome:'Reviravolta',
+    resumo:'Canaliza o dano recebido em força ofensiva.',
+    niveis:[
+      {n:1, texto:'Se recebeu qualquer ataque na rodada anterior/atual, o próximo ataque bem-sucedido causa +1d10 de dano.', custo:'5 PDE.'},
+      {n:2, texto:'Se sofreu 15+ de dano na rodada anterior/atual, o próximo ataque causa +2d6 de dano.', custo:'5 PDE.'},
+      {n:3, texto:'Se sofreu 20+ de dano, o próximo ataque causa +3d6 de dano.', custo:'6 PDE.'},
+      {n:4, texto:'Se sofreu 30+ de dano, o próximo ataque causa +3d8 de dano.', custo:'6 PDE.'},
+    ]},
+  {key:'explorar_ferimento', nome:'Explorar Ferimento',
+    resumo:'Explora a perda de membros de um Titã para atacar com mais eficácia.',
+    niveis:[
+      {n:1, texto:'Se o Titã tiver qualquer membro faltando, recebe Vantagem no Teste de Acerto contra ele.', custo:'3 PDE e uma Ação Bônus.'},
+      {n:2, texto:'Mantém a vantagem; o próximo ataque bem-sucedido causa +1d10 de dano adicional.', custo:'4 PDE e uma Ação Bônus.'},
+      {n:3, texto:'Mantém os efeitos; o dano adicional aumenta para +2d6.', custo:'5 PDE e uma Ação Bônus.'},
+      {n:4, texto:'Mantém a vantagem e +2d8 de dano adicional; recebe +2 no Teste de Acerto contra o Titã.', custo:'6 PDE e uma Ação Bônus.'},
+    ]},
+  {key:'experiencia_campo', nome:'Experiência de Campo',
+    resumo:'Acumula XP extra com ataques bem-sucedidos contra Titãs em ameaça real.',
+    niveis:[
+      {n:1, texto:'Acerto em Titã em situação de ameaça: +10 XP na contagem da habilidade; o ataque sofre -1d4 de dano.', custo:'2 PDE.'},
+      {n:2, texto:'+15 XP na contagem; ataque ainda com -1d4 de dano.', custo:'2 PDE.'},
+      {n:3, texto:'+20 XP na contagem; ataque ainda com -1d4 de dano.', custo:'2 PDE.'},
+      {n:4, texto:'+25 XP na contagem; ataque ainda com -1d4 de dano.', custo:'2 PDE.'},
+    ], lembrete:'Ao acumular 75 XP na contagem da habilidade, esses pontos são somados à ficha e o contador zera.'},
+  {key:'resposta_imediata', nome:'Resposta Imediata',
+    resumo:'Contra-ataca após um Teste de Defesa bem-sucedido.',
+    niveis:[
+      {n:1, texto:'Se bem-sucedido em um Teste de Defesa (sem crítico positivo/negativo), pode contra-atacar com um ataque padrão.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:2, texto:'Sem alterações.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:3, texto:'Mesmo sem sucesso no Teste de Defesa, ainda pode contra-atacar.', custo:'4 PDE e uma Ação de Reação.'},
+      {n:4, texto:'Sem alterações.', custo:'4 PDE e uma Ação de Reação.'},
+    ]},
+  {key:'sacrificio', nome:'Sacrifício',
+    resumo:'Canaliza as últimas forças para proteger companheiros — ao custo da própria vida.',
+    niveis:[
+      {n:1, texto:'Na condição Morrendo, ignora-a por 2 rodadas, imune a dano e condições negativas; dobra o bônus de acerto, +2d8 de dano, imune a falhas críticas, margem de crítico -4. Após 2 rodadas, morre.', custo:'Todos os PDE restantes.'},
+      {n:2, texto:'Mesmas regras; dano extra +3d8; Vantagem em todos os Testes de Acerto durante as 2 rodadas.', custo:'Todos os PDE restantes.'},
+      {n:3, texto:'Dano adicional +3d12; margem de crítico -6.', custo:'Todos os PDE restantes.'},
+      {n:4, texto:'Dupla Vantagem em todos os Testes de Acerto durante os últimos 2 turnos de vida.', custo:'Todos os PDE restantes.'},
+    ], lembrete:'A única forma de salvar o personagem é um Médico com "Até o Último Homem" tentar um teste de Medicina (dificuldade 20).'},
+];
+
+// Titãs — tabela de referência (linha base de cada tipo, conforme a planilha oficial)
+const TITAS = {
+  ataque:      {nome:'Titã de Ataque',      agi:8, est:6, for:8,  int:5,  vit:5, nuca:85, bracoD:45, bracoE:45, pernaD:45, pernaE:45, desloc:8,  custo:15},
+  colossal:    {nome:'Titã Colossal',       agi:1, est:4, for:9,  int:6,  vit:8, nuca:75, bracoD:50, bracoE:50, pernaD:80, pernaE:80, desloc:10, custo:25},
+  bestial:     {nome:'Titã Bestial',        agi:6, est:4, for:6,  int:8,  vit:6, nuca:85, bracoD:40, bracoE:40, pernaD:40, pernaE:40, desloc:6,  custo:18},
+  femea:       {nome:'Titã Fêmea',          agi:9, est:8, for:7,  int:6,  vit:4, nuca:80, bracoD:40, bracoE:40, pernaD:40, pernaE:40, desloc:10, custo:15},
+  blindado:    {nome:'Titã Blindado',       agi:5, est:6, for:8,  int:4,  vit:7, nuca:95, bracoD:50, bracoE:50, pernaD:50, pernaE:50, desloc:6,  custo:18},
+  mandibula:   {nome:'Titã Mandíbula',      agi:9, est:8, for:6,  int:4,  vit:4, nuca:65, bracoD:30, bracoE:30, pernaD:30, pernaE:30, desloc:10, custo:12},
+  carroceiro:  {nome:'Titã Carroceiro',     agi:8, est:14,for:4,  int:6,  vit:8, nuca:70, bracoD:40, bracoE:40, pernaD:40, pernaE:40, desloc:16, custo:8},
+  martelo:     {nome:'Titã Martelo de Guerra', agi:6, est:8, for:6, int:6, vit:8, nuca:80, bracoD:40, bracoE:40, pernaD:40, pernaE:40, desloc:8, custo:15},
+  fundador:    {nome:'Titã Fundador',       agi:8, est:6, for:6,  int:12, vit:6, nuca:80, bracoD:40, bracoE:40, pernaD:40, pernaE:40, desloc:8,  custo:15},
+};
+
+const DIST_INICIAL = [4,3,2,2,1]; // valores a distribuir entre os 5 atributos no nível 0
+</script>
+</body>
 </html>
