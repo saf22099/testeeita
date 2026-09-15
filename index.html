@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Arial, sans-serif;
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      main {
+        text-align: center;
+        background: #ffffff;
+        padding: 2rem 3rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      }
+
+      button {
+        margin-top: 1rem;
+        padding: 0.75rem 1.25rem;
+        border: none;
+        border-radius: 8px;
+        background: #2563eb;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Teste</h1>
+      <p id="mensagem">Clique no botão para testar.</p>
+      <button id="btnTeste" type="button">Executar teste</button>
+    </main>
+
+    <script>
+      const btnTeste = document.getElementById('btnTeste');
+      const mensagem = document.getElementById('mensagem');
+
+      btnTeste.addEventListener('click', () => {
+        mensagem.textContent = 'Teste executado com sucesso!';
+      });
+    </script>
+  </body>
+</html>
