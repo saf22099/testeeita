@@ -106,6 +106,29 @@ button.small{padding:5px 10px;font-size:0.75rem;}
 .char-thumbnail{width:96px;height:96px;flex-shrink:0;border-radius:var(--radius);border:1px solid var(--border-light);
   background:var(--surface-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
   position:relative;transition:border-color .15s ease, transform .15s ease;}
+.catalog-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px 18px;text-align:center;cursor:pointer;transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease;}
+.catalog-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,0.3);}
+.catalog-card h4{color:var(--accent);font-size:1.05rem;margin-bottom:6px;}
+.catalog-card p{color:var(--text-dim);font-size:0.78rem;}
+.hero-card{background:linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);text-align:center;padding:36px 24px;}
+.hero-inner{display:flex;flex-direction:column;align-items:center;}
+.hero-logo{width:64px;height:64px;object-fit:contain;margin-bottom:14px;}
+.char-list-avatar{width:56px;height:56px;flex-shrink:0;border-radius:var(--radius-sm);object-fit:cover;border:1px solid var(--border-light);}
+.char-list-avatar-empty{display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--text-dim);font-size:0.6rem;text-align:center;text-transform:uppercase;letter-spacing:0.4px;}
+.initiative-token{display:flex;align-items:center;gap:14px;background:var(--surface-2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 14px;margin:8px 0;flex-wrap:wrap;transition:border-color .15s ease, opacity .15s ease, background .15s ease;}
+.initiative-token:hover{border-color:var(--border-light);}
+.initiative-token.dragging{opacity:0.4;}
+.initiative-token.drag-over{border-color:var(--accent);background:var(--surface-3);}
+.initiative-drag-handle{cursor:grab;color:var(--text-dim);display:flex;align-items:center;}
+.initiative-drag-handle:active{cursor:grabbing;}
+.initiative-order{font-family:var(--mono);font-weight:700;color:var(--accent);min-width:22px;text-align:center;}
+.initiative-avatar{width:52px;height:52px;border-radius:var(--radius-sm);object-fit:cover;border:1px solid var(--border-light);flex-shrink:0;}
+.initiative-avatar-empty{display:flex;align-items:center;justify-content:center;background:var(--surface-3);color:var(--text-dim);font-family:var(--mono);font-weight:700;flex-shrink:0;}
+.initiative-actions{display:flex;flex-direction:column;gap:6px;}
+@keyframes screenFadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.top-screen{animation:screenFadeIn .22s ease;}
 .char-thumbnail:hover{border-color:var(--accent);transform:translateY(-2px);}
 .char-thumbnail span{color:var(--text-dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;}
 .char-thumbnail img{width:100%;height:100%;object-fit:cover;}
@@ -122,13 +145,13 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 textarea{min-height:100px;resize:vertical;line-height:1.5;}
 
 .tabs{display:flex;gap:2px;margin-bottom:20px;flex-wrap:wrap;border-bottom:1px solid var(--border);}
-.tab{padding:11px 18px;background:transparent;border:none;border-radius:0;cursor:pointer;
+.tab, .escudo-tab{padding:11px 18px;background:transparent;border:none;border-radius:0;cursor:pointer;
   font-weight:500;color:var(--text-muted);font-size:0.85rem;border-bottom:2px solid transparent;}
-.tab:hover{color:var(--text);background:var(--surface);}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
+.tab:hover, .escudo-tab:hover{color:var(--text);background:var(--surface);}
+.tab.active, .escudo-tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
 
-.section{display:none;}
-.section.active{display:block;}
+.section, .escudo-section{display:none;}
+.section.active, .escudo-section.active{display:block;}
 
 .resource-bar{height:8px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin-top:8px;border:1px solid var(--border);}
 .resource-fill{height:100%;background:var(--success);width:100%;transition:width .2s ease;}
@@ -335,26 +358,221 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 <body>
 <div class="container">
   <header>
-    <div style="display:flex;align-items:center;gap:14px;">
+    <div style="display:flex;align-items:center;gap:14px;cursor:pointer;" onclick="goToMainMenu()" title="Voltar à página principal">
       <img src="https://cdn.discordapp.com/emojis/1380503367180353650.webp?size=2048" alt="" style="width:42px;height:42px;object-fit:contain;" onerror="this.style.display='none'" />
       <h1>Coordenada<small>Ficha de Personagem</small></h1>
     </div>
-    <div>
-      <button id="btnBackHeader" class="ghost hidden">&larr; Voltar</button>
-      <button id="btnNewChar" class="primary">Nova Ficha</button>
-      <button id="btnImport">Importar JSON</button>
-      <input type="file" id="fileImport" class="file-input" accept=".json" />
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="ghost" onclick="goToMainMenu()">&larr; Hub</button>
+      <div id="appHeaderActions" class="hidden">
+        <button id="btnBackHeader" class="ghost hidden">&larr; Voltar</button>
+        <button id="btnNewChar" class="primary">Nova Ficha</button>
+        <button id="btnImport">Importar JSON</button>
+        <input type="file" id="fileImport" class="file-input" accept=".json" />
+      </div>
     </div>
   </header>
 
-  <div id="screenHome">
+  <div id="screenMainMenu" class="top-screen">
+    <div class="card hero-card">
+      <div class="hero-inner">
+        <img src="https://cdn.discordapp.com/emojis/1380503367180353650.webp?size=2048" alt="" class="hero-logo" onerror="this.style.display='none'" />
+        <h2 style="border:none;padding:0;margin-bottom:10px;">Coordenada RPG</h2>
+        <p style="color:var(--text-muted);font-size:0.95rem;line-height:1.7;max-width:640px;">
+          Coordenada é um sistema de RPG de mesa ambientado no universo de Attack on Titan, com regras próprias
+          de combate, sobrevivência, Equipamento de Manobra Tridimensional, Titãs e muito mais. Esta ferramenta
+          reúne tudo o que você precisa pra jogar, incluindo fichas de personagem completas e automáticas, um
+          painel de apoio para o Mestre, e o material da campanha oficial Liandry.
+        </p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px;">
+      <h2>Catálogos</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:18px;">Escolha para onde ir.</p>
+      <div class="grid grid-4" id="catalogGrid">
+        <div class="catalog-card" onclick="enterCatalog('soldados')">
+          <h4>Soldados</h4>
+          <p>Fichas de personagem</p>
+        </div>
+        <div class="catalog-card" onclick="enterCatalog('escudo')">
+          <h4>Escudo do Mestre</h4>
+          <p>Painel de mestre e regras</p>
+        </div>
+        <div class="catalog-card" onclick="enterCatalog('liandry')">
+          <h4>Liandry</h4>
+          <p>A campanha oficial</p>
+        </div>
+        <div class="catalog-card" onclick="enterCatalog('contatos')">
+          <h4>Contatos</h4>
+          <p>Equipe e comunidade</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screenCatalogPlaceholder" class="hidden top-screen">
+    <div class="card">
+      <h2 id="catalogPlaceholderTitle">Em breve</h2>
+      <p style="color:var(--text-muted);">Este catálogo ainda está em desenvolvimento.</p>
+      <button class="ghost" style="margin-top:14px;" onclick="goToMainMenu()">&larr; Voltar à página principal</button>
+    </div>
+  </div>
+
+  <div id="screenContatos" class="hidden top-screen">
+    <div class="card">
+      <h2>Contatos</h2>
+      <div class="grid grid-3" style="margin-top:10px;">
+        <div class="mini-card">
+          <h4>Desenvolvimento</h4>
+          <p style="margin-top:8px;">Safizitos</p>
+          <a class="footer-discord" style="margin-top:12px;width:fit-content;" href="https://discord.gg/rzaqtbDCve" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 127.14 96.36" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21a105.73,105.73,0,0,0,32.17,16.15A77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+            <span>Discord</span>
+          </a>
+        </div>
+        <div class="mini-card">
+          <h4>Mestre</h4>
+          <p style="margin-top:8px;">Passoka</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+            <a class="footer-discord" style="width:fit-content;" href="https://discord.gg/rzaqtbDCve" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 127.14 96.36" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21a105.73,105.73,0,0,0,32.17,16.15A77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+              <span>Discord</span>
+            </a>
+            <a class="footer-discord" style="width:fit-content;" href="https://x.com/P4ssok4" target="_blank" rel="noopener noreferrer"><span>X (Twitter)</span></a>
+          </div>
+        </div>
+        <div class="mini-card">
+          <h4>Comunidade</h4>
+          <p style="margin-top:8px;">Servidor oficial do Discord</p>
+          <a class="footer-discord" style="margin-top:12px;width:fit-content;" href="https://discord.gg/rzaqtbDCve" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 127.14 96.36" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21a105.73,105.73,0,0,0,32.17,16.15A77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+            <span>Discord</span>
+          </a>
+        </div>
+      </div>
+      <div class="mini-card" style="margin-top:16px;">
+        <h4>YouTube</h4>
+        <p style="margin-top:8px;">Canal oficial Coordenada RPG</p>
+        <a class="footer-discord" style="margin-top:12px;width:fit-content;" href="https://www.youtube.com/@CoordenadaRPG" target="_blank" rel="noopener noreferrer"><span>Abrir Canal</span></a>
+      </div>
+      <button class="ghost" style="margin-top:18px;" onclick="goToMainMenu()">&larr; Voltar à página principal</button>
+    </div>
+  </div>
+
+  <div id="screenLiandry" class="hidden top-screen">
+    <div class="card">
+      <h2>Liandry</h2>
+      <p style="color:var(--text-dim);font-size:0.8rem;margin-top:-6px;margin-bottom:14px;">Uma campanha de Coordenada</p>
+      <a class="footer-discord" style="width:fit-content;" href="https://www.youtube.com/watch?v=-lgnv4ML7tg&list=PL_2k6SQEb5niZH-7Nshu1I4wG3eOgQX-v" target="_blank" rel="noopener noreferrer"><span>Assistir no YouTube</span></a>
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+        <h3>Sobre a Campanha</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;line-height:1.7;margin-top:8px;">
+          Liandry é a campanha oficial de Coordenada, jogada e narrada usando as regras deste sistema
+          dentro do universo de Attack on Titan. Acompanhe a jornada do grupo em vídeo, episódio por episódio,
+          direto no YouTube.
+        </p>
+      </div>
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--border);">
+        <h3>Episódios</h3>
+        <p style="color:var(--text-dim);font-size:0.85rem;margin-top:8px;">A lista completa de episódios está disponível na playlist do YouTube. Em breve, cada episódio terá sua própria ficha aqui.</p>
+      </div>
+    </div>
+    <button class="ghost" style="margin-top:18px;" onclick="goToMainMenu()">&larr; Voltar à página principal</button>
+  </div>
+
+  <div id="screenEscudo" class="hidden top-screen">
+    <div class="tabs">
+      <button class="escudo-tab active" data-escudo-tab="escudoEncontro" onclick="switchEscudoTab('escudoEncontro', this)">Encontro</button>
+      <button class="escudo-tab" data-escudo-tab="escudoIniciativa" onclick="switchEscudoTab('escudoIniciativa', this)">Iniciativa</button>
+      <button class="escudo-tab" data-escudo-tab="escudoTitans" onclick="switchEscudoTab('escudoTitans', this)">Titãs</button>
+      <button class="escudo-tab" data-escudo-tab="escudoRegras" onclick="switchEscudoTab('escudoRegras', this)">Regras</button>
+      <button class="escudo-tab" data-escudo-tab="escudoBiomas" onclick="switchEscudoTab('escudoBiomas', this)">Biomas</button>
+    </div>
+
+    <div id="escudoEncontro" class="escudo-section active">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <h2 style="margin:0;padding:0;border:none;">Encontro Atual</h2>
+          <button class="primary" onclick="openEncounterAddModal()">+ Adicionar ao Encontro</button>
+        </div>
+        <div class="grid grid-2" style="margin-top:14px;">
+          <div class="derived-stat"><span><strong>Titãs visíveis:</strong></span><span id="encontroTitanCount">0</span></div>
+          <div class="derived-stat"><span><strong>Soldados visíveis:</strong></span><span id="encontroSoldierCount">0</span></div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h3 style="margin-bottom:12px;">Soldados</h3>
+        <div id="encontroSoldiersList"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h3 style="margin-bottom:12px;">Titãs</h3>
+        <div id="encontroTitansList"></div>
+      </div>
+    </div>
+
+    <div id="escudoIniciativa" class="escudo-section">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <h2 style="margin:0;padding:0;border:none;">Ordem de Iniciativa</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="openInitiativePickerModal('soldados')">+ Puxar Soldado</button>
+            <button onclick="openInitiativePickerModal('titans')">+ Puxar Titã</button>
+            <button class="primary" onclick="openInitiativeModal()">+ Adicionar Manual</button>
+            <button class="danger" onclick="clearInitiative()">Limpar Iniciativa</button>
+          </div>
+        </div>
+        <p style="color:var(--text-dim);font-size:0.78rem;margin-top:10px;">Arraste os cartões pelo ícone à esquerda para reordenar. Puxe soldados e Titãs já cadastrados, ou adicione um participante manualmente com PDV e PDE próprios.</p>
+        <div id="initiativeList" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <div id="escudoTitans" class="escudo-section">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <h2 style="margin:0;padding:0;border:none;">Titãs Puros Cadastrados</h2>
+          <button class="primary" onclick="openGMTitanModal()">+ Criar Titã</button>
+        </div>
+        <div id="gmTitansList" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <div id="escudoRegras" class="escudo-section">
+      <div class="card">
+        <h2>Regras Rápidas</h2>
+        <input type="text" id="rulesSearch" class="lib-search" placeholder="Pesquisar regra por título ou conteúdo..." oninput="renderRulesReference()" />
+        <div id="rulesGrid"></div>
+      </div>
+    </div>
+
+    <div id="escudoBiomas" class="escudo-section">
+      <div class="card">
+        <h2>Bioma Ativo</h2>
+        <div id="activeBiomaBanner"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2>Ambientes</h2>
+        <div class="grid grid-3" id="biomasAmbienteGrid"></div>
+      </div>
+      <div class="card" style="margin-top:18px;">
+        <h2>Clima</h2>
+        <div class="grid grid-3" id="biomasClimaGrid"></div>
+      </div>
+    </div>
+
+    <button class="ghost" style="margin-top:18px;" onclick="goToMainMenu()">&larr; Voltar à página principal</button>
+  </div>
+
+  <div id="screenHome" class="hidden top-screen">
     <div class="card">
       <h2>Seus Personagens</h2>
       <div id="charList" class="grid grid-3"></div>
     </div>
   </div>
 
-  <div id="screenWizard" class="hidden">
+  <div id="screenWizard" class="hidden top-screen">
     <div class="card">
       <h2>Criação de Personagem — Nível 0</h2>
 
@@ -424,7 +642,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
     </div>
   </div>
 
-  <div id="screenSheet" class="hidden">
+  <div id="screenSheet" class="hidden top-screen">
     <div class="tabs">
       <button class="tab active" data-tab="tabGeneral">Ficha</button>
       <button class="tab" data-tab="tabProgression">Progressão</button>
@@ -680,7 +898,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
           <div>Espaços: <strong style="color:var(--accent);"><span id="personalWeightUsed">0</span> / <span id="personalWeightMax">5</span></strong> <span id="personalOverloadNote" style="color:var(--warning);font-size:0.8rem;"></span></div>
           <div style="display:flex;gap:8px;">
             <button class="small" onclick="openResourceBonusModal('personalCapacity')">Adicionar Bônus de Capacidade</button>
-            <button class="primary" onclick="openItemModal(null,'personal')">Adicionar Item</button>
+            <button class="primary" onclick="openEquipmentPicker('personal')">Adicionar Item</button>
           </div>
         </div>
         <div class="resource-bar"><div id="personalWeightBar" class="resource-fill"></div></div>
@@ -692,9 +910,9 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
       <div class="card" style="margin-top:18px;">
         <h2>Inventário da Montaria</h2>
         <div style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;">Peso: <strong style="color:var(--accent);"><span id="mountWeightUsed">0</span> / <span id="mountWeightMax">20</span> kg</strong></div>
+          <div style="flex:1;">Peso: <strong style="color:var(--accent);"><span id="mountWeightUsed">0</span> / <span id="mountWeightMax">20</span></strong></div>
           <div style="width:120px;"><label>Capacidade</label><input id="mountCapacityInput" type="number" min="1" value="20" onchange="updateMountCapacity()" /></div>
-          <button class="primary" onclick="openItemModal(null,'mount')">Adicionar Item</button>
+          <button class="primary" onclick="openEquipmentPicker('mount')">Adicionar Item</button>
         </div>
         <div class="resource-bar"><div id="mountWeightBar" class="resource-fill"></div></div>
         <div id="mountInventoryList" style="margin-top:14px;"></div>
@@ -1106,9 +1324,121 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
   </div>
 </div>
 
+<div id="gmTitanModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeGMTitanModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 id="gmTitanModalTitle">Criar Titã</h2>
+    <input type="hidden" id="gmTitanEditId" />
+    <div><label>Nome</label><input id="gmTitanName" placeholder="Ex: Titã Anormal" /></div>
+    <div class="grid grid-2" style="margin-top:14px;">
+      <div><label>Categoria Base</label>
+        <select id="gmTitanCategory">
+          <option value="3-5">3 a 5 Metros</option>
+          <option value="6-9">6 a 9 Metros</option>
+          <option value="10-14">10 a 14 Metros</option>
+          <option value="15">15 Metros</option>
+        </select>
+      </div>
+      <div><label>Variação</label>
+        <select id="gmTitanVariation">
+          <option value="nenhuma">Nenhuma</option>
+          <option value="gordo">Titã Gordo</option>
+          <option value="magro">Titã Magro</option>
+          <option value="atletico">Titã Atlético</option>
+          <option value="custom">Custom (editar manualmente)</option>
+        </select>
+      </div>
+    </div>
+    <div id="gmTitanCustomFields" class="hidden" style="margin-top:16px;">
+      <label>PDV por Parte (edite livremente)</label>
+      <div class="grid grid-3" style="margin-top:8px;">
+        <div><label style="text-transform:none;font-weight:400;">Nuca</label><input id="gmTitanCustomNuca" type="number" min="1" value="40" /></div>
+        <div><label style="text-transform:none;font-weight:400;">Braço D.</label><input id="gmTitanCustomBracoD" type="number" min="1" value="20" /></div>
+        <div><label style="text-transform:none;font-weight:400;">Braço E.</label><input id="gmTitanCustomBracoE" type="number" min="1" value="20" /></div>
+        <div><label style="text-transform:none;font-weight:400;">Perna D.</label><input id="gmTitanCustomPernaD" type="number" min="1" value="20" /></div>
+        <div><label style="text-transform:none;font-weight:400;">Perna E.</label><input id="gmTitanCustomPernaE" type="number" min="1" value="20" /></div>
+      </div>
+      <div style="margin-top:14px;"><label>Notas / Habilidades Customizadas</label><textarea id="gmTitanCustomNotes" style="min-height:70px;" placeholder="Descreva ataques, habilidades ou traços únicos deste Titã..."></textarea></div>
+    </div>
+    <div id="gmTitanPreview" class="mini-card" style="margin-top:16px;"></div>
+    <div class="modal-actions">
+      <button onclick="closeGMTitanModal()">Cancelar</button>
+      <button class="primary" onclick="saveGMTitan()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="gmTitanDamageModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:380px;">
+    <button class="modal-close" onclick="closeGMTitanDamageModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2>Aplicar Dano</h2>
+    <div><label>Parte Atingida</label>
+      <select id="gmTitanDamagePart">
+        <option value="nuca">Nuca</option>
+        <option value="bracoD">Braço Direito</option>
+        <option value="bracoE">Braço Esquerdo</option>
+        <option value="pernaD">Perna Direita</option>
+        <option value="pernaE">Perna Esquerda</option>
+      </select>
+    </div>
+    <div style="margin-top:14px;"><label>Quantidade de Dano</label><input id="gmTitanDamageInput" type="number" min="0" value="0" /></div>
+    <div class="modal-actions">
+      <button onclick="closeGMTitanDamageModal()">Cancelar</button>
+
+      <button class="danger" onclick="confirmGMTitanDamage()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div id="encounterAddModal" class="overlay-modal hidden">
+  <div class="big-modal">
+    <button class="modal-close" onclick="closeEncounterAddModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 style="padding-right:40px;">Adicionar ao Encontro</h2>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">Soldados e Titãs ocultados do encontro aparecem aqui.</p>
+    <div id="encounterAddGrid" class="lib-grid"></div>
+  </div>
+</div>
+
+<div id="initiativePickerModal" class="overlay-modal hidden">
+  <div class="big-modal">
+    <button class="modal-close" onclick="closeInitiativePickerModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 id="initiativePickerTitle" style="padding-right:40px;">Puxar para a Iniciativa</h2>
+    <div id="initiativePickerGrid" class="lib-grid"></div>
+  </div>
+</div>
+
+<div id="initiativeModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeInitiativeModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 id="initiativeModalTitle">Adicionar Participante</h2>
+    <input type="hidden" id="initiativeEditId" />
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+      <div class="char-thumbnail" id="initiativeThumbnail" onclick="document.getElementById('initiativeImageInput').click()" title="Clique para definir a foto">
+        <span id="initiativeThumbnailPlaceholder">Foto</span>
+        <img id="initiativeThumbnailImg" class="hidden" alt="" />
+      </div>
+      <input type="file" id="initiativeImageInput" accept="image/*" class="file-input" onchange="handleInitiativeImageUpload(event)" />
+      <div style="flex:1;min-width:220px;">
+        <label>Nome</label><input id="initiativeName" placeholder="Ex: Soldado, Titã, NPC..." />
+      </div>
+    </div>
+    <div class="grid grid-2" style="margin-top:14px;">
+      <div><label>PDV Atual</label><input id="initiativePvCur" type="number" min="0" value="10" /></div>
+      <div><label>PDV Máximo</label><input id="initiativePvMax" type="number" min="0" value="10" /></div>
+      <div><label>PDE Atual</label><input id="initiativePeCur" type="number" min="0" value="10" /></div>
+      <div><label>PDE Máximo</label><input id="initiativePeMax" type="number" min="0" value="10" /></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeInitiativeModal()">Cancelar</button>
+      <button class="primary" onclick="saveInitiativeParticipant()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="titanCreatorModal" class="overlay-modal hidden">
   <div class="big-modal">
     <button class="modal-close" onclick="closeTitanCreatorModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+
     <h2 style="padding-right:40px;">Criar Titã Customizado</h2>
     <div class="grid grid-2">
       <div><label>Nome do Titã</label><input id="titNameCreate" placeholder="Ex: Titã Rastreador" /></div>
@@ -1164,6 +1494,24 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
   </div>
 </div>
 
+<div id="equipmentPickerModal" class="overlay-modal hidden">
+  <div class="big-modal">
+    <button class="modal-close" onclick="closeEquipmentPicker()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <div class="lib-header">
+      <h2 style="margin:0;padding:0;border:none;">Equipamentos do Sistema</h2>
+      <button class="primary" onclick="startCreateItemFromPicker()">Criar Item</button>
+    </div>
+    <input type="text" id="equipmentPickerSearch" class="lib-search" placeholder="Pesquisar equipamento por nome ou efeito..." oninput="renderEquipmentPicker()" />
+    <div class="lib-filters">
+      <button class="primary" onclick="setEquipmentFilter('all', event)">Todos</button>
+      <button onclick="setEquipmentFilter('arma', event)">Armas</button>
+      <button onclick="setEquipmentFilter('equipamento', event)">Equipamentos</button>
+      <button onclick="setEquipmentFilter('consumivel', event)">Consumíveis</button>
+    </div>
+    <div id="equipmentPickerGrid" class="lib-grid"></div>
+  </div>
+</div>
+
 <div id="itemModal" class="modal-overlay hidden">
   <div class="modal">
     <button class="modal-close" onclick="closeItemModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
@@ -1175,7 +1523,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
       <div><label>Quantidade</label><input id="itemQuantity" type="number" min="1" value="1" /></div>
     </div>
     <div class="grid grid-2" style="margin-top:14px;">
-      <div><label id="itemWeightLabel">Peso (kg)</label><input id="itemWeight" type="number" min="0" step="0.1" value="0" /></div>
+      <div><label id="itemWeightLabel">Peso</label><input id="itemWeight" type="number" min="0" step="0.1" value="0" /></div>
       <div><label>Categoria</label>
         <select id="itemCategory">
           <option value="arma">Arma</option>
@@ -1194,6 +1542,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
     <div style="margin-top:14px;"><label>Propriedades</label><input id="itemProperties" placeholder="Ex: Pesada, enferrujada, mágica" /></div>
     <div style="margin-top:14px;"><label>Requisitos</label><input id="itemRequirements" placeholder="Ex: Força 3" /></div>
     <div style="margin-top:14px;"><label>Bônus</label><input id="itemBonuses" placeholder="Ex: +1 em Luta" /></div>
+    <div style="margin-top:14px;"><label>Bônus de Capacidade de Inventário (mochilas, etc. — só no pessoal)</label><input id="itemCapacityBonus" type="number" min="0" value="0" /></div>
     <div style="margin-top:14px;"><label>Observações</label><textarea id="itemNotes" placeholder="Observações adicionais..." style="min-height:56px;"></textarea></div>
     <div class="modal-actions">
       <button onclick="closeItemModal()">Cancelar</button>
@@ -1312,6 +1661,30 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
     <div class="modal-actions">
       <button onclick="closeCustomSkillModal()">Cancelar</button>
       <button class="primary" onclick="addCustomSkill()" id="customSkillSaveBtn">Criar Habilidade</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" onclick="closeConfirmModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2>Confirmar</h2>
+    <p id="confirmModalMessage" style="color:var(--text-muted);line-height:1.5;"></p>
+    <div class="modal-actions">
+      <button onclick="closeConfirmModal()">Cancelar</button>
+      <button class="danger" onclick="confirmModalYes()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="setResourceModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:380px;">
+    <button class="modal-close" onclick="closeSetResourceModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 id="setResourceTitle">Definir Valor</h2>
+    <div><label>Valor Atual</label><input id="setResourceInput" type="number" min="0" /></div>
+    <div class="modal-actions">
+      <button onclick="closeSetResourceModal()">Cancelar</button>
+      <button class="primary" onclick="confirmSetResource()">Definir</button>
     </div>
   </div>
 </div>
@@ -2027,6 +2400,141 @@ function getAllTitans() {
 function getTitanById(id) { return getAllTitans()[id]; }
 
 /* ============================================================
+   DADOS — EQUIPAMENTOS DO SISTEMA
+   ============================================================ */
+const EQUIPMENT_DB = [
+  { id: 'atadura', name: 'Atadura', category: 'consumivel', weight: 1,
+    description: 'Teste de Medicina (dificuldade 10, Ação Bônus): restaura 2d4 + valor na perícia de Medicina em PDV de um alvo. Se falhar, o item se mantém.',
+    dice: '2d4 + Medicina', properties: 'Uso único.' },
+  { id: 'kit_primeiros_socorros', name: 'Kit de Primeiros Socorros', category: 'consumivel', weight: 3,
+    description: 'Teste de Medicina (dificuldade 16, Ação Padrão): restaura 3d6 + valor na perícia de Medicina em PDV de um alvo. Se falhar, o item se mantém.',
+    dice: '3d6 + Medicina', properties: '2 usos.' },
+  { id: 'pilula_adrenalina', name: 'Pílula de Adrenalina', category: 'consumivel', weight: 1,
+    description: 'Ao consumir, o personagem entra automaticamente na condição de Adrenalina.', properties: 'Uso único.' },
+  { id: 'injecao_adrenalina', name: 'Injeção de Adrenalina', category: 'consumivel', weight: 2,
+    description: 'Ao consumir, o personagem escolhe livremente o estágio de Adrenalina que deseja atingir. Ao término da condição, sofre 1 ponto adicional de Fadiga.', properties: 'Uso único.' },
+  { id: 'sinalizador', name: 'Sinalizador', category: 'equipamento', weight: 2,
+    description: 'Causa 1d4 de dano ao ser disparado diretamente contra um alvo, mas sua principal função é marcar ou sinalizar áreas. Disponível em verde, vermelho, roxo, preto e amarelo.',
+    dice: '1d4' },
+  { id: 'mochila_couro', name: 'Mochila de Couro', category: 'equipamento', weight: 0, capacityBonus: 3,
+    description: 'Ao equipar, aumenta a capacidade de inventário em +3 espaços.', bonuses: '+3 espaços de inventário' },
+  { id: 'mochila_exploracao', name: 'Mochila de Exploração', category: 'equipamento', weight: 0, capacityBonus: 5,
+    description: 'Ao equipar, aumenta a capacidade de inventário em +5 espaços.', bonuses: '+5 espaços de inventário' },
+  { id: 'binoculo_luneta', name: 'Binóculo/Luneta', category: 'equipamento', weight: 2,
+    description: 'Permite observar longas distâncias com maior precisão.', bonuses: '+2 em testes de Exploração ao usá-lo' },
+  { id: 'racao_militar', name: 'Ração Militar', category: 'consumivel', weight: 2,
+    description: 'Kit de alimentos básicos que supre as necessidades nutricionais de um personagem por um dia de missão.' },
+  { id: 'lamparina_lanterna', name: 'Lamparinas/Lanternas', category: 'equipamento', weight: 2,
+    description: 'Emite luz suficiente para revelar objetos ou detalhes ocultos na escuridão. Carregada de forma exposta, causa desvantagem em testes de Furtividade.' },
+  { id: 'explosivo_luminoso', name: 'Explosivo Luminoso', category: 'consumivel', weight: 2,
+    description: 'Cega um alvo por 1 turno mediante um teste de Mecânica contra a Vitalidade do alvo. Sucesso: o alvo recebe a condição Vulnerável e não enxerga nada ao redor durante esse período.' },
+  { id: 'explosivo_comum', name: 'Explosivo Comum', category: 'consumivel', weight: 2,
+    description: 'Lançado contra alvos, causa 5d4 de dano a todos em um raio de 5 metros. Teste de Agilidade (dificuldade 16) reduz o dano pela metade.',
+    dice: '5d4', range: '5m de raio' },
+  { id: 'rifle', name: 'Rifle', category: 'arma', weight: 3,
+    description: 'Rifle de uso padrão, alimentado por munições convencionais, amplamente utilizado pela Polícia Militar. A cada 6 disparos, requer recarga com uma Ação Bônus. A Resistência Titã se aplica a esse tipo de arma.',
+    dice: '2d10', range: '30m', properties: 'Margem de crítico reduzida em -1 contra Titãs. Recarrega a cada 6 disparos (Ação Bônus).' },
+  { id: 'caixa_municoes', name: 'Caixa de Munições Convencionais', category: 'consumivel', weight: 1,
+    description: 'Contém 12 munições para rifles de uso padrão.' },
+  { id: 'carga_gas', name: 'Carga de Gás', category: 'consumivel', weight: 3,
+    description: 'Um cilindro adicional contendo 20 pontos de gás, usado para recarregar os cilindros principais do DMT.' },
+  { id: 'carga_laminas', name: 'Carga de Lâminas', category: 'consumivel', weight: 2,
+    description: 'Um conjunto de lâminas adicional para reposição, permitindo substituir conjuntos quebrados.' },
+  { id: 'carga_municao_canhao', name: 'Carga de Munição (Canhões de Mão)', category: 'consumivel', weight: 1,
+    description: 'Munição extra para os canhões de mão, contendo duas munições por carga.' },
+  { id: 'rede_captura', name: 'Rede de Captura', category: 'arma', weight: 4,
+    description: 'Equipamento portátil semelhante a um pequeno canhão com gatilho, carregado sobre o ombro. Teste de Acerto com Pontaria dispara uma rede com espinhos para imobilizar Titãs. O Titã precisa ter perdido ao menos três membros; se a condição for cumprida e o teste for bem-sucedido, o alvo fica preso e imóvel.',
+    properties: 'Utiliza 4 Espaços.' }
+];
+function findEquipment(id) { return EQUIPMENT_DB.find(e => e.id === id); }
+
+/* ============================================================
+   DADOS — ESCUDO DO MESTRE (TITÃS PUROS, BIOMAS, REGRAS)
+   ============================================================ */
+const PURE_TITAN_CATEGORIES = [
+  { id: '3-5', label: 'Titã de 3 a 5 Metros', pdvNuca: 40, pdvBraco: 20, pdvPerna: 20, attrs: { agi: 5, sta: 2, str: 4, int: 2, vit: 2 }, testeAcerto: '+5', dano: '3d6+4', deslocamento: 6, bloqueio: 14, bloqueioNuca: 17 },
+  { id: '6-9', label: 'Titã de 6 a 9 Metros', pdvNuca: 50, pdvBraco: 25, pdvPerna: 25, attrs: { agi: 7, sta: 4, str: 5, int: 2, vit: 3 }, testeAcerto: '+7', dano: '4d6+6', deslocamento: 8, bloqueio: 15, bloqueioNuca: 18 },
+  { id: '10-14', label: 'Titã de 10 a 14 Metros', pdvNuca: 60, pdvBraco: 30, pdvPerna: 30, attrs: { agi: 6, sta: 5, str: 6, int: 2, vit: 5 }, testeAcerto: '+6', dano: '5d6+8', deslocamento: 10, bloqueio: 16, bloqueioNuca: 19 },
+  { id: '15', label: 'Titã de 15 Metros', pdvNuca: 70, pdvBraco: 35, pdvPerna: 35, attrs: { agi: 8, sta: 6, str: 8, int: 2, vit: 6 }, testeAcerto: '+8', dano: '6d6+10', deslocamento: 10, bloqueio: 17, bloqueioNuca: 20 }
+];
+function getPureTitanCategory(id) { return PURE_TITAN_CATEGORIES.find(c => c.id === id); }
+
+const PURE_TITAN_VARIATIONS = [
+  { id: 'nenhuma', label: 'Nenhuma', desc: 'Sem alterações.', pvBonusPerPart: 0 },
+  { id: 'gordo', label: 'Titã Gordo', desc: '-2m deslocamento, -2 Teste de Acerto, +1d6 dano, +5 PDV em todas as partes.', pvBonusPerPart: 5 },
+  { id: 'magro', label: 'Titã Magro', desc: '+2m deslocamento, +2 Teste de Acerto, -1d6 dano, -1 no bloqueio.', pvBonusPerPart: 0 },
+  { id: 'atletico', label: 'Titã Atlético', desc: '+1 Teste de Acerto, +1d6 dano, +1m deslocamento.', pvBonusPerPart: 0 },
+  { id: 'custom', label: 'Custom (editar manualmente)', desc: 'Personalize o PDV de cada parte e adicione notas ou habilidades próprias.', pvBonusPerPart: 0 }
+];
+function getPureTitanVariation(id) { return PURE_TITAN_VARIATIONS.find(v => v.id === id) || PURE_TITAN_VARIATIONS[0]; }
+
+const TITAN_PART_LABELS = { nuca: 'Nuca', bracoD: 'Braço Direito', bracoE: 'Braço Esquerdo', pernaD: 'Perna Direita', pernaE: 'Perna Esquerda' };
+
+const BIOMAS_DB = [
+  { id: 'planicie', name: 'Planície', tipo: 'ambiente',
+    bonus: '-1d4 em esquivas, Testes de Acerto, fugas e danos utilizando o DMT. +4 metros de deslocamento para todos os Titãs e montarias. Testes de Furtividade recebem desvantagem. Com canhões de mão no DMT, o personagem não recebe o -1d4 em Testes de Acerto, e ataques à longa distância recebem vantagem.' },
+  { id: 'planicie_arborizada', name: 'Planície Arborizada', tipo: 'ambiente',
+    bonus: '+2 em testes de Exploração para todos os personagens.' },
+  { id: 'bosque', name: 'Bosque', tipo: 'ambiente',
+    bonus: '+1 em Testes de Acerto e esquivas utilizando o DMT. +1 em testes de Furtividade para todos os personagens.' },
+  { id: 'cidade', name: 'Cidade/Distrito', tipo: 'ambiente',
+    bonus: '+1d4 de dano com o DMT.' },
+  { id: 'subterraneo', name: 'Subterrâneo Cristalizado', tipo: 'ambiente',
+    bonus: '+1 em Testes de Acerto e esquivas com o DMT. Personagens com a origem Sangue Real recebem +3 em Testes de Defesa neste local.' },
+  { id: 'floresta_gigante', name: 'Floresta das Árvores Gigantes', tipo: 'ambiente',
+    bonus: '+1d4 em esquivas, Testes de Acerto, fugas e danos utilizando o DMT. +1 em testes de Furtividade e Tática. O Titã Mandíbula recebe +2 no atributo de Agilidade e +4m em seu deslocamento.' },
+  { id: 'calor', name: 'Calor Intenso', tipo: 'clima',
+    bonus: 'Todos os personagens gastam 1 PDE adicional ao ativar qualquer habilidade.' },
+  { id: 'neve', name: 'Neve', tipo: 'clima',
+    bonus: 'Personagens, montarias e Titãs têm o deslocamento reduzido em -2 metros e -1 em testes de Agilidade.' },
+  { id: 'nevoa', name: 'Névoa', tipo: 'clima',
+    bonus: 'Testes de Exploração recebem desvantagem. Ataques à longa distância recebem -2 em seus Testes de Acerto.' },
+  { id: 'chuva', name: 'Chuva', tipo: 'clima',
+    bonus: 'O deslocamento das montarias é reduzido em -2 metros. Pode ocorrer junto de Névoa.' },
+  { id: 'tempestade', name: 'Tempestade', tipo: 'clima',
+    bonus: 'Todos os personagens recebem -1 no atributo de Agilidade e têm o deslocamento reduzido em -2 metros. Pode ocorrer junto de Névoa.' }
+];
+function getBioma(id) { return BIOMAS_DB.find(b => b.id === id); }
+
+const RULES_REFERENCE = [
+  { category: 'DMT', title: 'Combustível', text: 'Cada cilindro possui 20 pontos de gás (40 no total, em dois cilindros). Consumo: Movimentação — 1 gás a cada 5 metros. Ataque — 2 gás por ataque. Esquiva — 1 gás por Teste de Defesa com esquiva.' },
+  { category: 'DMT', title: 'Movimentação', text: 'O deslocamento base é 5 + Agilidade. O DMT permite atingir esse deslocamento consumindo gás conforme a distância percorrida.' },
+  { category: 'DMT', title: 'Esquiva', text: 'Teste de Agilidade; se o resultado superar o acerto do oponente, anula o dano e permite mover-se até 1m opcionalmente. Consome 1 gás quando realizada com o DMT.' },
+  { category: 'DMT', title: 'Ataques', text: 'Lâminas: 2d10 + Força, perícia Luta, margem de crítico 20, alcance corpo-a-corpo, quebram a cada 3 ataques (3 conjuntos disponíveis). Canhão de Mão: 3d6, perícia Pontaria, margem de crítico 18, alcance 10m, 10 munições, recarga manual.' },
+  { category: 'DMT', title: 'DMT Aprimorado (Proficiência com o DMT)', text: 'Habilidade geral passiva que reduz o consumo de gás em movimentação e concede bônus crescentes em Testes de Defesa com esquiva, deslocamento e Testes de Acerto usando o DMT, conforme o nível da habilidade.' },
+  { category: 'Combate', title: 'Defesa', text: 'Contra ataques humanos, o personagem escolhe entre esquiva (teste de Agilidade) ou bloqueio (8 + Força + Luta investida). Contra Titãs, apenas esquiva é possível — bloqueios são inviáveis.' },
+  { category: 'Combate', title: 'Bloqueio', text: 'Resultado fixo: 8 + Força + pontos investidos em Luta. Se superar o acerto do oponente, anula todo o dano.' },
+  { category: 'Combate', title: 'Esquiva', text: 'Teste de Agilidade. Se o resultado superar o acerto do oponente, anula todo o dano e permite mover-se até 1m.' },
+  { category: 'Combate', title: 'Ataques a Titãs (Membros)', text: 'Cada membro do Titã (nuca, braços, pernas) é um alvo com PDV próprio. Perder um braço: bloqueios -3 e ataques com desvantagem. Perder uma perna: deslocamento reduzido a 4m. Perder os dois braços: condição Vulnerável e dupla desvantagem para atacar (só morde). Perder as duas pernas: deslocamento anulado. Perder a nuca: o Titã evapora e desaparece.' },
+  { category: 'Combate', title: 'Dano contra Titãs', text: 'Armas de fogo não explosivas ou de baixo impacto causam metade do dano contra Titãs (arredondado para cima).' },
+  { category: 'Combate', title: 'Regeneração Titânica', text: 'Ao final de cada turno de combate (ou minuto fora dele), um teste de regeneração determina quantos PDV o Titã recupera em todos os membros. Um membro perdido só remove os debuffs quando totalmente regenerado.' },
+  { category: 'Combate', title: 'Cegar um Titã', text: 'Ataque contra o mesmo valor de defesa exigido para acertar a nuca. Sucesso: o Titã fica cego, recebe Vulnerável e desvantagem em Testes de Acerto até seu próximo turno. Errar em combate corpo a corpo abre brecha para um Ataque de Oportunidade do Titã. Esse tipo de ataque nunca causa dano.' },
+  { category: 'Combate', title: 'Ataque de Oportunidade', text: 'Ataque adicional fora do turno do personagem, usando uma Ação de Reação, quando um inimigo identifica uma brecha nas defesas de um alvo (por exemplo, curar um aliado perto de um inimigo, ou dar as costas e fugir dentro do alcance e visão dele). Pode ser concedido pelas regras do sistema ou pela interpretação do mestre. O atacante pode usar uma Ação de Movimento exclusivamente para se aproximar do alvo, se necessário. Não é possível utilizar habilidades em Ataques de Oportunidade.' },
+  { category: 'Críticos', title: 'Crítico Positivo em Ataques', text: 'Role 1d4 para saber o bônus:', list: ['Se tirar 1 — Realiza um ataque padrão adicional que causa 50% de dano.', 'Se tirar 2 — O ataque causa 50% a mais de dano.', 'Se tirar 3 — Duplica apenas os dados de dano.', 'Se tirar 4 — O dano total do ataque é duplicado.'] },
+  { category: 'Críticos', title: 'Crítico Positivo em Testes de Defesa', text: 'Role 1d4 para saber o bônus:', list: ['Se tirar 1 — Seu próximo Teste de Acerto recebe +4.', 'Se tirar 2 — Seu próximo Teste de Acerto recebe Vantagem.', 'Se tirar 3 — O inimigo recebe a condição Vulnerável contra você no próximo ataque.', 'Se tirar 4 — Pode realizar um Ataque de Oportunidade contra o inimigo.'] },
+  { category: 'Críticos', title: 'Crítico Positivo em Outros Testes', text: 'Role 1d4 para saber o bônus:', list: ['Se tirar 1 — Seu próximo teste recebe +3.', 'Se tirar 2 — Seus próximos 2 testes recebem +2.', 'Se tirar 3 — Seu próximo teste recebe Vantagem.', 'Se tirar 4 — +2 em todos os Testes de Acerto durante aquele combate.'] },
+  { category: 'Críticos', title: 'Falhas Críticas', text: 'Não exigem rolagem de 1d4 — o efeito depende apenas do tipo de teste que falhou criticamente:', list: ['Em Ataques — abre brecha para um Ataque de Oportunidade do inimigo, como um contra-ataque.', 'Em Testes de Defesa — recebe 50% a mais de dano naquele ataque.', 'Em qualquer outro teste — o próximo teste recebe desvantagem.'] },
+  { category: 'Titãs Puros', title: 'Regeneração', text: 'Regeneram 1d6 PDV ao final de cada turno (ou minuto fora de combate), aplicado a todos os membros.' },
+  { category: 'Titãs Puros', title: 'Testes de Perícia', text: 'Não possuem valores em perícia; use metade do atributo relacionado (arredondado para baixo) como bônus, quando necessário.' },
+  { category: 'Titãs Puros', title: 'Ação Aleatória (1d6, opcional)', text: 'Role 1d6 no turno do Titã Puro:', list: ['Se tirar 1 — Ignora todos os humanos ao redor neste turno.', 'Se tirar 2 — Ataca um humano aleatório, com desvantagem no ataque.', 'Se tirar 3 ou 4 — Ataca um humano aleatório normalmente.', 'Se tirar 5 — Ataca um humano aleatório, com vantagem no ataque.', 'Se tirar 6 — Tenta agarrar um humano (Teste de Acerto); se agarrado, o humano é devorado a menos que se liberte (teste de Força contra o Titã, que tem vantagem) ou um aliado acerte o Titã antes do próximo turno dele.'] },
+  { category: 'Titãs Puros', title: 'Testes de Defesa', text: 'Titãs Puros só bloqueiam, não esquivam (exceto Titãs Anômalos). Ataques à nuca recebem +3 no Teste de Defesa (bloqueio ou esquiva, se permitido).' },
+  { category: 'Titãs Puros', title: 'Variações', text: 'Titã Gordo: -2m deslocamento, -2 Teste de Acerto, +1d6 dano, +5 PDV em todas as partes. Titã Magro: +2m deslocamento, +2 Teste de Acerto, -1d6 dano, -1 no bloqueio. Titã Atlético: +1 Teste de Acerto, +1d6 dano, +1m deslocamento. Titãs Anômalos: ficha livre para o narrador, podendo incluir esquivas e habilidades únicas.' },
+  { category: 'Condições', title: 'Adrenalina', text: 'Ativada por pedido do mestre ou ao chegar a menos de 50% da vida. Ao entrar, faça um teste de Fortitude:', list: ['Resultado 1 a 9 — -1 em todos os Testes de Acerto até a condição passar.', 'Resultado 10 a 15 — +2 em todos os Testes de Acerto e +4m de deslocamento até a condição passar.', 'Resultado 16 ou mais — +4 em todos os Testes de Acerto e +4m de deslocamento até a condição passar.', 'Ao final (2 rodadas em combate ou 5 minutos fora dele) — aplica 2 pontos de Fadiga.'] },
+  { category: 'Condições', title: 'Sangramento', text: 'Perde 1d8 de PDV a cada rodada (ou minuto fora de combate) até que um reparo médico obtenha 14+ em Medicina.' },
+  { category: 'Condições', title: 'Morrendo', text: 'Ao chegar a 0 ou menos PDV. Teste de Fortitude (ou Medicina de aliado) ≥ dificuldade para estabilizar com 1 PDV. A dificuldade aumenta +1 a cada 5 de dano excedente.' },
+  { category: 'Condições', title: 'Vulnerável', text: '-4 em Testes de Defesa; atacantes reduzem a margem de crítico contra o personagem em -2.' },
+  { category: 'Condições', title: 'Enlouquecendo', text: 'Ao chegar a 0 de SAN. Teste de Vontade (ou Carisma de aliado) ≥ 18 para se recuperar com 1 SAN.' },
+  { category: 'Condições', title: 'Fadiga', text: 'Pontos cumulativos de 1 a 8 — cada novo ponto soma seu efeito aos anteriores. Zera após um descanso curto:', list: ['1 Ponto — -1 nos Testes de Acerto.', '2 Pontos — -1 em todas as Perícias.', '3 Pontos — -1 no atributo de Agilidade.', '4 Pontos — Deslocamento reduzido pela metade.', '5 Pontos — -1 adicional nos Testes de Acerto.', '6 Pontos — Desvantagem nos testes de esquiva.', '7 Pontos — -1 em todos os atributos.', '8 Pontos — O personagem está desacordado.'] },
+  { category: 'Condições', title: 'Traumatizado', text: 'Antes de testes em situações que lembrem o trauma, teste de Vontade; abaixo de 16, o teste pretendido é feito com desvantagem.' },
+  { category: 'Condições', title: 'Perda de Membros', text: 'Perda de Perna: metade do deslocamento, ou rastejar (deslocamento = Força). Perda de Braço: desvantagem em Testes de Acerto (ou -3 com adaptação).' },
+  { category: 'Condições', title: 'Ferido', text: 'Dano único acima de metade do PDV total: -2 em Testes de Acerto e -4m de Deslocamento até tratamento.' },
+  { category: 'Condições', title: 'Descanso Curto', text: 'Um período curto (uma refeição, ou ao menos uma hora fora de combate) recupera metade dos PDE perdidos e 2d4 de PDV.' },
+  { category: 'Condições', title: 'Descanso Longo', text: 'Uma boa noite de sono ou um dia inteiro de repouso recupera todos os PDE e 2d8 de PDV.' },
+  { category: 'Montarias', title: 'Cavalo Comum', text: 'Inventário com 10 espaços, 15 Pontos de Vida, deslocamento de 12 + valor na perícia de Natureza do cavaleiro (em metros). Exige testes de Natureza para manter sob comando (dificuldade a critério do narrador). Ao ouvir ruídos altos ou perceber ameaças, foge instintivamente para o mais longe possível, sem atender chamados de retorno.' },
+  { category: 'Montarias', title: 'Cavalo Treinado', text: 'Montaria especial de divisões militares: 20 Pontos de Vida, inventário com 15 espaços, deslocamento de 14 + valor na perícia de Natureza do cavaleiro. Responde a chamados (como assobios) a até 300 metros, indo imediatamente até o cavaleiro.' }
+];
+
+/* ============================================================
    ESTADO GERAL
    ============================================================ */
 let characters = JSON.parse(localStorage.getItem('rpgChars') || '[]');
@@ -2036,6 +2544,22 @@ let currentCharId = null;
 let creationState = null;
 let currentSkillFilter = 'all';
 let currentTDFilter = 'all';
+let currentEquipmentFilter = 'all';
+let equipmentPickerTargetType = 'personal';
+let gmTitans = JSON.parse(localStorage.getItem('rpgGMTitans') || '[]');
+let gmInitiative = JSON.parse(localStorage.getItem('rpgGMInitiative') || '[]');
+let initiativeDragIndex = null;
+let pendingInitiativeImage = null;
+function saveGMInitiative() { localStorage.setItem('rpgGMInitiative', JSON.stringify(gmInitiative)); }
+let gmActiveBiomaIds = JSON.parse(localStorage.getItem('rpgGMActiveBiomas') || '[]');
+let gmHiddenSoldiers = JSON.parse(localStorage.getItem('rpgGMHiddenSoldiers') || '[]');
+let gmHiddenTitans = JSON.parse(localStorage.getItem('rpgGMHiddenTitans') || '[]');
+function saveGMHidden() {
+  localStorage.setItem('rpgGMHiddenSoldiers', JSON.stringify(gmHiddenSoldiers));
+  localStorage.setItem('rpgGMHiddenTitans', JSON.stringify(gmHiddenTitans));
+}
+let pendingGMTitanDamageId = null;
+function saveGMTitans() { localStorage.setItem('rpgGMTitans', JSON.stringify(gmTitans)); }
 let expandedOriginId = null;
 let currentSkillDetail = null;
 let pendingTDSelection = null;
@@ -2102,12 +2626,13 @@ function saveCustomFamily() {
 
 function deleteCustomFamily(id, event) {
   if (event) event.stopPropagation();
-  if (!confirm('Excluir esta família customizada? Personagens que já a utilizam manterão os dados salvos, mas ela não aparecerá mais na lista.')) return;
-  customOrigins = customOrigins.filter(o => o.id !== id);
-  saveCustomOrigins();
-  if (originSelectionContext === 'wizard') renderOriginSelection();
-  else renderOriginSelectorList();
-  showNotification('Família removida.', '');
+  showConfirm('Excluir esta família customizada? Personagens que já a utilizam manterão os dados salvos, mas ela não aparecerá mais na lista.', () => {
+    customOrigins = customOrigins.filter(o => o.id !== id);
+    saveCustomOrigins();
+    if (originSelectionContext === 'wizard') renderOriginSelection();
+    else renderOriginSelectorList();
+    showNotification('Família removida.', '');
+  });
 }
 
 /* ============================================================
@@ -2259,40 +2784,53 @@ function modShifterPart(part, delta) {
   ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
 }
 
-function transformShifter() {
-  const ch = getCurrentChar(); if (!ch) return;
+function transformShifter(chParam) {
+  const ch = chParam || getCurrentChar(); if (!ch) return;
   const titan = getTitanById(ch.shifter.titanId); if (!titan) { showNotification('Selecione um Titã primeiro.', '', true); return; }
   if (ch.resources.sta.cur < titan.pdeTransform) { showNotification('PDE insuficiente para transformar.', '', true); return; }
   ch.resources.sta.cur -= titan.pdeTransform;
   ch.shifter.transformed = true;
-  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+  ch.updatedAt = new Date().toISOString(); saveChars();
+  if (currentCharId === ch.id) { updateResourceUI(); renderShifterTab(); }
+  refreshEncontroIfVisible();
   showNotification('Transformação ativada.', titan.name);
 }
 
-function transformShifterAgain() {
-  const ch = getCurrentChar(); if (!ch) return;
+function transformShifterAgain(chParam) {
+  const ch = chParam || getCurrentChar(); if (!ch) return;
   const titan = getTitanById(ch.shifter.titanId); if (!titan) { showNotification('Selecione um Titã primeiro.', '', true); return; }
   if (ch.shifter.controlLevel < 2) { showNotification('Requer Nível 2 de Controle ou superior.', '', true); return; }
   const cost = titan.pdeTransform * 2;
   if (ch.resources.sta.cur < cost) { showNotification('PDE insuficiente para a segunda transformação.', '', true); return; }
   ch.resources.sta.cur -= cost;
   ch.shifter.transformed = true;
-  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+  ch.updatedAt = new Date().toISOString(); saveChars();
+  if (currentCharId === ch.id) { updateResourceUI(); renderShifterTab(); }
+  refreshEncontroIfVisible();
   showNotification('Segunda transformação do dia ativada.', titan.name);
 }
 
-function maintainShifter() {
-  const ch = getCurrentChar(); if (!ch) return;
+function maintainShifter(chParam) {
+  const ch = chParam || getCurrentChar(); if (!ch) return;
   const titan = getTitanById(ch.shifter.titanId); if (!titan) return;
   if (ch.resources.sta.cur < titan.pdeMaintain) { showNotification('PDE insuficiente para manter a transformação.', '', true); return; }
   ch.resources.sta.cur -= titan.pdeMaintain;
-  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+  ch.updatedAt = new Date().toISOString(); saveChars();
+  if (currentCharId === ch.id) { updateResourceUI(); renderShifterTab(); }
+  refreshEncontroIfVisible();
 }
 
-function detransformShifter() {
-  const ch = getCurrentChar(); if (!ch) return;
+function detransformShifter(chParam) {
+  const ch = chParam || getCurrentChar(); if (!ch) return;
   ch.shifter.transformed = false;
-  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+  ch.updatedAt = new Date().toISOString(); saveChars();
+  if (currentCharId === ch.id) renderShifterTab();
+  refreshEncontroIfVisible();
+}
+
+function refreshEncontroIfVisible() {
+  const escudo = document.getElementById('screenEscudo');
+  if (escudo && !escudo.classList.contains('hidden')) renderEscudoEncontro();
 }
 
 function openShifterAbilityModal() {
@@ -2550,11 +3088,12 @@ function duplicateChar(id) {
 }
 
 function deleteChar(id) {
-  if (!confirm('Tem certeza que deseja excluir esta ficha?')) return;
-  characters = characters.filter(c => c.id !== id);
-  saveChars();
-  renderCharList();
-  showHome();
+  showConfirm('Tem certeza que deseja excluir esta ficha?', () => {
+    characters = characters.filter(c => c.id !== id);
+    saveChars();
+    renderCharList();
+    showHome();
+  });
 }
 
 function exportChar(id) {
@@ -2677,6 +3216,19 @@ function showNotification(title, message, isError) {
   n.innerHTML = `<h4>${title}</h4>${message ? `<p>${message}</p>` : ''}`;
   document.body.appendChild(n);
   setTimeout(() => { n.remove(); }, 4000);
+}
+
+let pendingConfirmCallback = null;
+function showConfirm(message, onConfirm) {
+  document.getElementById('confirmModalMessage').textContent = message;
+  pendingConfirmCallback = onConfirm;
+  document.getElementById('confirmModal').classList.remove('hidden');
+}
+function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); pendingConfirmCallback = null; }
+function confirmModalYes() {
+  const cb = pendingConfirmCallback;
+  closeConfirmModal();
+  if (cb) cb();
 }
 
 function showAttrPopover(attrKey, event) {
@@ -3196,17 +3748,650 @@ function renderCharList() {
   characters.forEach(ch => {
     const originData = getOriginById(ch.originId);
     const card = document.createElement('div'); card.className = 'card';
-    card.innerHTML = `<h3>${ch.name}</h3><p style="color:var(--text-muted);font-size:0.85rem;">Nível ${ch.level} — ${originData ? originData.name : 'Sem origem'}</p><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"><button onclick="openChar('${ch.id}')">Abrir</button><button onclick="duplicateChar('${ch.id}')">Duplicar</button><button onclick="exportChar('${ch.id}')">Exportar</button><button class="danger" onclick="deleteChar('${ch.id}')">Excluir</button></div>`;
+    const avatar = ch.imageUrl
+      ? `<img src="${ch.imageUrl}" alt="" class="char-list-avatar" />`
+      : `<div class="char-list-avatar char-list-avatar-empty">Sem foto</div>`;
+    card.innerHTML = `<div style="display:flex;gap:14px;align-items:flex-start;">${avatar}<div style="flex:1;min-width:0;"><h3 style="overflow-wrap:break-word;">${ch.name}</h3><p style="color:var(--text-muted);font-size:0.85rem;">Nível ${ch.level} — ${originData ? originData.name : 'Sem origem'}</p></div></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"><button onclick="openChar('${ch.id}')">Abrir</button><button onclick="duplicateChar('${ch.id}')">Duplicar</button><button onclick="exportChar('${ch.id}')">Exportar</button><button class="danger" onclick="deleteChar('${ch.id}')">Excluir</button></div>`;
     list.appendChild(card);
   });
 }
 
+const ALL_TOP_SCREENS = ['screenMainMenu', 'screenCatalogPlaceholder', 'screenContatos', 'screenLiandry', 'screenEscudo', 'screenHome', 'screenWizard', 'screenSheet'];
+function hideAllTopScreens() { ALL_TOP_SCREENS.forEach(id => document.getElementById(id).classList.add('hidden')); }
+
+function goToMainMenu() {
+  hideAllTopScreens();
+  document.getElementById('screenMainMenu').classList.remove('hidden');
+  document.getElementById('appHeaderActions').classList.add('hidden');
+  currentCharId = null; creationState = null; hidePopovers();
+  window.scrollTo(0, 0);
+}
+
+function enterCatalog(name) {
+  hideAllTopScreens();
+  if (name === 'soldados') {
+    document.getElementById('appHeaderActions').classList.remove('hidden');
+    showHome();
+    return;
+  }
+  if (name === 'contatos') { document.getElementById('screenContatos').classList.remove('hidden'); window.scrollTo(0, 0); return; }
+  if (name === 'liandry') { document.getElementById('screenLiandry').classList.remove('hidden'); window.scrollTo(0, 0); return; }
+  if (name === 'escudo') { openEscudoDoMestre(); return; }
+  const labels = { escudo: 'Escudo do Mestre', liandry: 'Liandry', contatos: 'Contatos' };
+  document.getElementById('catalogPlaceholderTitle').textContent = labels[name] || 'Em breve';
+  document.getElementById('screenCatalogPlaceholder').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+
 function showHome() {
+  hideAllTopScreens();
   document.getElementById('screenHome').classList.remove('hidden');
-  document.getElementById('screenWizard').classList.add('hidden');
-  document.getElementById('screenSheet').classList.add('hidden');
+  document.getElementById('appHeaderActions').classList.remove('hidden');
   document.getElementById('btnBackHeader').classList.add('hidden');
   currentCharId = null; creationState = null; hidePopovers();
+  window.scrollTo(0, 0);
+}
+
+/* ============================================================
+   ESCUDO DO MESTRE
+   ============================================================ */
+function openEscudoDoMestre() {
+  hideAllTopScreens();
+  document.getElementById('screenEscudo').classList.remove('hidden');
+  document.getElementById('appHeaderActions').classList.add('hidden');
+  document.querySelectorAll('#screenEscudo .escudo-tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  document.querySelectorAll('#screenEscudo .escudo-section').forEach((s, i) => s.classList.toggle('active', i === 0));
+  renderEscudoEncontro();
+  renderInitiative();
+  renderGMTitansList();
+  renderRulesReference();
+  renderBiomas();
+  window.scrollTo(0, 0);
+}
+
+function switchEscudoTab(tabId, btn) {
+  document.querySelectorAll('#screenEscudo .escudo-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#screenEscudo .escudo-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  if (tabId === 'escudoEncontro') renderEscudoEncontro();
+  if (tabId === 'escudoIniciativa') renderInitiative();
+  if (tabId === 'escudoTitans') renderGMTitansList();
+  if (tabId === 'escudoRegras') renderRulesReference();
+  if (tabId === 'escudoBiomas') renderBiomas();
+}
+
+function renderEscudoEncontro() {
+  const visibleSoldiers = characters.filter(c => !gmHiddenSoldiers.includes(c.id));
+  const visibleTitans = gmTitans.filter(t => !gmHiddenTitans.includes(t.id));
+  document.getElementById('encontroTitanCount').textContent = visibleTitans.length + ' / ' + gmTitans.length;
+  document.getElementById('encontroSoldierCount').textContent = visibleSoldiers.length + ' / ' + characters.length;
+
+  const soldiersList = document.getElementById('encontroSoldiersList');
+  soldiersList.innerHTML = '';
+  if (visibleSoldiers.length === 0) soldiersList.innerHTML = '<p class="empty-note">Nenhum soldado visível no encontro. Use "Adicionar ao Encontro" para trazer alguém.</p>';
+  visibleSoldiers.forEach(ch => {
+    ensureCharDefaults(ch);
+    const hp = ch.resources && ch.resources.hp ? ch.resources.hp : { cur: 0, max: 0 };
+    const isShifterReady = ch.shifter && ch.shifter.isShifter && ch.shifter.titanId;
+    const titan = isShifterReady ? getTitanById(ch.shifter.titanId) : null;
+    const div = document.createElement('div'); div.className = 'mini-card'; div.style.marginBottom = '10px';
+    let transformHtml = '';
+    if (isShifterReady && titan) {
+      transformHtml = ch.shifter.transformed
+        ? `<div class="resource-controls" style="margin-top:8px;"><button class="small danger" onclick='detransformShifter(getCharByIdGM("${ch.id}"))'>Destransformar (${titan.name})</button><button class="small" onclick='maintainShifter(getCharByIdGM("${ch.id}"))'>Manter (-${titan.pdeMaintain} PDE)</button></div>`
+        : `<div class="resource-controls" style="margin-top:8px;"><button class="small primary" onclick='transformShifter(getCharByIdGM("${ch.id}"))'>Transformar em ${titan.name} (-${titan.pdeTransform} PDE)</button></div>`;
+    }
+    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><h4>${ch.name}${ch.shifter && ch.shifter.transformed ? ' <span class="tag origin">Transformado</span>' : ''}</h4><button class="small" onclick="hideSoldierFromEncounter('${ch.id}')" title="Ocultar do encontro">Ocultar</button></div><div class="derived-stat"><span>PDV</span><span style="font-family:var(--mono);">${hp.cur} / ${hp.max}</span></div><div class="resource-controls"><button onclick="modSoldierHP('${ch.id}', -5)">-5</button><button onclick="modSoldierHP('${ch.id}', -1)">-1</button><button onclick="modSoldierHP('${ch.id}', 1)">+1</button><button onclick="modSoldierHP('${ch.id}', 5)">+5</button></div>${transformHtml}`;
+    soldiersList.appendChild(div);
+  });
+
+  const titansList = document.getElementById('encontroTitansList');
+  titansList.innerHTML = '';
+  if (visibleTitans.length === 0) titansList.innerHTML = '<p class="empty-note">Nenhum Titã visível no encontro. Use "Adicionar ao Encontro" ou cadastre um na aba Titãs.</p>';
+  visibleTitans.forEach(t => {
+    const card = buildGMTitanCard(t);
+    const hideBtn = document.createElement('button');
+    hideBtn.className = 'small'; hideBtn.style.marginTop = '8px'; hideBtn.textContent = 'Ocultar do Encontro';
+    hideBtn.onclick = () => hideTitanFromEncounter(t.id);
+    card.appendChild(hideBtn);
+    titansList.appendChild(card);
+  });
+}
+
+function getCharByIdGM(id) { return characters.find(c => c.id === id); }
+
+function hideSoldierFromEncounter(id) { if (!gmHiddenSoldiers.includes(id)) gmHiddenSoldiers.push(id); saveGMHidden(); renderEscudoEncontro(); }
+function hideTitanFromEncounter(id) { if (!gmHiddenTitans.includes(id)) gmHiddenTitans.push(id); saveGMHidden(); renderEscudoEncontro(); }
+function unhideSoldier(id) { gmHiddenSoldiers = gmHiddenSoldiers.filter(x => x !== id); saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu(); }
+function unhideTitanFromEncounter(id) { gmHiddenTitans = gmHiddenTitans.filter(x => x !== id); saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu(); }
+
+function openEncounterAddModal() {
+  renderEncounterAddMenu();
+  document.getElementById('encounterAddModal').classList.remove('hidden');
+}
+function closeEncounterAddModal() { document.getElementById('encounterAddModal').classList.add('hidden'); }
+
+function renderEncounterAddMenu() {
+  const container = document.getElementById('encounterAddGrid'); container.innerHTML = '';
+  const hiddenSoldiers = characters.filter(c => gmHiddenSoldiers.includes(c.id));
+  const hiddenTitans = gmTitans.filter(t => gmHiddenTitans.includes(t.id));
+  if (hiddenSoldiers.length === 0 && hiddenTitans.length === 0) { container.innerHTML = '<p class="empty-note">Todos os soldados e Titãs já estão visíveis no encontro.</p>'; return; }
+  hiddenSoldiers.forEach(ch => {
+    const div = document.createElement('div'); div.className = 'mini-card';
+    div.innerHTML = `<h4>${ch.name}</h4><p class="desc">Soldado — Nível ${ch.level}</p><button class="primary" style="margin-top:10px;width:100%;" onclick="unhideSoldier('${ch.id}')">Adicionar ao Encontro</button>`;
+    container.appendChild(div);
+  });
+  hiddenTitans.forEach(t => {
+    const cat = getPureTitanCategory(t.categoryId);
+    const div = document.createElement('div'); div.className = 'mini-card';
+    div.innerHTML = `<h4>${t.name}</h4><p class="desc">Titã — ${cat ? cat.label : ''}</p><button class="primary" style="margin-top:10px;width:100%;" onclick="unhideTitanFromEncounter('${t.id}')">Adicionar ao Encontro</button>`;
+    container.appendChild(div);
+  });
+}
+
+function modSoldierHP(charId, delta) {
+  const ch = characters.find(c => c.id === charId); if (!ch) return;
+  if (!ch.resources || !ch.resources.hp) return;
+  ch.resources.hp.cur = Math.max(0, Math.min(ch.resources.hp.max, ch.resources.hp.cur + delta));
+  ch.updatedAt = new Date().toISOString();
+  saveChars();
+  renderEscudoEncontro();
+}
+
+function computeGMTitanParts(categoryId, variationId, customParts) {
+  if (variationId === 'custom' && customParts) {
+    return { nuca: customParts.nuca, bracoD: customParts.bracoD, bracoE: customParts.bracoE, pernaD: customParts.pernaD, pernaE: customParts.pernaE };
+  }
+  const cat = getPureTitanCategory(categoryId);
+  if (!cat) return { nuca: 1, bracoD: 1, bracoE: 1, pernaD: 1, pernaE: 1 };
+  const variation = getPureTitanVariation(variationId);
+  const bonus = variation.pvBonusPerPart || 0;
+  return { nuca: cat.pdvNuca + bonus, bracoD: cat.pdvBraco + bonus, bracoE: cat.pdvBraco + bonus, pernaD: cat.pdvPerna + bonus, pernaE: cat.pdvPerna + bonus };
+}
+
+function ensureGMTitanParts(t) {
+  if (t.parts) return;
+  const maxes = computeGMTitanParts(t.categoryId, t.variationId, t.customParts);
+  t.parts = {};
+  Object.keys(maxes).forEach(k => { t.parts[k] = { cur: maxes[k], max: maxes[k] }; });
+}
+
+function getGMTitanTotals(t) {
+  ensureGMTitanParts(t);
+  let cur = 0, max = 0;
+  Object.values(t.parts).forEach(p => { cur += p.cur; max += p.max; });
+  return { cur, max };
+}
+
+function getGMTitanStatusEffects(t) {
+  ensureGMTitanParts(t);
+  const effects = [];
+  const armsLost = (t.parts.bracoD.cur <= 0 ? 1 : 0) + (t.parts.bracoE.cur <= 0 ? 1 : 0);
+  const legsLost = (t.parts.pernaD.cur <= 0 ? 1 : 0) + (t.parts.pernaE.cur <= 0 ? 1 : 0);
+  if (t.parts.nuca.cur <= 0) effects.push('Nuca destruída — o Titã está evaporando e desaparecerá em pouco tempo.');
+  if (armsLost === 2) effects.push('Os dois braços foram perdidos — condição Vulnerável e dupla desvantagem para atacar (só morde).');
+  else if (armsLost === 1) effects.push('Um braço foi perdido — bloqueios -3 e ataques com desvantagem.');
+  if (legsLost === 2) effects.push('As duas pernas foram perdidas — deslocamento anulado.');
+  else if (legsLost === 1) effects.push('Uma perna foi perdida — deslocamento reduzido a 4m.');
+  return effects;
+}
+
+function buildGMTitanCard(t) {
+  ensureGMTitanParts(t);
+  const cat = getPureTitanCategory(t.categoryId);
+  const variation = getPureTitanVariation(t.variationId);
+  const totals = getGMTitanTotals(t);
+  const effects = getGMTitanStatusEffects(t);
+  const div = document.createElement('div'); div.className = 'mini-card'; div.style.marginBottom = '12px';
+  const partsHtml = Object.keys(TITAN_PART_LABELS).map(partKey => {
+    const p = t.parts[partKey];
+    const pct = p.max > 0 ? Math.min(100, (p.cur / p.max) * 100) : 0;
+    const barClass = pct <= 25 ? ' crit' : pct <= 50 ? ' low' : '';
+    return `<div style="margin-top:8px;"><div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);"><span>${TITAN_PART_LABELS[partKey]}</span><span style="font-family:var(--mono);">${p.cur}/${p.max}</span></div><div class="resource-bar" style="height:5px;"><div class="resource-fill${barClass}" style="width:${pct}%;"></div></div></div>`;
+  }).join('');
+  div.innerHTML = `
+    <h4>${t.name}</h4>
+    <p style="font-size:0.78rem;color:var(--text-dim);">${cat ? cat.label : 'Custom'}${variation && variation.id !== 'nenhuma' ? ` — ${variation.label}` : ''}</p>
+    <div style="font-family:var(--mono);margin-top:8px;">${totals.cur} / ${totals.max} PV total</div>
+    ${partsHtml}
+    ${effects.length ? `<div style="margin-top:10px;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--danger);font-size:0.78rem;color:var(--text-muted);">${effects.join('<br>')}</div>` : ''}
+    ${t.customNotes ? `<div style="margin-top:10px;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--accent);font-size:0.78rem;color:var(--text-muted);"><strong style="color:var(--accent);">Notas:</strong> ${t.customNotes}</div>` : ''}
+    <div class="resource-controls" style="margin-top:10px;">
+      <button onclick="openGMTitanDamageModal('${t.id}')">Aplicar Dano</button>
+      <button onclick="healAllGMTitanParts('${t.id}')">Curar Tudo</button>
+    </div>
+    <div class="resource-controls" style="margin-top:6px;">
+      <button onclick="openGMTitanModal('${t.id}')">Editar</button>
+      <button onclick="duplicateGMTitan('${t.id}')">Duplicar</button>
+      <button class="danger" onclick="deleteGMTitan('${t.id}')">Excluir</button>
+    </div>`;
+  return div;
+}
+
+function renderGMTitansList() {
+  const container = document.getElementById('gmTitansList'); container.innerHTML = '';
+  if (gmTitans.length === 0) { container.innerHTML = '<p class="empty-note">Nenhum Titã cadastrado. Clique em "Criar Titã" para começar.</p>'; return; }
+  gmTitans.forEach(t => container.appendChild(buildGMTitanCard(t)));
+}
+
+function toggleGMTitanCustomFields() {
+  const varId = document.getElementById('gmTitanVariation').value;
+  document.getElementById('gmTitanCustomFields').classList.toggle('hidden', varId !== 'custom');
+}
+
+function openGMTitanModal(editId) {
+  document.getElementById('gmTitanEditId').value = editId || '';
+  if (editId) {
+    const t = gmTitans.find(x => x.id === editId);
+    ensureGMTitanParts(t);
+    document.getElementById('gmTitanModalTitle').textContent = 'Editar Titã';
+    document.getElementById('gmTitanName').value = t.name;
+    document.getElementById('gmTitanCategory').value = t.categoryId || '6-9';
+    document.getElementById('gmTitanVariation').value = t.variationId;
+    document.getElementById('gmTitanCustomNuca').value = t.parts.nuca.max;
+    document.getElementById('gmTitanCustomBracoD').value = t.parts.bracoD.max;
+    document.getElementById('gmTitanCustomBracoE').value = t.parts.bracoE.max;
+    document.getElementById('gmTitanCustomPernaD').value = t.parts.pernaD.max;
+    document.getElementById('gmTitanCustomPernaE').value = t.parts.pernaE.max;
+    document.getElementById('gmTitanCustomNotes').value = t.customNotes || '';
+  } else {
+    document.getElementById('gmTitanModalTitle').textContent = 'Criar Titã';
+    document.getElementById('gmTitanName').value = 'Titã Puro';
+    document.getElementById('gmTitanCategory').value = '6-9';
+    document.getElementById('gmTitanVariation').value = 'nenhuma';
+    document.getElementById('gmTitanCustomNuca').value = 50;
+    document.getElementById('gmTitanCustomBracoD').value = 25;
+    document.getElementById('gmTitanCustomBracoE').value = 25;
+    document.getElementById('gmTitanCustomPernaD').value = 25;
+    document.getElementById('gmTitanCustomPernaE').value = 25;
+    document.getElementById('gmTitanCustomNotes').value = '';
+  }
+  toggleGMTitanCustomFields();
+  updateGMTitanPreview();
+  document.getElementById('gmTitanModal').classList.remove('hidden');
+}
+function closeGMTitanModal() { document.getElementById('gmTitanModal').classList.add('hidden'); }
+
+function updateGMTitanPreview() {
+  const catId = document.getElementById('gmTitanCategory').value;
+  const varId = document.getElementById('gmTitanVariation').value;
+  const cat = getPureTitanCategory(catId);
+  const variation = getPureTitanVariation(varId);
+  const preview = document.getElementById('gmTitanPreview');
+  if (varId === 'custom') {
+    const nuca = parseInt(document.getElementById('gmTitanCustomNuca').value) || 0;
+    const bD = parseInt(document.getElementById('gmTitanCustomBracoD').value) || 0;
+    const bE = parseInt(document.getElementById('gmTitanCustomBracoE').value) || 0;
+    const pD = parseInt(document.getElementById('gmTitanCustomPernaD').value) || 0;
+    const pE = parseInt(document.getElementById('gmTitanCustomPernaE').value) || 0;
+    preview.innerHTML = `<p><strong>PV Total:</strong> ${nuca + bD + bE + pD + pE}</p><p style="color:var(--text-dim);font-size:0.78rem;">Ataque, deslocamento e bloqueio ficam a critério do mestre — use as notas para registrar.</p>`;
+    return;
+  }
+  preview.innerHTML = `<p><strong>Teste de Acerto:</strong> 1d20${cat.testeAcerto}</p><p><strong>Dano:</strong> ${cat.dano}</p><p><strong>Deslocamento:</strong> ${cat.deslocamento}m</p><p><strong>Bloqueio:</strong> ${cat.bloqueio} (${cat.bloqueioNuca} na nuca)</p>${variation.id !== 'nenhuma' ? `<p style="margin-top:8px;color:var(--accent);">${variation.desc}</p>` : ''}`;
+}
+document.addEventListener('change', (e) => {
+  const watched = ['gmTitanCategory', 'gmTitanVariation', 'gmTitanCustomNuca', 'gmTitanCustomBracoD', 'gmTitanCustomBracoE', 'gmTitanCustomPernaD', 'gmTitanCustomPernaE'];
+  if (watched.includes(e.target.id)) {
+    if (e.target.id === 'gmTitanVariation') toggleGMTitanCustomFields();
+    updateGMTitanPreview();
+  }
+});
+
+function saveGMTitan() {
+  const editId = document.getElementById('gmTitanEditId').value;
+  const name = document.getElementById('gmTitanName').value.trim() || 'Titã Puro';
+  const categoryId = document.getElementById('gmTitanCategory').value;
+  const variationId = document.getElementById('gmTitanVariation').value;
+  let customParts = null;
+  if (variationId === 'custom') {
+    customParts = {
+      nuca: parseInt(document.getElementById('gmTitanCustomNuca').value) || 1,
+      bracoD: parseInt(document.getElementById('gmTitanCustomBracoD').value) || 1,
+      bracoE: parseInt(document.getElementById('gmTitanCustomBracoE').value) || 1,
+      pernaD: parseInt(document.getElementById('gmTitanCustomPernaD').value) || 1,
+      pernaE: parseInt(document.getElementById('gmTitanCustomPernaE').value) || 1
+    };
+  }
+  const customNotes = document.getElementById('gmTitanCustomNotes').value.trim();
+  const maxes = computeGMTitanParts(categoryId, variationId, customParts);
+  if (editId) {
+    const t = gmTitans.find(x => x.id === editId);
+    if (t) {
+      ensureGMTitanParts(t);
+      t.name = name; t.categoryId = categoryId; t.variationId = variationId; t.customParts = customParts; t.customNotes = customNotes;
+      Object.keys(maxes).forEach(k => {
+        const ratio = t.parts[k].max > 0 ? t.parts[k].cur / t.parts[k].max : 1;
+        t.parts[k].max = maxes[k];
+        t.parts[k].cur = Math.round(maxes[k] * ratio);
+      });
+    }
+    showNotification('Titã atualizado.', name);
+  } else {
+    const parts = {};
+    Object.keys(maxes).forEach(k => { parts[k] = { cur: maxes[k], max: maxes[k] }; });
+    gmTitans.push({ id: 'gmtitan_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, categoryId, variationId, customParts, customNotes, parts });
+    showNotification('Titã criado.', name);
+  }
+  saveGMTitans();
+  closeGMTitanModal();
+  renderGMTitansList();
+  renderEscudoEncontro();
+}
+
+function duplicateGMTitan(id) {
+  const t = gmTitans.find(x => x.id === id); if (!t) return;
+  const copy = JSON.parse(JSON.stringify(t));
+  copy.id = 'gmtitan_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  copy.name = t.name + ' (Cópia)';
+  gmTitans.push(copy);
+  saveGMTitans(); renderGMTitansList(); renderEscudoEncontro();
+  showNotification('Titã duplicado.', copy.name);
+}
+
+function deleteGMTitan(id) {
+  showConfirm('Excluir este Titã?', () => {
+    gmTitans = gmTitans.filter(x => x.id !== id);
+    saveGMTitans(); renderGMTitansList(); renderEscudoEncontro();
+    showNotification('Titã excluído.', '');
+  });
+}
+
+function modGMTitanPart(id, part, delta) {
+  const t = gmTitans.find(x => x.id === id); if (!t) return;
+  ensureGMTitanParts(t);
+  const p = t.parts[part]; if (!p) return;
+  p.cur = Math.max(0, Math.min(p.max, p.cur + delta));
+  saveGMTitans(); renderGMTitansList(); renderEscudoEncontro();
+}
+
+function healAllGMTitanParts(id) {
+  const t = gmTitans.find(x => x.id === id); if (!t) return;
+  ensureGMTitanParts(t);
+  Object.values(t.parts).forEach(p => { p.cur = p.max; });
+  saveGMTitans(); renderGMTitansList(); renderEscudoEncontro();
+  showNotification('Titã totalmente curado.', t.name);
+}
+
+function openGMTitanDamageModal(id) {
+  pendingGMTitanDamageId = id;
+  document.getElementById('gmTitanDamageInput').value = 0;
+  document.getElementById('gmTitanDamagePart').value = 'nuca';
+  document.getElementById('gmTitanDamageModal').classList.remove('hidden');
+}
+function closeGMTitanDamageModal() { document.getElementById('gmTitanDamageModal').classList.add('hidden'); pendingGMTitanDamageId = null; }
+function confirmGMTitanDamage() {
+  const dmg = parseInt(document.getElementById('gmTitanDamageInput').value) || 0;
+  const part = document.getElementById('gmTitanDamagePart').value;
+  if (pendingGMTitanDamageId) modGMTitanPart(pendingGMTitanDamageId, part, -dmg);
+  closeGMTitanDamageModal();
+}
+
+function renderRulesReference() {
+  const container = document.getElementById('rulesGrid'); container.innerHTML = '';
+  const term = document.getElementById('rulesSearch').value.toLowerCase();
+  const categories = [...new Set(RULES_REFERENCE.map(r => r.category))];
+  categories.forEach(cat => {
+    const entries = RULES_REFERENCE.filter(r => r.category === cat && (!term || r.title.toLowerCase().includes(term) || r.text.toLowerCase().includes(term) || (r.list && r.list.some(li => li.toLowerCase().includes(term)))));
+    if (entries.length === 0) return;
+    const catDiv = document.createElement('div'); catDiv.className = 'ability-category';
+    catDiv.innerHTML = `<h4>${cat}</h4>` + entries.map(e => {
+      const listHtml = e.list ? `<ul style="margin:8px 0 0 18px;padding:0;">${e.list.map(li => `<li style="margin-top:4px;color:var(--text-muted);font-size:0.85rem;">${li}</li>`).join('')}</ul>` : '';
+      return `<div class="ability-item"><h5>${e.title}</h5><p>${e.text}</p>${listHtml}</div>`;
+    }).join('');
+    container.appendChild(catDiv);
+  });
+  if (container.innerHTML === '') container.innerHTML = '<p class="empty-note">Nenhuma regra encontrada.</p>';
+}
+
+function renderBiomas() {
+  const ambienteGrid = document.getElementById('biomasAmbienteGrid');
+  const climaGrid = document.getElementById('biomasClimaGrid');
+  ambienteGrid.innerHTML = ''; climaGrid.innerHTML = '';
+  BIOMAS_DB.forEach(b => {
+    const div = document.createElement('div'); div.className = 'mini-card';
+    const isActive = gmActiveBiomaIds.includes(b.id);
+    div.innerHTML = `<h4>${b.name}</h4><p class="desc">${b.bonus}</p><button class="${isActive ? 'primary' : ''}" style="margin-top:10px;width:100%;" onclick="${isActive ? `desativarBioma('${b.id}')` : `ativarBioma('${b.id}')`}">${isActive ? 'Ativo — Desativar' : 'Ativar Bioma'}</button>`;
+    (b.tipo === 'clima' ? climaGrid : ambienteGrid).appendChild(div);
+  });
+  renderActiveBiomaBanner();
+}
+
+function renderActiveBiomaBanner() {
+  const banner = document.getElementById('activeBiomaBanner');
+  if (gmActiveBiomaIds.length === 0) { banner.innerHTML = '<p class="empty-note">Nenhum bioma ativo no momento. Ative um ambiente e/ou um clima abaixo — os efeitos se somam.</p>'; return; }
+  banner.innerHTML = gmActiveBiomaIds.map(id => {
+    const b = getBioma(id); if (!b) return '';
+    return `<div class="ability-item" style="border-left:3px solid var(--accent);margin-bottom:8px;"><h5>${b.name}</h5><p>${b.bonus}</p></div>`;
+  }).join('');
+}
+
+function ativarBioma(id) {
+  if (!gmActiveBiomaIds.includes(id)) gmActiveBiomaIds.push(id);
+  localStorage.setItem('rpgGMActiveBiomas', JSON.stringify(gmActiveBiomaIds));
+  renderBiomas();
+  showNotification('Bioma ativado.', getBioma(id) ? getBioma(id).name : '');
+}
+function desativarBioma(id) {
+  gmActiveBiomaIds = gmActiveBiomaIds.filter(x => x !== id);
+  localStorage.setItem('rpgGMActiveBiomas', JSON.stringify(gmActiveBiomaIds));
+  renderBiomas();
+  showNotification('Bioma desativado.', getBioma(id) ? getBioma(id).name : '');
+}
+
+/* ============================================================
+   INICIATIVA (ARRASTÁVEL)
+   ============================================================ */
+function renderInitiative() {
+  const list = document.getElementById('initiativeList'); list.innerHTML = '';
+  if (gmInitiative.length === 0) { list.innerHTML = '<p class="empty-note">Nenhum participante adicionado ainda.</p>'; return; }
+  gmInitiative.forEach((p, idx) => {
+    const div = document.createElement('div');
+    div.className = 'initiative-token';
+    div.draggable = true;
+    div.ondragstart = (e) => { initiativeDragIndex = idx; e.dataTransfer.effectAllowed = 'move'; div.classList.add('dragging'); };
+    div.ondragend = () => { div.classList.remove('dragging'); };
+    div.ondragover = (e) => { e.preventDefault(); div.classList.add('drag-over'); };
+    div.ondragleave = () => { div.classList.remove('drag-over'); };
+    div.ondrop = (e) => {
+      e.preventDefault(); div.classList.remove('drag-over');
+      if (initiativeDragIndex === null || initiativeDragIndex === idx) return;
+      const [moved] = gmInitiative.splice(initiativeDragIndex, 1);
+      gmInitiative.splice(idx, 0, moved);
+      initiativeDragIndex = null;
+      saveGMInitiative(); renderInitiative();
+    };
+    const pvPct = p.pvMax > 0 ? Math.min(100, (p.pvCur / p.pvMax) * 100) : 0;
+    const pePct = p.peMax > 0 ? Math.min(100, (p.peCur / p.peMax) * 100) : 0;
+    const avatar = p.imageUrl ? `<img src="${p.imageUrl}" alt="" class="initiative-avatar" />` : `<div class="initiative-avatar initiative-avatar-empty">${(idx + 1)}</div>`;
+    div.innerHTML = `
+      <div class="initiative-drag-handle" title="Arraste para reordenar">
+        <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="8" cy="6" r="1.6" fill="currentColor"/><circle cx="16" cy="6" r="1.6" fill="currentColor"/><circle cx="8" cy="12" r="1.6" fill="currentColor"/><circle cx="16" cy="12" r="1.6" fill="currentColor"/><circle cx="8" cy="18" r="1.6" fill="currentColor"/><circle cx="16" cy="18" r="1.6" fill="currentColor"/></svg>
+      </div>
+      <span class="initiative-order">${idx + 1}</span>
+      ${avatar}
+      <div style="flex:1;min-width:160px;">
+        <h4 style="margin-bottom:6px;">${p.name}</h4>
+        <div style="font-size:0.75rem;color:var(--text-muted);">PDV <span style="font-family:var(--mono);">${p.pvCur}/${p.pvMax}</span></div>
+        <div class="resource-bar" style="height:5px;"><div class="resource-fill${pvPct <= 25 ? ' crit' : pvPct <= 50 ? ' low' : ''}" style="width:${pvPct}%;"></div></div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">PDE <span style="font-family:var(--mono);">${p.peCur}/${p.peMax}</span></div>
+        <div class="resource-bar" style="height:5px;"><div class="resource-fill${pePct <= 25 ? ' crit' : pePct <= 50 ? ' low' : ''}" style="width:${pePct}%;"></div></div>
+      </div>
+      <div class="initiative-actions">
+        <div class="resource-controls">
+          <button class="small" onclick="modInitiativeStat('${p.id}','pvCur',-1)">-1 PDV</button>
+          <button class="small" onclick="modInitiativeStat('${p.id}','pvCur',1)">+1 PDV</button>
+        </div>
+        <div class="resource-controls">
+          <button class="small" onclick="modInitiativeStat('${p.id}','peCur',-1)">-1 PDE</button>
+          <button class="small" onclick="modInitiativeStat('${p.id}','peCur',1)">+1 PDE</button>
+        </div>
+        <div class="resource-controls">
+          <button class="small" onclick="openInitiativeModal('${p.id}')">Editar</button>
+          <button class="small danger" onclick="removeInitiativeParticipant('${p.id}')">Remover</button>
+        </div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function modInitiativeStat(id, field, delta) {
+  const p = gmInitiative.find(x => x.id === id); if (!p) return;
+  const maxField = field === 'pvCur' ? 'pvMax' : 'peMax';
+  p[field] = Math.max(0, Math.min(p[maxField], p[field] + delta));
+  saveGMInitiative(); renderInitiative();
+}
+
+function openInitiativeModal(editId) {
+  document.getElementById('initiativeEditId').value = editId || '';
+  pendingInitiativeImage = null;
+  const thumbImg = document.getElementById('initiativeThumbnailImg');
+  const thumbPlaceholder = document.getElementById('initiativeThumbnailPlaceholder');
+  if (editId) {
+    const p = gmInitiative.find(x => x.id === editId);
+    document.getElementById('initiativeModalTitle').textContent = 'Editar Participante';
+    document.getElementById('initiativeName').value = p.name;
+    document.getElementById('initiativePvCur').value = p.pvCur;
+    document.getElementById('initiativePvMax').value = p.pvMax;
+    document.getElementById('initiativePeCur').value = p.peCur;
+    document.getElementById('initiativePeMax').value = p.peMax;
+    if (p.imageUrl) { thumbImg.src = p.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingInitiativeImage = p.imageUrl; }
+    else { thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden'); }
+  } else {
+    document.getElementById('initiativeModalTitle').textContent = 'Adicionar Participante';
+    document.getElementById('initiativeName').value = '';
+    document.getElementById('initiativePvCur').value = 10;
+    document.getElementById('initiativePvMax').value = 10;
+    document.getElementById('initiativePeCur').value = 10;
+    document.getElementById('initiativePeMax').value = 10;
+    thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden');
+  }
+  document.getElementById('initiativeModal').classList.remove('hidden');
+}
+function closeInitiativeModal() { document.getElementById('initiativeModal').classList.add('hidden'); pendingInitiativeImage = null; }
+
+function handleInitiativeImageUpload(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showNotification('Arquivo inválido.', 'Selecione uma imagem.', true); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 300;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) { if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; } else { w = Math.round(w * (maxDim / h)); h = maxDim; } }
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      pendingInitiativeImage = canvas.toDataURL('image/jpeg', 0.85);
+      const thumbImg = document.getElementById('initiativeThumbnailImg');
+      thumbImg.src = pendingInitiativeImage; thumbImg.classList.remove('hidden');
+      document.getElementById('initiativeThumbnailPlaceholder').classList.add('hidden');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveInitiativeParticipant() {
+  const editId = document.getElementById('initiativeEditId').value;
+  const name = document.getElementById('initiativeName').value.trim();
+  if (!name) { showNotification('Informe um nome.', '', true); return; }
+  const data = {
+    name,
+    pvCur: parseInt(document.getElementById('initiativePvCur').value) || 0,
+    pvMax: parseInt(document.getElementById('initiativePvMax').value) || 0,
+    peCur: parseInt(document.getElementById('initiativePeCur').value) || 0,
+    peMax: parseInt(document.getElementById('initiativePeMax').value) || 0,
+    imageUrl: pendingInitiativeImage
+  };
+  if (editId) {
+    const p = gmInitiative.find(x => x.id === editId);
+    if (p) Object.assign(p, data);
+    showNotification('Participante atualizado.', name);
+  } else {
+    gmInitiative.push({ id: 'init_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...data });
+    showNotification('Participante adicionado.', name);
+  }
+  saveGMInitiative();
+  closeInitiativeModal();
+  renderInitiative();
+}
+
+function removeInitiativeParticipant(id) {
+  showConfirm('Remover este participante da iniciativa?', () => {
+    gmInitiative = gmInitiative.filter(x => x.id !== id);
+    saveGMInitiative(); renderInitiative();
+    showNotification('Participante removido.', '');
+  });
+}
+
+function clearInitiative() {
+  showConfirm('Limpar toda a ordem de iniciativa?', () => {
+    gmInitiative = [];
+    saveGMInitiative(); renderInitiative();
+    showNotification('Iniciativa limpa.', '');
+  });
+}
+
+let initiativePickerType = 'soldados';
+function openInitiativePickerModal(type) {
+  initiativePickerType = type;
+  document.getElementById('initiativePickerTitle').textContent = type === 'soldados' ? 'Puxar Soldado para a Iniciativa' : 'Puxar Titã para a Iniciativa';
+  renderInitiativePickerGrid();
+  document.getElementById('initiativePickerModal').classList.remove('hidden');
+}
+function closeInitiativePickerModal() { document.getElementById('initiativePickerModal').classList.add('hidden'); }
+
+function renderInitiativePickerGrid() {
+  const container = document.getElementById('initiativePickerGrid'); container.innerHTML = '';
+  if (initiativePickerType === 'soldados') {
+    if (characters.length === 0) { container.innerHTML = '<p class="empty-note">Nenhuma ficha de personagem salva ainda.</p>'; return; }
+    characters.forEach(ch => {
+      const already = gmInitiative.some(p => p.sourceId === ch.id && p.sourceType === 'soldado');
+      const div = document.createElement('div'); div.className = 'mini-card';
+      div.innerHTML = `<h4>${ch.name}</h4><p class="desc">Nível ${ch.level}</p><button ${already ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullSoldierToInitiative('${ch.id}')">${already ? 'Já na Iniciativa' : 'Puxar'}</button>`;
+      container.appendChild(div);
+    });
+  } else {
+    if (gmTitans.length === 0) { container.innerHTML = '<p class="empty-note">Nenhum Titã cadastrado ainda. Vá até a aba Titãs.</p>'; return; }
+    gmTitans.forEach(t => {
+      const already = gmInitiative.some(p => p.sourceId === t.id && p.sourceType === 'titan');
+      const cat = getPureTitanCategory(t.categoryId);
+      const div = document.createElement('div'); div.className = 'mini-card';
+      div.innerHTML = `<h4>${t.name}</h4><p class="desc">${cat ? cat.label : 'Custom'}</p><button ${already ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullTitanToInitiative('${t.id}')">${already ? 'Já na Iniciativa' : 'Puxar'}</button>`;
+      container.appendChild(div);
+    });
+  }
+}
+
+function pullSoldierToInitiative(charId) {
+  const ch = characters.find(c => c.id === charId); if (!ch) return;
+  ensureCharDefaults(ch);
+  const hp = ch.resources.hp, sta = ch.resources.sta;
+  gmInitiative.push({
+    id: 'init_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: ch.name, imageUrl: ch.imageUrl || null,
+    pvCur: hp.cur, pvMax: hp.max, peCur: sta.cur, peMax: sta.max,
+    sourceType: 'soldado', sourceId: ch.id
+  });
+  saveGMInitiative(); renderInitiative(); renderInitiativePickerGrid();
+  showNotification('Soldado adicionado à iniciativa.', ch.name);
+}
+
+function pullTitanToInitiative(titanId) {
+  const t = gmTitans.find(x => x.id === titanId); if (!t) return;
+  ensureGMTitanParts(t);
+  const totals = getGMTitanTotals(t);
+  gmInitiative.push({
+    id: 'init_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: t.name, imageUrl: null,
+    pvCur: totals.cur, pvMax: totals.max, peCur: 0, peMax: 0,
+    sourceType: 'titan', sourceId: t.id
+  });
+  saveGMInitiative(); renderInitiative(); renderInitiativePickerGrid();
+  showNotification('Titã adicionado à iniciativa.', t.name);
 }
 
 function openChar(id) {
@@ -3309,13 +4494,24 @@ function modResource(res, delta) {
   r.cur = Math.max(0, Math.min(r.max, r.cur + delta));
   ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI();
 }
+let pendingSetResourceKey = null;
 function setResource(res) {
   const ch = getCurrentChar(); if (!ch) return;
-  const val = prompt(`Definir ${res.toUpperCase()} atual:`, ch.resources[res].cur);
-  if (val === null) return;
-  const num = parseInt(val, 10); if (isNaN(num)) return;
-  ch.resources[res].cur = Math.max(0, Math.min(ch.resources[res].max, num));
+  pendingSetResourceKey = res;
+  const labels = { hp: 'PDV', sta: 'PDE', san: 'Sanidade' };
+  document.getElementById('setResourceTitle').textContent = `Definir ${labels[res] || res.toUpperCase()} Atual`;
+  document.getElementById('setResourceInput').value = ch.resources[res].cur;
+  document.getElementById('setResourceInput').max = ch.resources[res].max;
+  document.getElementById('setResourceModal').classList.remove('hidden');
+}
+function closeSetResourceModal() { document.getElementById('setResourceModal').classList.add('hidden'); pendingSetResourceKey = null; }
+function confirmSetResource() {
+  const ch = getCurrentChar(); if (!ch || !pendingSetResourceKey) return;
+  const num = parseInt(document.getElementById('setResourceInput').value, 10);
+  if (isNaN(num)) { showNotification('Informe um número válido.', '', true); return; }
+  ch.resources[pendingSetResourceKey].cur = Math.max(0, Math.min(ch.resources[pendingSetResourceKey].max, num));
   ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI();
+  closeSetResourceModal();
 }
 
 function renderResourceBar(key, curId, maxId, barId) {
@@ -3563,8 +4759,9 @@ function renderAvailableBenefits() {
    ============================================================ */
 function getPersonalInventoryCapacity(ch) {
   const str = ch.attributes.str + (ch.attributeBonuses.str || 0);
-  const bonus = ((ch.inventory.personal.capacityModifiers) || []).reduce((sum, m) => sum + m.value, 0);
-  return 5 + str + bonus;
+  const manualBonus = ((ch.inventory.personal.capacityModifiers) || []).reduce((sum, m) => sum + m.value, 0);
+  const itemBonus = (ch.inventory.personal.items || []).reduce((sum, item) => sum + (item.capacityBonus || 0), 0);
+  return 5 + str + manualBonus + itemBonus;
 }
 
 function getOverloadPenalty(ch) {
@@ -3624,11 +4821,11 @@ function createItemCard(item, idx, type) {
   div.innerHTML = `
     <div class="item-header" onclick="toggleItem('${type}', ${idx})">
       <div><strong>${item.name}</strong> <span style="color:var(--text-muted);">x${item.quantity}</span></div>
-      <div style="color:var(--text-muted);font-size:0.82rem;">${item.weight}kg</div>
+      <div style="color:var(--text-muted);font-size:0.82rem;">${item.weight} peso</div>
     </div>
     <div class="item-content" id="${type}-item-${idx}">
       <div class="item-detail"><strong>Categoria:</strong> ${item.category}</div>
-      <div class="item-detail"><strong>Peso Total:</strong> ${(item.weight * item.quantity).toFixed(1)}kg</div>
+      <div class="item-detail"><strong>Peso Total:</strong> ${(item.weight * item.quantity).toFixed(1)}</div>
       ${item.dice ? `<div class="item-detail"><strong>Dado/Dano:</strong> ${item.dice}</div>` : ''}
       ${item.range ? `<div class="item-detail"><strong>Alcance:</strong> ${item.range}</div>` : ''}
       ${item.description ? `<div class="item-detail"><strong>Descrição:</strong><br>${item.description}</div>` : ''}
@@ -3650,10 +4847,74 @@ function toggleItem(type, idx) {
   if (content) content.classList.toggle('expanded');
 }
 
+/* ============================================================
+   SELETOR DE EQUIPAMENTOS DO SISTEMA
+   ============================================================ */
+function openEquipmentPicker(type) {
+  equipmentPickerTargetType = type || 'personal';
+  currentEquipmentFilter = 'all';
+  document.getElementById('equipmentPickerSearch').value = '';
+  document.querySelectorAll('#equipmentPickerModal .lib-filters button').forEach((b, i) => b.classList.toggle('primary', i === 0));
+  renderEquipmentPicker();
+  document.getElementById('equipmentPickerModal').classList.remove('hidden');
+}
+function closeEquipmentPicker() { document.getElementById('equipmentPickerModal').classList.add('hidden'); }
+
+function setEquipmentFilter(filter, event) {
+  currentEquipmentFilter = filter;
+  document.querySelectorAll('#equipmentPickerModal .lib-filters button').forEach(b => b.classList.remove('primary'));
+  if (event) event.target.classList.add('primary');
+  renderEquipmentPicker();
+}
+
+function renderEquipmentPicker() {
+  const container = document.getElementById('equipmentPickerGrid'); container.innerHTML = '';
+  const term = document.getElementById('equipmentPickerSearch').value.toLowerCase();
+  const categoryLabels = { arma: 'Arma', equipamento: 'Equipamento', consumivel: 'Consumível', outro: 'Outro' };
+  EQUIPMENT_DB.forEach(eq => {
+    if (currentEquipmentFilter !== 'all' && eq.category !== currentEquipmentFilter) return;
+    if (term && !eq.name.toLowerCase().includes(term) && !eq.description.toLowerCase().includes(term)) return;
+    const card = document.createElement('div'); card.className = 'mini-card';
+    card.innerHTML = `<h4>${eq.name}</h4><p class="cost talent">${categoryLabels[eq.category] || eq.category} — ${eq.weight} espaço${eq.weight === 1 ? '' : 's'}</p><p class="desc">${eq.description}</p>${eq.dice ? `<p style="font-size:0.78rem;color:var(--text-dim);">Dano/Dado: ${eq.dice}</p>` : ''}${eq.bonuses ? `<p style="font-size:0.78rem;color:var(--text-dim);">Bônus: ${eq.bonuses}</p>` : ''}<button onclick="addEquipmentToInventory('${eq.id}')" style="margin-top:12px;width:100%;">Adicionar</button>`;
+    container.appendChild(card);
+  });
+  if (!EQUIPMENT_DB.some(eq => (currentEquipmentFilter === 'all' || eq.category === currentEquipmentFilter) && (!term || eq.name.toLowerCase().includes(term) || eq.description.toLowerCase().includes(term)))) {
+    container.innerHTML = '<p style="color:var(--text-dim);">Nenhum equipamento encontrado.</p>';
+  }
+}
+
+function addEquipmentToInventory(equipmentId) {
+  const ch = getCurrentChar(); if (!ch) return;
+  const eq = findEquipment(equipmentId); if (!eq) return;
+  const type = equipmentPickerTargetType;
+  if (type === 'personal') {
+    const currentUsed = ch.inventory.personal.items.reduce((sum, item) => sum + (item.weight * item.quantity), 0);
+    const capacity = getPersonalInventoryCapacity(ch);
+    if (currentUsed + eq.weight > capacity + 4) {
+      showNotification('Sobrecarga máxima excedida.', `O inventário pessoal permite no máximo ${capacity + 4} espaços (capacidade + 4 de sobrecarga).`, true);
+      return;
+    }
+  }
+  ch.inventory[type].items.push({
+    id: 'item-' + Date.now(), name: eq.name, quantity: 1, weight: eq.weight, category: eq.category,
+    dice: eq.dice || '', range: eq.range || '', description: eq.description, properties: eq.properties || '',
+    requirements: eq.requirements || '', bonuses: eq.bonuses || '', notes: '', inventoryType: type,
+    capacityBonus: eq.capacityBonus || 0
+  });
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderInventory(); updateAttrUI();
+  showNotification('Item adicionado.', eq.name);
+}
+
+function startCreateItemFromPicker() {
+  const type = equipmentPickerTargetType;
+  closeEquipmentPicker();
+  openItemModal(null, type);
+}
+
 function openItemModal(editingItem, type, idx) {
   type = type || 'personal';
   document.getElementById('itemTargetType').value = type;
-  document.getElementById('itemWeightLabel').textContent = type === 'personal' ? 'Espaços Ocupados' : 'Peso (kg)';
+  document.getElementById('itemWeightLabel').textContent = type === 'personal' ? 'Espaços Ocupados' : 'Peso';
   document.getElementById('editingItemId').value = editingItem ? `${type}-${idx}` : '';
   document.getElementById('itemModalTitle').textContent = editingItem ? 'Editar Item' : 'Adicionar Item';
   if (editingItem) {
@@ -3667,6 +4928,7 @@ function openItemModal(editingItem, type, idx) {
     document.getElementById('itemProperties').value = editingItem.properties || '';
     document.getElementById('itemRequirements').value = editingItem.requirements || '';
     document.getElementById('itemBonuses').value = editingItem.bonuses || '';
+    document.getElementById('itemCapacityBonus').value = editingItem.capacityBonus || 0;
     document.getElementById('itemNotes').value = editingItem.notes || '';
   } else {
     document.getElementById('itemName').value = ''; document.getElementById('itemQuantity').value = 1;
@@ -3674,6 +4936,7 @@ function openItemModal(editingItem, type, idx) {
     document.getElementById('itemDice').value = ''; document.getElementById('itemRange').value = '';
     document.getElementById('itemDescription').value = ''; document.getElementById('itemProperties').value = '';
     document.getElementById('itemRequirements').value = ''; document.getElementById('itemBonuses').value = '';
+    document.getElementById('itemCapacityBonus').value = 0;
     document.getElementById('itemNotes').value = '';
   }
   document.getElementById('itemModal').classList.remove('hidden');
@@ -3696,6 +4959,7 @@ function saveItem() {
     properties: document.getElementById('itemProperties').value.trim(),
     requirements: document.getElementById('itemRequirements').value.trim(),
     bonuses: document.getElementById('itemBonuses').value.trim(),
+    capacityBonus: parseInt(document.getElementById('itemCapacityBonus').value) || 0,
     notes: document.getElementById('itemNotes').value.trim(),
     inventoryType: targetType
   };
@@ -3730,11 +4994,12 @@ function editItem(type, idx) {
 }
 
 function deleteItem(type, idx) {
-  if (!confirm('Excluir este item?')) return;
-  const ch = getCurrentChar(); if (!ch) return;
-  if (type === 'personal') ch.inventory.personal.items.splice(idx, 1); else ch.inventory.mount.items.splice(idx, 1);
-  ch.updatedAt = new Date().toISOString(); saveChars(); renderInventory();
-  showNotification('Item excluído.', '');
+  showConfirm('Excluir este item?', () => {
+    const ch = getCurrentChar(); if (!ch) return;
+    if (type === 'personal') ch.inventory.personal.items.splice(idx, 1); else ch.inventory.mount.items.splice(idx, 1);
+    ch.updatedAt = new Date().toISOString(); saveChars(); renderInventory();
+    showNotification('Item excluído.', '');
+  });
 }
 
 function moveItem(type, idx) {
