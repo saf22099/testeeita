@@ -1329,6 +1329,16 @@ const ATTRIBUTES = {
   vit: { name: 'Vitalidade', description: 'Resistência, PDV, sobrevivência.' }
 };
 
+const ORIGIN_CHOICE_LABELS = {
+  agi: 'Agilidade', sta: 'Estâmina', str: 'Força', int: 'Intelecto', vit: 'Vitalidade',
+  mecanica: 'Mecânica', medicina: 'Medicina', pontaria: 'Pontaria', luta: 'Luta'
+};
+function formatOriginChoices(choices) {
+  if (Array.isArray(choices)) return choices.map(c => ORIGIN_CHOICE_LABELS[c] || c).join(' ou ');
+  if (choices === 'skills_4') return '4 perícias à sua escolha (+1 cada)';
+  return choices;
+}
+
 const SKILLS_DATA = {
   'Carisma': { id: 'carisma', name: 'Carisma', attributes: ['int'], description: 'Influencia pessoas, negociação, persuasão.' },
   'Crime': { id: 'crime', name: 'Crime', attributes: ['int', 'agi'], description: 'Atividades criminosas, furtivas, abrir fechaduras.' },
@@ -2744,7 +2754,7 @@ function renderOriginSelection() {
     div.onclick = () => { creationState.originId = origin.id; renderOriginSelection(); document.getElementById('btnStep2Next').disabled = !creationState.originId; };
     let expandedContent = '';
     if (expandedOriginId === origin.id) {
-      const choicesText = Array.isArray(origin.passive.choices) ? origin.passive.choices.join(' ou ') : origin.passive.choices;
+      const choicesText = formatOriginChoices(origin.passive.choices);
       expandedContent = `<div class="origin-expanded">
         <h5>Status Iniciais</h5>
         <div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv} PDV</span><span class="origin-stat san">${origin.initialStats.san} SAN</span><span class="origin-stat pde">${origin.initialStats.pde} PDE</span></div>
