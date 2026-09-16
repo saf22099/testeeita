@@ -143,11 +143,20 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .attr-controls{display:flex;justify-content:center;gap:6px;margin-top:10px;}
 .attr-info{font-size:0.68rem;color:var(--text-dim);margin-top:5px;}
 
-.skill-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;transition:border-color .15s ease, background .15s ease;
-  margin:6px 0;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);flex-wrap:wrap;gap:8px;}
+.skill-row{display:grid;grid-template-columns:1fr 200px 90px auto;align-items:center;padding:10px 14px;transition:border-color .15s ease, background .15s ease;
+  margin:6px 0;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);gap:14px;}
 .skill-row:hover{border-color:var(--border-light);background:var(--surface-3);}
 .skill-name{cursor:pointer;color:var(--text);text-decoration:none;font-weight:600;border-bottom:1px dotted var(--text-dim);}
 .skill-name:hover{color:var(--accent);}
+.skill-row-info{text-align:right;font-size:0.78rem;color:var(--text-muted);line-height:1.4;}
+.skill-row-total{text-align:right;font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--accent);white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;}
+.skill-row-total::before{content:'Total';font-family:var(--sans);font-size:0.62rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;}
+.skill-row-controls{display:flex;gap:6px;justify-self:end;}
+@media (max-width:760px){
+  .skill-row{grid-template-columns:1fr auto;row-gap:8px;}
+  .skill-row-info{grid-column:1 / -1;text-align:left;}
+  .skill-row-total{order:1;}
+}
 
 .skill-input-row{display:flex;align-items:center;gap:10px;padding:10px 14px;margin:6px 0;
   border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);}
@@ -1201,8 +1210,9 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
     </div>
     <div class="grid grid-2" style="margin-bottom:18px;">
       <div class="card" style="text-align:center;padding:18px;">
-        <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Atributo</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Atributo (metade)</div>
         <div style="font-family:var(--mono);font-size:1.8rem;font-weight:600;color:var(--accent);" id="skillAttrValue">0</div>
+        <div style="font-size:0.72rem;color:var(--text-dim);margin-top:4px;">Valor bruto: <span id="skillAttrRaw">0</span></div>
       </div>
       <div class="card" style="text-align:center;padding:18px;">
         <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;">Investido</div>
@@ -2607,11 +2617,12 @@ function calculateSkill(skillId, ch) {
   const skillData = SKILLS_DATA[skill.name];
   const selectedAttr = skill.selectedAttribute || skillData?.attributes[0] || 'int';
   const attrValue = ch.attributes[selectedAttr] + (ch.attributeBonuses[selectedAttr] || 0);
+  const attrBonus = Math.floor(attrValue / 2);
   const investedPoints = skill.base;
   const modifiers = getSkillModifiers(ch, skill.name);
   const bonusTotal = modifiers.reduce((sum, mod) => sum + mod.value, 0);
-  const total = attrValue + investedPoints + bonusTotal;
-  return { skillId: skillData?.id || skill.name.toLowerCase(), skillName: skill.name, selectedAttribute: selectedAttr, attributeValue: attrValue, investedPoints, modifiers, bonusTotal, total };
+  const total = attrBonus + investedPoints + bonusTotal;
+  return { skillId: skillData?.id || skill.name.toLowerCase(), skillName: skill.name, selectedAttribute: selectedAttr, attributeValue: attrValue, attributeBonus: attrBonus, investedPoints, modifiers, bonusTotal, total };
 }
 
 function getSkillModifiers(ch, skillName) {
@@ -2671,7 +2682,7 @@ function showSkillPopover(skillName, event) {
   const skillData = SKILLS_DATA[skillName]; if (!skillData) return;
   const result = calculateSkill(skillData.id, ch); if (!result) return;
   const popover = document.getElementById('skillPopover');
-  popover.innerHTML = `<h4>${skillData.name}</h4><div class="value">${result.total}</div><p>${skillData.description}</p><p style="margin-top:8px;"><strong>Atributo:</strong> ${ATTRIBUTES[result.selectedAttribute].name} (+${result.attributeValue})</p><p><strong>Investido:</strong> +${result.investedPoints}</p>${result.bonusTotal ? `<p><strong>Bônus:</strong> +${result.bonusTotal}</p>` : ''}`;
+  popover.innerHTML = `<h4>${skillData.name}</h4><div class="value">${result.total}</div><p>${skillData.description}</p><p style="margin-top:8px;"><strong>Atributo:</strong> ${ATTRIBUTES[result.selectedAttribute].name} ${result.attributeValue} (metade: +${result.attributeBonus})</p><p><strong>Investido:</strong> +${result.investedPoints}</p>${result.bonusTotal ? `<p><strong>Bônus:</strong> +${result.bonusTotal}</p>` : ''}`;
   popover.classList.remove('hidden');
   popover.style.left = Math.min(event.pageX + 10, window.innerWidth - 380) + 'px';
   popover.style.top = Math.min(event.pageY + 10, window.innerHeight - 280) + 'px';
@@ -3389,7 +3400,7 @@ function renderSkills() {
     if (result.modifiers.length > 0) bonusText = result.modifiers.map(m => `${m.value > 0 ? '+' : ''}${m.value} ${m.source}`).join(', ');
     const flag = (ch.skillFlags || {})[skill.name];
     const row = document.createElement('div'); row.className = 'skill-row';
-    row.innerHTML = `<div><span class="skill-name" onclick="openSkillDetailModal('${skill.name}')">${skill.name}</span>${bonusText ? `<span class="bonus-badge">${bonusText}</span>` : ''}${flag === 'disadvantage' ? '<span class="flag-badge">Desvantagem</span>' : ''}</div><div style="text-align:right;"><div style="font-size:0.8rem;color:var(--text-muted);">${ATTRIBUTES[result.selectedAttribute].name} +${result.attributeValue} — Investido +${result.investedPoints}</div><div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--accent);">Total: ${result.total}</div></div><div style="display:flex;gap:6px;"><button onclick="modSkill('${skill.name}', -1)" ${skill.base <= 0 ? 'disabled' : ''}>-</button><button onclick="modSkill('${skill.name}', 1)" ${!canAddSkillPoint(ch, skill.name) ? 'disabled' : ''}>+</button></div>`;
+    row.innerHTML = `<div><span class="skill-name" onclick="openSkillDetailModal('${skill.name}')">${skill.name}</span>${bonusText ? `<span class="bonus-badge">${bonusText}</span>` : ''}${flag === 'disadvantage' ? '<span class="flag-badge">Desvantagem</span>' : ''}</div><div class="skill-row-info">${ATTRIBUTES[result.selectedAttribute].name} ${result.attributeValue} (metade +${result.attributeBonus})<br>Investido +${result.investedPoints}</div><div class="skill-row-total">${result.total}</div><div class="skill-row-controls"><button onclick="modSkill('${skill.name}', -1)" ${skill.base <= 0 ? 'disabled' : ''}>-</button><button onclick="modSkill('${skill.name}', 1)" ${!canAddSkillPoint(ch, skill.name) ? 'disabled' : ''}>+</button></div>`;
     container.appendChild(row);
   });
 }
@@ -3425,7 +3436,8 @@ function updateSkillDetailValues() {
   const ch = getCurrentChar(); if (!ch || !currentSkillDetail) return;
   const skill = ch.skills.find(s => s.name === currentSkillDetail); if (!skill) return;
   const result = calculateSkill(SKILLS_DATA[currentSkillDetail].id, ch); if (!result) return;
-  document.getElementById('skillAttrValue').textContent = result.attributeValue;
+  document.getElementById('skillAttrValue').textContent = result.attributeBonus;
+  document.getElementById('skillAttrRaw').textContent = result.attributeValue;
   document.getElementById('skillInvestedValue').textContent = result.investedPoints;
   document.getElementById('skillTotalValue').textContent = result.total;
   const bonusList = document.getElementById('skillBonusList'); bonusList.innerHTML = '';
