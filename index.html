@@ -9,25 +9,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0d0d0a;
-  --bg-2:#121210;
-  --surface:#18170f;
-  --surface-2:#201e15;
-  --surface-3:#2a2818;
-  --border:#3a3624;
-  --border-light:#4c472e;
-  --text:#d9d4c1;
-  --text-muted:#8d876e;
-  --text-dim:#5f5b47;
-  --accent:#b08a45;
-  --accent-2:#8c6c33;
-  --accent-dim:#5e4a26;
-  --danger:#8a3a32;
-  --danger-2:#6b2b25;
-  --success:#5a6b3f;
-  --success-2:#45532f;
-  --warning:#9c7a2e;
-  --info:#3f6068;
+  --bg:#070b14;
+  --bg-2:#0a1020;
+  --surface:#0f1729;
+  --surface-2:#142036;
+  --surface-3:#1b2b47;
+  --border:#26365a;
+  --border-light:#35496f;
+  --text:#dbe3f5;
+  --text-muted:#8b96b8;
+  --text-dim:#5b6685;
+  --accent:#4a8fe0;
+  --accent-2:#3670b8;
+  --accent-dim:#254b7d;
+  --danger:#9c453b;
+  --danger-2:#7a3129;
+  --success:#3f7a63;
+  --success-2:#305e4c;
+  --warning:#a3822f;
+  --info:#4884a8;
   --radius:3px;
   --radius-sm:2px;
   --serif:'Special Elite', 'Courier New', monospace;
@@ -36,11 +36,13 @@
 }
 :root:not([data-theme="light"]){ }
 :root[data-theme="light"]{
-  --bg:#e9e4d4; --bg-2:#e3ddc9; --surface:#f2ede0; --surface-2:#ece5d3; --surface-3:#e1d9c2;
-  --border:#c9beA0; --border-light:#b5a884; --text:#2a271d; --text-muted:#5d5842; --text-dim:#8a8465;
-  --danger:#a34a3f; --danger-2:#8a3c32; --success:#57683d; --success-2:#455530; --warning:#8a6a1f; --info:#3c5f68;
+  --bg:#dfe6f2; --bg-2:#d6e0ee; --surface:#eef2fa; --surface-2:#e4ebf6; --surface-3:#d5e0f0;
+  --border:#b7c6e3; --border-light:#9fb3d8; --text:#131c2e; --text-muted:#48557a; --text-dim:#71809f;
+  --danger:#a34a3f; --danger-2:#8a3c32; --success:#3d7359; --success-2:#2f5a46; --warning:#8a6a1f; --info:#356e8f;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
+@keyframes overlayFadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes modalPopIn{from{opacity:0;transform:scale(0.96) translateY(8px);}to{opacity:1;transform:scale(1) translateY(0);}}
 body{
   font-family:var(--sans);
   background:var(--bg);
@@ -72,16 +74,18 @@ h4{font-size:0.85rem;color:var(--text-muted);font-weight:600;}
 button{
   background:var(--surface-3);color:var(--text);border:1px solid var(--border-light);
   padding:9px 16px;border-radius:var(--radius-sm);cursor:pointer;font-weight:500;
-  font-size:0.85rem;font-family:var(--sans);transition:background .12s ease, border-color .12s ease;
+  font-size:0.85rem;font-family:var(--sans);transition:background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease;
 }
-button:hover{background:var(--border-light);border-color:var(--accent-dim);}
-button:active{transform:translateY(1px);}
+button:hover{background:var(--border-light);border-color:var(--accent-dim);transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,0.25);}
+button:active{transform:translateY(1px);box-shadow:none;}
 button.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--text);}
 button.primary:hover{background:var(--accent-2);}
 button.danger{background:var(--danger-2);border-color:var(--danger);color:var(--text);}
 button.danger:hover{background:var(--danger);}
 button.success{background:var(--success-2);border-color:var(--success);color:var(--text);}
 button.success:hover{background:var(--success);}
+button.ghost{background:transparent;border:1px solid var(--accent-dim);color:var(--accent);font-weight:600;}
+button.ghost:hover{background:var(--accent-dim);color:var(--text);}
 button:disabled{opacity:0.35;cursor:not-allowed;}
 button.small{padding:5px 10px;font-size:0.75rem;}
 
@@ -95,8 +99,18 @@ button.small{padding:5px 10px;font-size:0.75rem;}
 
 .card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-  padding:20px;
+  padding:20px;transition:border-color .18s ease, box-shadow .18s ease;
 }
+.card:hover{border-color:var(--border-light);box-shadow:0 2px 14px rgba(0,0,0,0.25);}
+.char-thumbnail{width:96px;height:96px;flex-shrink:0;border-radius:var(--radius);border:1px solid var(--border-light);
+  background:var(--surface-2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;
+  position:relative;transition:border-color .15s ease, transform .15s ease;}
+.char-thumbnail:hover{border-color:var(--accent);transform:translateY(-2px);}
+.char-thumbnail span{color:var(--text-dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;}
+.char-thumbnail img{width:100%;height:100%;object-fit:cover;}
+.char-portrait-box{width:100%;max-width:320px;border-radius:var(--radius);border:1px solid var(--border-light);
+  background:var(--surface-2);overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:200px;}
+.char-portrait-box img{width:100%;height:auto;display:block;}
 label{display:block;font-size:0.72rem;color:var(--text-muted);margin-bottom:5px;
   text-transform:uppercase;letter-spacing:0.6px;font-weight:600;}
 input,select,textarea{
@@ -122,16 +136,16 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .resource-controls{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
 .resource-controls button{padding:6px 12px;font-size:0.8rem;min-width:44px;}
 
-.attr-card{text-align:center;padding:14px;background:var(--surface-2);border:1px solid var(--border);
+.attr-card{text-align:center;padding:14px;background:var(--surface-2);border:1px solid var(--border);transition:border-color .15s ease, transform .15s ease;
   border-radius:var(--radius-sm);cursor:pointer;}
-.attr-card:hover{border-color:var(--accent-dim);}
+.attr-card:hover{border-color:var(--accent-dim);transform:translateY(-2px);}
 .attr-value{font-family:var(--mono);font-size:1.8rem;font-weight:600;color:var(--accent);margin:6px 0;}
 .attr-controls{display:flex;justify-content:center;gap:6px;margin-top:10px;}
 .attr-info{font-size:0.68rem;color:var(--text-dim);margin-top:5px;}
 
-.skill-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;
+.skill-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;transition:border-color .15s ease, background .15s ease;
   margin:6px 0;border-radius:var(--radius-sm);background:var(--surface-2);border:1px solid var(--border);flex-wrap:wrap;gap:8px;}
-.skill-row:hover{border-color:var(--border-light);}
+.skill-row:hover{border-color:var(--border-light);background:var(--surface-3);}
 .skill-name{cursor:pointer;color:var(--text);text-decoration:none;font-weight:600;border-bottom:1px dotted var(--text-dim);}
 .skill-name:hover{color:var(--accent);}
 
@@ -143,15 +157,16 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .file-input{display:none;}
 
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);
-  display:flex;align-items:center;justify-content:center;z-index:1000;}
+  display:flex;align-items:center;justify-content:center;z-index:1000;animation:overlayFadeIn .15s ease;}
 .modal{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
-  padding:26px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;position:relative;}
+  padding:26px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;position:relative;animation:modalPopIn .18s cubic-bezier(0.16,1,0.3,1);}
 .modal h2{margin-top:0;}
 .modal-actions{display:flex;gap:10px;margin-top:22px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
 .modal-close{position:absolute;top:18px;right:18px;background:var(--surface-3);border:1px solid var(--border);
   width:30px;height:30px;border-radius:var(--radius-sm);font-size:1.2rem;cursor:pointer;color:var(--text-muted);
+  transition:background .15s ease, transform .15s ease;
   display:flex;align-items:center;justify-content:center;line-height:1;}
-.modal-close:hover{background:var(--danger-2);color:var(--text);border-color:var(--danger);}
+.modal-close:hover{background:var(--danger-2);color:var(--text);border-color:var(--danger);transform:rotate(90deg);}
 
 .progress-item{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:5px 0;
   border-left:2px solid var(--border-light);background:var(--surface-2);}
@@ -159,9 +174,9 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .progress-item .lvl-badge{font-family:var(--mono);font-size:0.8rem;color:var(--accent);min-width:60px;}
 
 .origin-selection{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:14px;}
-.origin-option{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);
+.origin-option{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);transition:border-color .15s ease, transform .15s ease;
   padding:18px;cursor:pointer;}
-.origin-option:hover{border-color:var(--border-light);}
+.origin-option:hover{border-color:var(--border-light);transform:translateY(-2px);}
 .origin-option.selected{border-color:var(--accent);background:var(--surface-3);}
 .origin-option h4{margin:0 0 10px 0;color:var(--text);font-size:1rem;font-weight:700;}
 .origin-option p{font-size:0.82rem;color:var(--text-muted);margin:5px 0;line-height:1.5;}
@@ -194,18 +209,18 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .btn-redistribute{margin-top:18px;width:100%;}
 
 .overlay-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);
-  display:flex;align-items:center;justify-content:center;z-index:1000;}
+  display:flex;align-items:center;justify-content:center;z-index:1000;animation:overlayFadeIn .15s ease;}
 .big-modal{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius);
-  padding:26px;max-width:980px;width:95%;max-height:90vh;overflow-y:auto;position:relative;}
+  padding:26px;max-width:980px;width:95%;max-height:90vh;overflow-y:auto;position:relative;animation:modalPopIn .18s cubic-bezier(0.16,1,0.3,1);}
 .lib-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;
-  gap:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+  gap:14px;padding-bottom:14px;padding-right:40px;border-bottom:1px solid var(--border);}
 .lib-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;padding:10px;background:var(--surface-2);
   border:1px solid var(--border);}
 .lib-filters button{padding:6px 13px;font-size:0.78rem;}
 .lib-search{width:100%;margin-bottom:18px;}
 .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;}
 
-.item-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin:7px 0;overflow:hidden;}
+.item-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin:7px 0;overflow:hidden;transition:border-color .15s ease;}
 .item-card:hover{border-color:var(--border-light);}
 .item-header{padding:11px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:var(--surface-3);}
 .item-header:hover{background:var(--surface-2);}
@@ -214,8 +229,8 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .item-detail{margin:7px 0;font-size:0.85rem;}
 .item-detail strong{color:var(--accent);}
 
-.mini-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;transition:border-color .12s;}
-.mini-card:hover{border-color:var(--border-light);}
+.mini-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;transition:border-color .15s ease, transform .15s ease;}
+.mini-card:hover{border-color:var(--border-light);transform:translateY(-2px);}
 .mini-card h4{margin:0 0 8px 0;color:var(--text);font-size:0.98rem;font-weight:700;}
 .mini-card p{font-size:0.82rem;color:var(--text-muted);margin:5px 0;}
 .mini-card .desc{font-size:0.85rem;color:var(--text);margin:10px 0;line-height:1.5;}
@@ -261,7 +276,8 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .tag.subclass{color:var(--info);border-color:var(--info);}
 .tag.locked{color:var(--text-dim);border-color:var(--text-dim);}
 
-.ability-item{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:8px 0;}
+.ability-item{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:8px 0;transition:border-color .15s ease;}
+.ability-item:hover{border-color:var(--border-light);}
 .ability-item h5{color:var(--text);font-size:0.95rem;font-weight:700;margin-bottom:6px;}
 .ability-item p{font-size:0.85rem;color:var(--text-muted);line-height:1.5;}
 .ability-item .ability-meta{margin-top:8px;font-size:0.75rem;color:var(--text-dim);}
@@ -291,6 +307,15 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .resource-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:18px;}
 .resource-head h3{margin:0;}
 
+footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
+.footer-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;}
+.footer-credits{display:flex;flex-direction:column;gap:4px;font-size:0.78rem;color:var(--text-dim);}
+.footer-credits strong{color:var(--text-muted);font-weight:600;}
+.footer-discord{display:flex;align-items:center;gap:8px;color:var(--text-muted);text-decoration:none;
+  font-size:0.82rem;font-weight:600;border:1px solid var(--border);padding:8px 14px;border-radius:var(--radius-sm);
+  transition:color .15s ease, border-color .15s ease, background .15s ease, transform .15s ease;}
+.footer-discord:hover{color:var(--accent);border-color:var(--accent-dim);background:var(--surface-2);transform:translateY(-1px);}
+
 ::-webkit-scrollbar{width:9px;height:9px;}
 ::-webkit-scrollbar-track{background:var(--surface-2);}
 ::-webkit-scrollbar-thumb{background:var(--border-light);}
@@ -300,8 +325,12 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 <body>
 <div class="container">
   <header>
-    <h1>Coordenada<small>Ficha de Personagem</small></h1>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <img src="https://cdn.discordapp.com/emojis/1380503367180353650.webp?size=2048" alt="" style="width:42px;height:42px;object-fit:contain;" onerror="this.style.display='none'" />
+      <h1>Coordenada<small>Ficha de Personagem</small></h1>
+    </div>
     <div>
+      <button id="btnBackHeader" class="ghost hidden">&larr; Voltar</button>
       <button id="btnNewChar" class="primary">Nova Ficha</button>
       <button id="btnImport">Importar JSON</button>
       <input type="file" id="fileImport" class="file-input" accept=".json" />
@@ -336,6 +365,7 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
       <div class="wizard-step" data-step="2">
         <h3>Passo 2: Escolha sua Origem</h3>
         <p style="color:var(--text-muted);margin-bottom:14px;">Sua Origem define seus status iniciais, passiva e habilidade de origem.</p>
+        <button onclick="openFamilyCreatorModal('wizard')" style="margin-bottom:14px;">Criar Família Customizada</button>
         <div id="originSelection" class="origin-selection"></div>
         <div class="wizard-nav">
           <button onclick="prevWizardStep()">Anterior</button>
@@ -390,44 +420,51 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
       <button class="tab" data-tab="tabProgression">Progressão</button>
       <button class="tab" data-tab="tabInventory">Inventário</button>
       <button class="tab" data-tab="tabHistory">História</button>
+      <button class="tab" data-tab="tabTitan">Titã</button>
       <button class="tab" data-tab="tabConditions">Condições</button>
     </div>
 
     <div class="card">
-      <div class="grid grid-4">
-        <div><label>Nome do Personagem</label><input id="charName" /></div>
-        <div><label>Jogador</label><input id="charPlayer" /></div>
-        <div><label>Nível</label><input id="charLevel" type="number" min="0" max="20" /></div>
-        <div><label>Experiência (opcional)</label><input id="charExp" type="number" min="0" /></div>
-        <div>
-          <label>Origem</label>
-          <div style="display:flex;gap:8px;">
-            <input id="charOrigin" readonly style="flex:1;" />
-            <button onclick="openOriginSelector()" style="min-width:110px;">Alterar</button>
+      <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+        <div class="char-thumbnail" id="charThumbnail" onclick="document.getElementById('charImageInput').click()" title="Clique para definir a imagem do personagem">
+          <span id="charThumbnailPlaceholder">Foto</span>
+          <img id="charThumbnailImg" class="hidden" alt="" />
+        </div>
+        <input type="file" id="charImageInput" accept="image/*" class="file-input" onchange="handleCharImageUpload(event)" />
+        <div class="grid grid-4" style="flex:1;min-width:280px;">
+          <div><label>Nome do Personagem</label><input id="charName" /></div>
+          <div><label>Jogador</label><input id="charPlayer" /></div>
+          <div><label>Nível</label><input id="charLevel" type="number" min="0" max="20" /></div>
+          <div><label>Experiência (opcional)</label><input id="charExp" type="number" min="0" /></div>
+          <div>
+            <label>Origem</label>
+            <div style="display:flex;gap:8px;">
+              <input id="charOrigin" readonly style="flex:1;" />
+              <button onclick="openOriginSelector()" style="min-width:110px;">Alterar</button>
+            </div>
           </div>
+          <div>
+            <label>Classe</label>
+            <select id="charClass">
+              <option value="">Selecione...</option>
+              <option value="Linha de Frente">Linha de Frente</option>
+              <option value="Suporte de Campo">Suporte de Campo</option>
+              <option value="Especialista de Batalha">Especialista de Batalha</option>
+            </select>
+          </div>
+          <div>
+            <label>Subclasse</label>
+            <select id="charSubclass"><option value="">Selecione...</option></select>
+          </div>
+          <div><label>Tendência</label><input id="charAlignment" /></div>
+          <div><label>Campanha</label><input id="charCampaign" /></div>
         </div>
-        <div>
-          <label>Classe</label>
-          <select id="charClass">
-            <option value="">Selecione...</option>
-            <option value="Linha de Frente">Linha de Frente</option>
-            <option value="Suporte de Campo">Suporte de Campo</option>
-            <option value="Especialista de Batalha">Especialista de Batalha</option>
-          </select>
-        </div>
-        <div>
-          <label>Subclasse</label>
-          <select id="charSubclass"><option value="">Selecione...</option></select>
-        </div>
-        <div><label>Tendência</label><input id="charAlignment" /></div>
-        <div><label>Campanha</label><input id="charCampaign" /></div>
       </div>
       <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
         <button id="btnSave" class="success">Salvar</button>
         <button id="btnDuplicate">Duplicar</button>
         <button id="btnExport">Exportar JSON</button>
         <button id="btnDelete" class="danger">Excluir</button>
-        <button id="btnBack">Voltar</button>
       </div>
     </div>
 
@@ -531,19 +568,20 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
           </div>
           <div class="resource-modlist" id="sanModList"></div>
 
-          <div class="resource-head"><h3>Energia</h3><button class="small" onclick="openResourceBonusModal('energia')">Adicionar Bônus</button></div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-family:var(--mono);font-size:1.05rem;"><span id="energiaCurrent">0</span> / <span id="energiaMax">0</span></div>
+          <div class="resource-head"><h3>Esquiva e Bloqueio</h3></div>
+          <p style="color:var(--text-muted);font-size:0.8rem;">Esquiva — Teste de Agilidade; se superar o acerto do oponente, anula o dano e pode mover até 1m opcionalmente.</p>
+          <div class="derived-stat" style="margin-top:8px;">
+            <span><strong>Bônus total no teste:</strong></span>
+            <span id="esquivaTotal" style="font-family:var(--mono);font-size:1.05rem;color:var(--accent);">+0</span>
           </div>
-          <div class="resource-bar"><div id="energiaBar" class="resource-fill"></div></div>
-          <div class="resource-controls">
-            <button onclick="modResource('energia', -5)">-5</button>
-            <button onclick="modResource('energia', -1)">-1</button>
-            <button onclick="modResource('energia', 1)">+1</button>
-            <button onclick="modResource('energia', 5)">+5</button>
-            <button onclick="setResource('energia')">Definir</button>
+          <div id="esquivaBreakdown" style="color:var(--text-dim);font-size:0.75rem;margin-top:4px;"></div>
+
+          <p style="color:var(--text-muted);font-size:0.8rem;margin-top:14px;">Bloqueio — Resultado fixo: 8 + Força + Luta; se superar o acerto do oponente, anula o dano.</p>
+          <div class="derived-stat" style="margin-top:8px;">
+            <span><strong>Resultado de bloqueio:</strong></span>
+            <span id="bloqueioTotal" style="font-family:var(--mono);font-size:1.05rem;color:var(--accent);">8</span>
           </div>
-          <div class="resource-modlist" id="energiaModList"></div>
+          <div id="bloqueioBreakdown" style="color:var(--text-dim);font-size:0.75rem;margin-top:4px;"></div>
         </div>
       </div>
 
@@ -555,6 +593,11 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 
       <div class="card" style="margin-top:18px;">
         <h2>Habilidades</h2>
+
+        <div class="ability-category">
+          <h4>Passiva de Classe</h4>
+          <div id="classPassiveDisplay"></div>
+        </div>
 
         <div class="ability-category">
           <h4>Passiva de Origem</h4>
@@ -700,8 +743,17 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
         </div>
 
         <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+          <h3>Arma de Combate</h3>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Escolha entre lâminas ou canhão de mão — o DMT suporta apenas um tipo por vez.</p>
+          <div class="grid grid-2">
+            <button id="btnWeaponBlades" onclick="setDMTWeaponType('laminas')">Lâminas</button>
+            <button id="btnWeaponCannon" onclick="setDMTWeaponType('canhao')">Canhão de Mão</button>
+          </div>
+        </div>
+
+        <div id="bladesSection" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
           <h3>Lâminas</h3>
-          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: 2d10 + Força (<span id="bladeDamageAttr">0</span>) — Perícia: Luta — Margem de Crítico: 20 — Alcance: Corpo-a-Corpo. Um conjunto se quebra a cada 3 ataques.</p>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: 2d10 + Força (<span id="bladeDamageAttr">0</span>) — Perícia: Luta — Margem de Crítico: 20 — Alcance: Corpo-a-Corpo. Um conjunto se quebra a cada 3 ataques. Cada soldado carrega 3 conjuntos (1 em uso + 2 de reserva).</p>
           <div class="derived-stat">
             <span><strong>Conjunto Atual:</strong></span>
             <span><span id="bladeAttacksUsed">0</span> / 3 ataques</span>
@@ -716,11 +768,45 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
             <button onclick="resetBladeSets()">Reabastecer (3 conjuntos)</button>
           </div>
         </div>
+
+        <div id="cannonSection" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+          <h3>Canhão de Mão</h3>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: 3d6 — Perícia: Pontaria — Margem de Crítico: 18 — Alcance: 10 metros. Cada soldado carrega 10 munições adicionais; após cada disparo, a munição usada deve ser reposta manualmente.</p>
+          <div class="derived-stat">
+            <span><strong>Munição:</strong></span>
+            <span><span id="cannonAmmo">10</span> / 10</span>
+          </div>
+          <div class="resource-controls">
+            <button onclick="fireCannon()">Disparar (-1 munição)</button>
+            <button onclick="reloadCannon()">Repor Munição (10)</button>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
+          <h3>Lança Trovão <span style="font-size:0.75rem;color:var(--text-dim);">(3 Espaços cada)</span></h3>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Arma explosiva de Hange Zoe, acoplada ao DMT. Ao disparar, é gasta e causa 5d10 de dano em área (raio de 3m) — Teste de Acerto com Pontaria. Em falha crítica, explode perto do usuário, causando 2d12 de dano. Destrói placas do Titã Blindado ou armadura do Titã Martelo de Guerra, atingindo os PDVs reais do membro em seguida. Lanças múltiplas: cada lança adicional soma +2d10 de dano ao disparo simultâneo; se o ataque falhar, teste de esquiva dificuldade 18 ou sofre 1d12 de dano por lança disparada.</p>
+          <button onclick="addThunderSpearItem()">Adicionar Lança Trovão ao Inventário Pessoal</button>
+        </div>
       </div>
     </div>
 
     <div id="tabHistory" class="section">
       <div class="card">
+        <h2>Imagem do Personagem</h2>
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;">
+          <div class="char-portrait-box" id="charPortraitBox">
+            <span id="charPortraitPlaceholder" style="color:var(--text-dim);font-size:0.85rem;padding:30px;text-align:center;">Nenhuma imagem definida</span>
+            <img id="charPortraitImg" class="hidden" alt="" />
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button onclick="document.getElementById('charImageInput').click()">Enviar Imagem</button>
+            <button class="danger" onclick="removeCharImage()">Remover Imagem</button>
+            <p style="color:var(--text-dim);font-size:0.75rem;max-width:220px;">A imagem é redimensionada e salva localmente junto com a ficha (fica só no seu navegador).</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
         <h2>Informações do Personagem</h2>
         <div class="grid grid-2">
           <div><label>Aparência</label><input id="infoAppearance" /></div>
@@ -740,6 +826,77 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
         <div style="margin-top:14px;"><label>Ligações</label><textarea id="infoBonds"></textarea></div>
         <div style="margin-top:14px;"><label>Defeitos (narrativos)</label><textarea id="infoFlaws"></textarea></div>
         <div style="margin-top:14px;"><label>História do Personagem</label><textarea id="charHistory" style="min-height:180px;"></textarea></div>
+      </div>
+    </div>
+
+    <div id="tabTitan" class="section">
+      <div class="card">
+        <h2>Titã Primordial</h2>
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="shifterIsShifter" style="width:auto;" onchange="toggleIsShifter(this.checked)" /> O personagem é portador de um Titã Primordial (Shifter)</label>
+
+        <div id="shifterContent" class="hidden" style="margin-top:18px;">
+          <div class="grid grid-2">
+            <div>
+              <label>Titã</label>
+              <div style="display:flex;gap:8px;">
+                <select id="shifterTitanSelect" style="flex:1;" onchange="setShifterTitan(this.value)"></select>
+              </div>
+            </div>
+            <div>
+              <label>Nível de Controle</label>
+              <select id="shifterControlLevel" onchange="setShifterControlLevel(this.value)">
+                <option value="1">Nível 1</option>
+                <option value="2">Nível 2</option>
+                <option value="3">Nível 3</option>
+              </select>
+            </div>
+          </div>
+          <button onclick="openTitanCreatorModal()" style="margin-top:12px;">Criar Titã Customizado</button>
+          <div id="shifterControlDesc" style="margin-top:12px;padding:12px;background:var(--surface-2);border:1px solid var(--border);font-size:0.85rem;color:var(--text-muted);"></div>
+
+          <div id="shifterStatsBlock" style="margin-top:18px;"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2 style="margin:0;padding:0;border:none;">Regras Gerais de Titã</h2>
+          <button class="small" onclick="toggleTitanRules()" id="btnToggleTitanRules">Mostrar Regras</button>
+        </div>
+        <div id="titanRulesBody" class="hidden" style="margin-top:14px;">
+        <div class="ability-category">
+          <h4>Testes de Perícia enquanto Transformado</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Ao realizar um teste de perícia transformado, use os valores das suas próprias perícias somados à metade dos Atributos do Titã (arredondando para baixo), que passam a ser considerados atributos base durante a transformação.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Habilidades Limitadas</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Na forma de Titã, o personagem não pode usar habilidades ou passivas de classe. Apenas as habilidades inerentes ao Titã e a habilidade exclusiva (Nível 3 de Controle) estão disponíveis. Efeitos de habilidades de outros personagens ainda afetam Titãs Primordiais.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Lapsos de Memória</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Todos os portadores de um Titã Primordial recebem fragmentos de memória dos antigos portadores — pistas, visões ou emoções que servem como ferramenta narrativa para o mestre.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Regeneração Humana</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">O portador regenera seu corpo humano naturalmente: 1d4 + Vitalidade uma vez por turno (em combate) ou a cada minuto (fora de combate).</p>
+        </div>
+        <div class="ability-category">
+          <h4>Testes de Defesa do Titã</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Valores fixos, sem rolagem: Esquiva = 11 + Agilidade do Titã. Bloqueio = 11 + Força do Titã.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Custo de Transformação</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">A primeira transformação do dia custa o PDE de transformação da ficha do Titã e dura 5 turnos em combate (ou 15 minutos fora dele). Manter a forma além disso custa o PDE de manutenção a cada rodada (ou 5 minutos fora de combate). Transformar-se novamente no mesmo dia exige Nível 2 de Controle ou superior e custa o dobro do PDE de transformação. É preciso gastar uma Ação Bônus (ou de Reação fora do turno) para se transformar.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Sexto Membro (Combate entre Titãs)</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Com mais de um Titã em combate, adiciona-se a cabeça como sexto "membro", com PDV base igual ao da nuca antes do bônus de Vitalidade×2 (sem esse bônus adicional). Só sofre dano de outros Titãs ou armamentos de grande impacto. Ao zerar, o portador desmaia e o Titã fica atordoado e Vulnerável — qualquer ataque contra ele é acerto garantido e crítico, sem esquiva ou bloqueio. O portador volta a si quando a cabeça atinge metade da regeneração; até estar 100% regenerada, o titã se move a metade do deslocamento e só volta a agir sem penalidades quando a cabeça estiver totalmente restaurada.</p>
+        </div>
+        <div class="ability-category">
+          <h4>Ataques à Nuca</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Um ataque direto à nuca de outro Titã Primordial permite ao alvo um Ataque de Oportunidade. Se acertar, o ataque à nuca falha (e o dano do Ataque de Oportunidade se aplica normalmente); se errar, o ataque à nuca ocorre normalmente. Contra um Titã Vulnerável, ataques à nuca podem ser feitos livremente, sem provocar Ataques de Oportunidade.</p>
+        </div>
+        </div>
       </div>
     </div>
 
@@ -822,6 +979,19 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
       </div>
     </div>
   </div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-credits">
+        <span>Feito por: <strong>safizitos</strong></span>
+        <span>Sistema feito por: <strong>passoka</strong></span>
+      </div>
+      <a href="https://discord.gg/rzaqtbDCve" target="_blank" rel="noopener noreferrer" class="footer-discord">
+        <svg viewBox="0 0 127.14 96.36" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21a105.73,105.73,0,0,0,32.17,16.15A77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+        <span>Discord</span>
+      </a>
+    </div>
+  </footer>
 </div>
 
 <div id="skillLibraryOverlay" class="overlay-modal hidden">
@@ -885,7 +1055,101 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
     <button class="modal-close" onclick="closeOriginSelector()">&times;</button>
     <h2>Alterar Origem</h2>
     <p style="color:var(--text-muted);margin-bottom:18px;">Escolha uma nova Origem para seu personagem. Isso recalculará PDV, PDE, SAN e aplicará novas passivas.</p>
+    <button onclick="openFamilyCreatorModal('selector')" style="margin-bottom:14px;">Criar Família Customizada</button>
     <div id="originSelectorList" class="origin-selection"></div>
+  </div>
+</div>
+
+<div id="familyCreatorModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="closeFamilyCreatorModal()">&times;</button>
+    <h2>Criar Família Customizada</h2>
+    <div class="grid grid-2">
+      <div><label>Nome da Família</label><input id="famName" placeholder="Ex: Órfãos de Marley" /></div>
+      <div><label>Família/Linhagem (opcional)</label><input id="famLineage" placeholder="Ex: Sobrenome" /></div>
+    </div>
+    <div style="margin-top:14px;"><label>Descrição</label><textarea id="famDescription" style="min-height:70px;"></textarea></div>
+    <div class="grid grid-3" style="margin-top:14px;">
+      <div><label>PDV Inicial</label><input id="famPDV" type="number" min="0" value="8" /></div>
+      <div><label>SAN Inicial</label><input id="famSAN" type="number" min="0" value="6" /></div>
+      <div><label>PDE Inicial</label><input id="famPDE" type="number" min="0" value="6" /></div>
+    </div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="famHasPassive" style="width:auto;" /> Possui Passiva de Origem</label>
+      <div class="grid grid-2" style="margin-top:10px;">
+        <div><label>Nome da Passiva</label><input id="famPassiveName" /></div>
+        <div><label>Descrição da Passiva</label><input id="famPassiveDesc" /></div>
+      </div>
+    </div>
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="famHasAbility" style="width:auto;" /> Possui Habilidade de Origem (desbloqueia no Nível 8)</label>
+      <div class="grid grid-2" style="margin-top:10px;">
+        <div><label>Nome da Habilidade</label><input id="famAbilityName" /></div>
+        <div><label>Descrição da Habilidade</label><input id="famAbilityDesc" /></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeFamilyCreatorModal()">Cancelar</button>
+      <button class="primary" onclick="saveCustomFamily()">Salvar Família</button>
+    </div>
+  </div>
+</div>
+
+<div id="titanCreatorModal" class="overlay-modal hidden">
+  <div class="big-modal">
+    <button class="modal-close" onclick="closeTitanCreatorModal()">&times;</button>
+    <h2 style="padding-right:40px;">Criar Titã Customizado</h2>
+    <div class="grid grid-2">
+      <div><label>Nome do Titã</label><input id="titNameCreate" placeholder="Ex: Titã Rastreador" /></div>
+      <div><label>Altura</label><input id="titHeight" placeholder="Ex: 12 metros" /></div>
+    </div>
+    <div style="margin-top:14px;"><label>Descrição</label><textarea id="titDescription" style="min-height:60px;"></textarea></div>
+    <h4 style="margin-top:16px;color:var(--accent);">Pontos de Vida</h4>
+    <div class="grid grid-3">
+      <div><label>Nuca (base)</label><input id="titPdvNuca" type="number" min="0" value="90" /></div>
+      <div><label>Braços (cada)</label><input id="titPdvBraco" type="number" min="0" value="50" /></div>
+      <div><label>Pernas (cada)</label><input id="titPdvPerna" type="number" min="0" value="50" /></div>
+    </div>
+    <h4 style="margin-top:16px;color:var(--accent);">Atributos Base (somados ao valor do portador)</h4>
+    <div class="grid grid-4">
+      <div><label>Agilidade</label><input id="titAgi" type="number" value="6" /></div>
+      <div><label>Estâmina</label><input id="titSta" type="number" value="6" /></div>
+      <div><label>Força</label><input id="titStr" type="number" value="6" /></div>
+      <div><label>Vitalidade</label><input id="titVit" type="number" value="6" /></div>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">Intelecto do Titã é sempre igual ao Intelecto do portador, sem base adicional.</p>
+    <h4 style="margin-top:16px;color:var(--accent);">Ataque Padrão</h4>
+    <div class="grid grid-2">
+      <div><label>Atributo do Teste de Acerto</label><input id="titAtaqueTest" placeholder="Ex: Força ou Agilidade" /></div>
+      <div><label>Dano</label><input id="titAtaqueDano" placeholder="Ex: 5d8 + Força do titã" /></div>
+    </div>
+    <div class="grid grid-3" style="margin-top:14px;">
+      <div><label>Deslocamento Base</label><input id="titDeslocamento" type="number" value="8" /></div>
+      <div><label>PDE Transformação</label><input id="titPdeTransform" type="number" value="8" /></div>
+      <div><label>PDE Manutenção</label><input id="titPdeMaintain" type="number" value="5" /></div>
+    </div>
+    <div style="margin-top:14px;"><label>Fórmula de Regeneração</label><input id="titRegen" placeholder="Ex: 1d10 + Estâmina do portador" /></div>
+    <div style="margin-top:14px;">
+      <label>Habilidades do Titã (uma por linha, no formato Nome: Descrição)</label>
+      <textarea id="titAbilities" style="min-height:100px;" placeholder="Ex: Garras Cortantes: Ataques ignoram 5 pontos de redução de dano."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeTitanCreatorModal()">Cancelar</button>
+      <button class="primary" onclick="saveCustomTitan()">Salvar Titã</button>
+    </div>
+  </div>
+</div>
+
+<div id="shifterAbilityModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="closeShifterAbilityModal()">&times;</button>
+    <h2>Adicionar Habilidade ao Titã</h2>
+    <div><label>Nome</label><input id="shifterAbilityName" /></div>
+    <div style="margin-top:14px;"><label>Descrição</label><textarea id="shifterAbilityDesc" style="min-height:80px;"></textarea></div>
+    <div class="modal-actions">
+      <button onclick="closeShifterAbilityModal()">Cancelar</button>
+      <button class="primary" onclick="saveShifterCustomAbility()">Adicionar</button>
+    </div>
   </div>
 </div>
 
@@ -1130,6 +1394,28 @@ const SUBCLASSES = {
   'Suporte de Campo': ['Médico', 'Inventor'],
   'Especialista de Batalha': ['Capitão', 'Estrategista']
 };
+
+const CLASS_PASSIVES = {
+  'Linha de Frente': [
+    { min: 1, max: 7, text: 'Nível 1 a 7 — +1 em Testes de Acerto e +1d4 em seus danos.' },
+    { min: 8, max: 15, text: 'Nível 8 a 15 — O bônus em Testes de Acerto aumenta para +2, e o bônus de dano aumenta para +1d6.' },
+    { min: 16, max: 20, text: 'Nível 16+ — O bônus em Testes de Acerto aumenta para +3, e o bônus de dano aumenta para +1d8.' }
+  ],
+  'Suporte de Campo': [
+    { min: 1, max: 7, text: 'Nível 1 a 7 — Equipamentos curativos recuperam +1d4 PDVs; testes para reparar equipamentos recebem +1.' },
+    { min: 8, max: 15, text: 'Nível 8 a 15 — Equipamentos curativos passam a recuperar +1d6 PDVs; testes para reparar equipamentos recebem +2.' },
+    { min: 16, max: 20, text: 'Nível 16 a 20 — Equipamentos curativos passam a recuperar +1d8 PDVs; testes para reparar equipamentos recebem +3.' }
+  ],
+  'Especialista de Batalha': [
+    { min: 1, max: 7, text: 'Nível 1 a 7 — Em combate, pode escolher dois aliados (incluindo ele mesmo) para receberem +1 em Testes de Acerto enquanto ele estiver presente.' },
+    { min: 8, max: 15, text: 'Nível 8 a 15 — Pode conceder o bônus de +1 em Testes de Acerto a qualquer número de aliados (incluindo ele mesmo), desde que esteja presente no combate.' },
+    { min: 16, max: 20, text: 'Nível 16+ — Além do bônus de acerto, concede +1d4 de dano adicional para todos os aliados, incluindo ele mesmo.' }
+  ]
+};
+function getClassPassiveTier(className, level) {
+  const tiers = CLASS_PASSIVES[className]; if (!tiers) return null;
+  return tiers.find(t => level >= t.min && level <= t.max) || null;
+}
 
 const SUBCLASS_BONUSES = {
   'Soldado': { skills: { 'Luta': 1 }, ignoreLimit: ['Luta'] },
@@ -1605,9 +1891,125 @@ function findTDDef(itemId) {
 }
 
 /* ============================================================
+   DADOS — TITÃS PRIMORDIAIS
+   ============================================================ */
+const TITAN_CONTROL_LEVELS = [
+  { level: 1, name: 'Nível 1', description: 'O portador não controla o Titã nas primeiras transformações e só pode se transformar uma vez por dia. O narrador guia as ações do Titã com base em instinto primitivo, atacando qualquer coisa que considere ameaça, sem distinguir aliados de inimigos. Se plausível, o portador pode tentar um teste de Vontade (dificuldade 16) para assumir o controle de algumas ações.' },
+  { level: 2, name: 'Nível 2', description: 'O portador passa a controlar livremente os movimentos do Titã, podendo usar suas habilidades características, ataques e capacidades passivas. Já é possível se transformar mais de uma vez ao dia.' },
+  { level: 3, name: 'Nível 3', description: 'Controle pleno sobre o Titã. O jogador pode criar, em conjunto com o mestre, uma habilidade exclusiva que combine o estilo de combate humano com os poderes do Titã.' }
+];
+
+const TITAN_PRIMORDIAL_DB = [
+  { id: 'ataque', name: 'Titã de Ataque', height: '15 metros',
+    description: 'Aparência feroz e musculosa. Seu verdadeiro poder está em regras narrativas únicas, capazes de transformar o curso da história.',
+    pdvNuca: 110, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 8, sta: 6, str: 8, vit: 5 },
+    ataque: { test: 'Força ou Agilidade', dano: '9d6 + Força do titã', desvantagem: false },
+    deslocamentoBase: 8, pdeTransform: 8, pdeMaintain: 5, regen: '1d12 + Estâmina do portador',
+    abilities: [
+      { name: 'Viagem entre Memórias', description: 'Compartilha memórias do passado e do futuro dos antigos portadores, permitindo antever acontecimentos importantes (com aprovação do narrador).' },
+      { name: 'Modo Berserk', description: 'Ativa ao perder um membro ou ficar com menos de 50 PDV na nuca. Escolhe um alvo; enquanto durar, só pode atacá-lo, com vantagem e +2d10 de dano adicional. Dura até o fim do combate; ao terminar, o personagem desmaia automaticamente.' }
+    ] },
+  { id: 'colossal', name: 'Titã Colossal', height: '60 metros',
+    description: 'O maior dos Titãs Primordiais. Movimentos lentos e previsíveis, com grandes regiões do corpo sem pele.',
+    pdvNuca: 120, pdvBraco: 60, pdvPerna: 90,
+    attrs: { agi: 3, sta: 4, str: 9, vit: 8 },
+    ataque: { test: 'Agilidade (com desvantagem)', dano: '10d6 + Força do titã', desvantagem: true },
+    deslocamentoBase: 10, pdeTransform: 12, pdeMaintain: 6, regen: '1d8 + Estâmina do portador',
+    abilities: [
+      { name: 'Pisoteamento', description: 'Usa o deslocamento para pisotear um alvo; a vítima faz teste de Agilidade (dificuldade 18) ou tem o corpo esmagado — morte imediata para humano, ou desacordado e desmembrado para outro Titã.' },
+      { name: 'Emissão de Vapor', description: 'Inimigos a até 8m sofrem 3d6 de dano; o vapor impede aproximação a menos de 5m. Custo: 10 PDV em todas as partes do corpo + um turno inteiro para manter; desativa a regeneração enquanto ativa.' },
+      { name: 'Transformação Explosiva', description: 'Ao se transformar, pode optar por uma explosão devastadora que mata instantaneamente tudo ao redor (exceto o Titã Blindado). Custo: 8 PDE adicionais.' }
+    ] },
+  { id: 'bestial', name: 'Titã Bestial', height: '17 metros',
+    description: 'Aparência de gorila gigante, mas pode assumir traços de outros animais.',
+    pdvNuca: 105, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 7, sta: 4, str: 7, vit: 6 },
+    ataque: { test: 'Força ou Agilidade', dano: '4d12 + Intelecto do titã', desvantagem: false },
+    deslocamentoBase: 6, pdeTransform: 10, pdeMaintain: 5, regen: '1d10 + Estâmina do portador',
+    abilities: [
+      { name: 'Controle Titânico', description: 'Se o portador tiver origem Sangue Real, pode transformar em Titãs Puros qualquer pessoa que tenha ingerido seu fluido espinhal, e comandá-los depois.' },
+      { name: 'Habilidade Animal', description: 'Após definir o animal que o Titã assumiu, o jogador cria com o narrador uma habilidade temática relacionada à criatura.' }
+    ] },
+  { id: 'femea', name: 'Titã Fêmea', height: '14 metros',
+    description: 'Ágil, versátil e altamente estratégica. Estrutura esguia e traços definidos.',
+    pdvNuca: 95, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 9, sta: 8, str: 7, vit: 4 },
+    ataque: { test: 'Agilidade', dano: '5d10 + Agilidade do titã', desvantagem: false },
+    deslocamentoBase: 10, pdeTransform: 8, pdeMaintain: 5, regen: '1d12 + Estâmina do portador',
+    abilities: [
+      { name: 'Assimilação', description: 'Pode assimilar habilidades de outros Titãs Primordiais de forma parcial, caso o fluido espinhal do Titã desejado seja inserido na portadora. Cada assimilação deve ser desenvolvida com o mestre.' }
+    ] },
+  { id: 'blindado', name: 'Titã Blindado', height: '15 metros',
+    description: 'O mais resistente dos Titãs Primordiais, revestido por placas de endurecimento natural.',
+    pdvNuca: 110, pdvBraco: 60, pdvPerna: 60,
+    attrs: { agi: 4, sta: 6, str: 8, vit: 7 },
+    ataque: { test: 'Agilidade', dano: '5d12 + Vitalidade do titã', desvantagem: false },
+    deslocamentoBase: 6, pdeTransform: 10, pdeMaintain: 5, regen: '1d8 + Estâmina do portador',
+    abilities: [
+      { name: 'Couraça', description: 'Imune a lâminas e ataques convencionais, sofrendo dano apenas de explosivos ou força física intensa. Cada parte do corpo tem +40 PDV extras de armadura, destruídos antes dos PDV reais; regeneram como os membros titânicos.' }
+    ] },
+  { id: 'mandibula', name: 'Titã Mandíbula', height: '5 metros',
+    description: 'Pequeno porte e extrema agilidade. Garras e mandíbulas capazes de romper quase qualquer material.',
+    pdvNuca: 80, pdvBraco: 45, pdvPerna: 45,
+    attrs: { agi: 9, sta: 8, str: 6, vit: 4 },
+    ataque: { test: 'Força ou Agilidade (à escolha)', dano: '8d8 + Força do titã', desvantagem: false },
+    deslocamentoBase: 10, pdeTransform: 8, pdeMaintain: 4, regen: '1d12 + Estâmina do portador',
+    abilities: [
+      { name: 'Presas Implacáveis', description: 'Seus ataques não podem ser bloqueados, ignoram resistências a dano, e destroem as placas do Titã Blindado, a armadura do Titã Martelo de Guerra e as Lanças Trovão, causando dano direto ao alvo.' }
+    ] },
+  { id: 'carroceiro', name: 'Titã Carroceiro', height: '4 metros',
+    description: 'Postura quadrúpede, alta resistência e velocidade para correr; pode carregar cargas pesadas.',
+    pdvNuca: 85, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 8, sta: 14, str: 4, vit: 8 },
+    ataque: { test: 'Força ou Agilidade', dano: '4d10 + Força do titã', desvantagem: false },
+    deslocamentoBase: 16, pdeTransform: 8, pdeMaintain: 0, regen: '1d6 + Estâmina do portador',
+    abilities: [
+      { name: 'Resistência Prolongada', description: 'Pode permanecer transformado por tempo indefinido. Longos períodos podem causar efeitos colaterais físicos ao retornar à forma humana (fraqueza muscular, dificuldades motoras), a critério do mestre.' }
+    ] },
+  { id: 'martelo', name: 'Titã Martelo de Guerra', height: '15 metros',
+    description: 'Cria armas e estruturas com carne endurecida, moldando o campo de batalha à vontade do portador.',
+    pdvNuca: 100, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 7, sta: 8, str: 6, vit: 8 },
+    ataque: { test: 'Força ou Agilidade', dano: '6d8 + Força do titã', desvantagem: false },
+    deslocamentoBase: 8, pdeTransform: 8, pdeMaintain: 5, regen: '1d10 + Estâmina do portador',
+    abilities: [
+      { name: 'Ponto Vital', description: 'O portador pode ficar fora do corpo do Titã, a até 30m, conectado por um cabo de carne endurecida (50 PDV). Se o cabo for destruído, a transformação se desfaz e o portador fica protegido num cristal, só quebrável pelas presas do Titã Mandíbula.' },
+      { name: 'Arma de Impacto', description: 'Cria uma arma de carne endurecida (martelo, espada, arco, lança etc.) — 5d12 + Vitalidade do Titã de dano, 20 PDV. Custo: 6 PDE do portador + Ação Bônus do Titã.' },
+      { name: 'Estacas Emergentes', description: 'Estacas perfuram e imobilizam o alvo — 2d12 + Vitalidade do Titã de dano; cada estaca tem 10 PDV. Custo: 6 PDE do portador + Ação Bônus do Titã.' },
+      { name: 'Armadura Corporal', description: 'Concede +30 PDV extras a todas as partes do corpo, destruídos antes dos PDV reais. Custo: 6 PDE do portador adicionais durante a transformação.' },
+      { name: 'Barreira de Proteção', description: 'Cria uma barreira de 25 PDV que intercepta ataques automaticamente; se o dano exceder 25, a barreira é destruída e o Titã ainda pode tentar um Teste de Defesa para o dano restante. Custo: 6 PDE do portador + Ação de Reação do Titã.' }
+    ] },
+  { id: 'fundador', name: 'Titã Fundador', height: 'Variável (13m a quase 1km)',
+    description: 'Superior a todos os outros Titãs Primordiais; molda a realidade do povo Eldiano através dos Caminhos.',
+    pdvNuca: 100, pdvBraco: 50, pdvPerna: 50,
+    attrs: { agi: 8, sta: 6, str: 6, vit: 6 },
+    ataque: { test: 'Força ou Agilidade', dano: '5d10 + Força do titã', desvantagem: false },
+    deslocamentoBase: 8, pdeTransform: 8, pdeMaintain: 5, regen: '1d12 + Estâmina do portador',
+    abilities: [
+      { name: 'Condição de Uso', description: 'Requer sangue real na linhagem, ou contato direto com quem o possui. Sem essa condição, pode ser ativado fisicamente, mas os poderes especiais permanecem adormecidos.' },
+      { name: 'Alteração Biológica', description: 'Modifica aspectos físicos dos Eldianos: cura doenças, modifica corpos, esteriliza, fortalece ou enfraquece características, individual ou globalmente.' },
+      { name: 'Alteração de Memórias', description: 'Apaga, modifica ou insere memórias falsas em qualquer Eldiano, individual ou coletivamente.' },
+      { name: 'Caminhos', description: 'Acesso e controle absoluto de uma dimensão que conecta todos os Eldianos; pode invocar qualquer um deles e influenciar sua biologia e memória.' },
+      { name: 'Controle Titânico Aprimorado', description: 'Comanda qualquer Titã Puro em existência, sem necessidade de proximidade, comandos verbais ou limitação.' },
+      { name: 'Endurecimento Parcial', description: 'Requer Nível 3 de Controle. Ofensivo: +2d10 de dano no ataque, dura o combate inteiro. Defensivo: placa protetora com as propriedades da couraça do Titã Blindado, dura 2 rodadas. Estrutural: cria uma estrutura fixa ao redor do corpo, mas o portador é expelido dele. Custo: 8 PDE + Ação Bônus. Uma vez por forma, por combate.' }
+    ] }
+];
+
+function getAllTitans() {
+  const merged = {};
+  TITAN_PRIMORDIAL_DB.forEach(t => { merged[t.id] = t; });
+  customTitans.forEach(t => { merged[t.id] = t; });
+  return merged;
+}
+function getTitanById(id) { return getAllTitans()[id]; }
+
+/* ============================================================
    ESTADO GERAL
    ============================================================ */
 let characters = JSON.parse(localStorage.getItem('rpgChars') || '[]');
+let customOrigins = JSON.parse(localStorage.getItem('rpgCustomOrigins') || '[]');
+let customTitans = JSON.parse(localStorage.getItem('rpgCustomTitans') || '[]');
 let currentCharId = null;
 let creationState = null;
 let currentSkillFilter = 'all';
@@ -1615,8 +2017,336 @@ let currentTDFilter = 'all';
 let expandedOriginId = null;
 let currentSkillDetail = null;
 let pendingTDSelection = null;
+let originSelectionContext = 'wizard';
 
 function saveChars() { localStorage.setItem('rpgChars', JSON.stringify(characters)); }
+function saveCustomOrigins() { localStorage.setItem('rpgCustomOrigins', JSON.stringify(customOrigins)); }
+function saveCustomTitans() { localStorage.setItem('rpgCustomTitans', JSON.stringify(customTitans)); }
+
+function getAllOrigins() {
+  const merged = { ...ORIGINS };
+  customOrigins.forEach(o => { merged[o.id] = o; });
+  return merged;
+}
+function getOriginById(id) { return getAllOrigins()[id]; }
+
+function openFamilyCreatorModal(context) {
+  originSelectionContext = context;
+  document.getElementById('famName').value = '';
+  document.getElementById('famLineage').value = '';
+  document.getElementById('famDescription').value = '';
+  document.getElementById('famPDV').value = 8;
+  document.getElementById('famSAN').value = 6;
+  document.getElementById('famPDE').value = 6;
+  document.getElementById('famHasPassive').checked = false;
+  document.getElementById('famPassiveName').value = '';
+  document.getElementById('famPassiveDesc').value = '';
+  document.getElementById('famHasAbility').checked = false;
+  document.getElementById('famAbilityName').value = '';
+  document.getElementById('famAbilityDesc').value = '';
+  document.getElementById('familyCreatorModal').classList.remove('hidden');
+}
+function closeFamilyCreatorModal() { document.getElementById('familyCreatorModal').classList.add('hidden'); }
+
+function saveCustomFamily() {
+  const name = document.getElementById('famName').value.trim();
+  if (!name) { showNotification('Nome da família é obrigatório.', '', true); return; }
+  const id = 'custom_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString(36);
+  const hasPassive = document.getElementById('famHasPassive').checked;
+  const hasAbility = document.getElementById('famHasAbility').checked;
+  const origin = {
+    id, name, family: document.getElementById('famLineage').value.trim(),
+    description: document.getElementById('famDescription').value.trim() || 'Família customizada.',
+    custom: true,
+    initialStats: {
+      pdv: parseInt(document.getElementById('famPDV').value) || 0,
+      san: parseInt(document.getElementById('famSAN').value) || 0,
+      pde: parseInt(document.getElementById('famPDE').value) || 0
+    },
+    passive: hasPassive
+      ? { id: id + '_passiva', name: document.getElementById('famPassiveName').value.trim() || 'Passiva', description: document.getElementById('famPassiveDesc').value.trim() || 'Sem descrição.', effects: [] }
+      : { id: id + '_passiva', name: 'Nenhuma', description: 'Esta família não possui passiva.', effects: [] },
+    originAbility: hasAbility
+      ? { id: id + '_habilidade', name: document.getElementById('famAbilityName').value.trim() || 'Habilidade de Origem', description: document.getElementById('famAbilityDesc').value.trim() || 'Sem descrição.', unlockLevel: 8, effects: [] }
+      : { id: id + '_habilidade', name: 'Nenhuma', description: 'Esta família não possui habilidade de origem.', unlockLevel: 8, effects: [] }
+  };
+  customOrigins.push(origin);
+  saveCustomOrigins();
+  closeFamilyCreatorModal();
+  if (originSelectionContext === 'wizard') renderOriginSelection();
+  else renderOriginSelectorList();
+  showNotification('Família criada.', name);
+}
+
+function deleteCustomFamily(id, event) {
+  if (event) event.stopPropagation();
+  if (!confirm('Excluir esta família customizada? Personagens que já a utilizam manterão os dados salvos, mas ela não aparecerá mais na lista.')) return;
+  customOrigins = customOrigins.filter(o => o.id !== id);
+  saveCustomOrigins();
+  if (originSelectionContext === 'wizard') renderOriginSelection();
+  else renderOriginSelectorList();
+  showNotification('Família removida.', '');
+}
+
+/* ============================================================
+   TITÃ PRIMORDIAL — SHIFTER
+   ============================================================ */
+function toggleTitanRules() {
+  const body = document.getElementById('titanRulesBody');
+  const btn = document.getElementById('btnToggleTitanRules');
+  const hidden = body.classList.toggle('hidden');
+  btn.textContent = hidden ? 'Mostrar Regras' : 'Ocultar Regras';
+}
+
+function toggleIsShifter(checked) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.shifter.isShifter = checked;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+}
+
+function setShifterTitan(titanId) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.shifter.titanId = titanId || null;
+  ch.updatedAt = new Date().toISOString();
+  recomputeShifterParts(ch);
+  saveChars(); renderShifterTab();
+}
+
+function setShifterControlLevel(level) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.shifter.controlLevel = parseInt(level) || 1;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+}
+
+function computeShifterAttrs(ch) {
+  const titan = getTitanById(ch.shifter.titanId); if (!titan) return null;
+  const portador = { agi: ch.attributes.agi + (ch.attributeBonuses.agi || 0), sta: ch.attributes.sta + (ch.attributeBonuses.sta || 0), str: ch.attributes.str + (ch.attributeBonuses.str || 0), int: ch.attributes.int + (ch.attributeBonuses.int || 0), vit: ch.attributes.vit + (ch.attributeBonuses.vit || 0) };
+  return {
+    agi: titan.attrs.agi + portador.agi, sta: titan.attrs.sta + portador.sta,
+    str: titan.attrs.str + portador.str, int: portador.int, vit: titan.attrs.vit + portador.vit
+  };
+}
+
+function recomputeShifterParts(ch) {
+  const titan = getTitanById(ch.shifter.titanId);
+  if (!titan) return;
+  const portadorVit = ch.attributes.vit + (ch.attributeBonuses.vit || 0);
+  const maxes = { nuca: titan.pdvNuca + (portadorVit * 2), cabeca: titan.pdvNuca, bracoD: titan.pdvBraco, bracoE: titan.pdvBraco, pernaD: titan.pdvPerna, pernaE: titan.pdvPerna };
+  Object.keys(maxes).forEach(part => {
+    if (!ch.shifter.parts[part]) ch.shifter.parts[part] = { cur: maxes[part], max: maxes[part] };
+    else {
+      ch.shifter.parts[part].max = maxes[part];
+      if (ch.shifter.parts[part].cur > maxes[part]) ch.shifter.parts[part].cur = maxes[part];
+    }
+  });
+}
+
+function renderShifterTab() {
+  const ch = getCurrentChar(); if (!ch) return;
+  document.getElementById('shifterIsShifter').checked = ch.shifter.isShifter;
+  document.getElementById('shifterContent').classList.toggle('hidden', !ch.shifter.isShifter);
+  if (!ch.shifter.isShifter) return;
+
+  const select = document.getElementById('shifterTitanSelect');
+  const allTitans = getAllTitans();
+  select.innerHTML = '<option value="">Selecione um Titã...</option>' + Object.values(allTitans).map(t => `<option value="${t.id}" ${ch.shifter.titanId === t.id ? 'selected' : ''}>${t.name}${t.custom ? ' (Custom)' : ''}</option>`).join('');
+  document.getElementById('shifterControlLevel').value = ch.shifter.controlLevel;
+
+  const controlInfo = TITAN_CONTROL_LEVELS.find(c => c.level === ch.shifter.controlLevel);
+  document.getElementById('shifterControlDesc').innerHTML = controlInfo ? `<strong>${controlInfo.name}:</strong> ${controlInfo.description}` : '';
+
+  const statsBlock = document.getElementById('shifterStatsBlock');
+  const titan = getTitanById(ch.shifter.titanId);
+  if (!titan) { statsBlock.innerHTML = '<p style="color:var(--text-dim);">Selecione um Titã para ver os atributos e status.</p>'; return; }
+
+  recomputeShifterParts(ch);
+  const attrs = computeShifterAttrs(ch);
+  const esquivaTitan = 11 + attrs.agi;
+  const bloqueioTitan = 11 + attrs.str;
+  const deslocamentoTitan = titan.deslocamentoBase + attrs.agi;
+  const abilitiesHtml = (titan.abilities || []).map(a => `<div class="ability-item"><h5>${a.name}</h5><p>${a.description}</p></div>`).join('');
+  const customAbilitiesHtml = (ch.shifter.customAbilities || []).map((a, idx) => `<div class="ability-item"><h5>${a.name} <span class="tag class">Custom</span></h5><p>${a.description}</p><button class="small danger" style="margin-top:8px;" onclick="removeShifterCustomAbility(${idx})">Remover</button></div>`).join('');
+
+  statsBlock.innerHTML = `
+    <div class="card" style="background:var(--surface-2);">
+      <h3>${titan.name} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(${titan.height})</span></h3>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-top:6px;">${titan.description}</p>
+      <div class="grid grid-4" style="margin-top:14px;">
+        <div class="attr-card"><div>Agilidade</div><div class="attr-value">${attrs.agi}</div></div>
+        <div class="attr-card"><div>Estâmina</div><div class="attr-value">${attrs.sta}</div></div>
+        <div class="attr-card"><div>Força</div><div class="attr-value">${attrs.str}</div></div>
+        <div class="attr-card"><div>Vitalidade</div><div class="attr-value">${attrs.vit}</div></div>
+      </div>
+      <div class="derived-stat" style="margin-top:12px;"><span><strong>Ataque Padrão:</strong></span><span>${titan.ataque.dano} — Teste: ${titan.ataque.test}</span></div>
+      <div class="derived-stat"><span><strong>Deslocamento:</strong></span><span>${deslocamentoTitan}m</span></div>
+      <div class="derived-stat"><span><strong>Esquiva (fixa):</strong></span><span>${esquivaTitan}</span></div>
+      <div class="derived-stat"><span><strong>Bloqueio (fixo):</strong></span><span>${bloqueioTitan}</span></div>
+      <div class="derived-stat"><span><strong>Regeneração (por turno em combate / minuto fora):</strong></span><span>${titan.regen}</span></div>
+      <div class="derived-stat"><span><strong>Custo de Transformação:</strong></span><span>${titan.pdeTransform} PDE (transformar) / ${titan.pdeMaintain} PDE (manter por rodada)</span></div>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+        ${ch.shifter.transformed
+          ? `<button class="danger" onclick="detransformShifter()">Destransformar</button><button onclick="maintainShifter()">Manter Transformação (-${titan.pdeMaintain} PDE)</button>`
+          : `<button class="primary" onclick="transformShifter()">Transformar (-${titan.pdeTransform} PDE)</button><button onclick="transformShifterAgain()" ${ch.shifter.controlLevel < 2 ? 'disabled title="Requer Nível 2 de Controle"' : ''}>2ª Transformação do Dia (-${titan.pdeTransform * 2} PDE)</button>`}
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:16px;">
+      ${buildShifterPartBar(ch, 'nuca', 'Nuca')}
+      ${buildShifterPartBar(ch, 'bracoD', 'Braço Direito')}
+      ${buildShifterPartBar(ch, 'bracoE', 'Braço Esquerdo')}
+      ${buildShifterPartBar(ch, 'pernaD', 'Perna Direita')}
+      ${buildShifterPartBar(ch, 'pernaE', 'Perna Esquerda')}
+      ${buildShifterPartBar(ch, 'cabeca', 'Cabeça (6º membro)')}
+    </div>
+    <p style="color:var(--text-dim);font-size:0.78rem;margin-top:8px;">A Cabeça só aparece em combates com mais de um Titã. Só sofre dano de outros Titãs ou armamentos de grande impacto. Ao chegar a 0, o portador desmaia e o Titã fica atordoado e Vulnerável (qualquer ataque é acerto garantido e crítico, sem esquiva ou bloqueio) até metade da Cabeça regenerar.</p>
+
+    <div style="margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <h4 style="color:var(--accent);margin:0;">Habilidades do Titã</h4>
+        <button class="small" onclick="openShifterAbilityModal()">Adicionar Habilidade Customizada</button>
+      </div>
+      <div style="margin-top:10px;">
+        ${abilitiesHtml || '<p class="empty-note">Este Titã não possui habilidades cadastradas.</p>'}
+        ${customAbilitiesHtml}
+      </div>
+    </div>`;
+}
+
+function buildShifterPartBar(ch, part, label) {
+  const p = ch.shifter.parts[part] || { cur: 0, max: 0 };
+  const pct = p.max > 0 ? Math.min(100, (p.cur / p.max) * 100) : 0;
+  const barClass = pct <= 25 ? ' crit' : pct <= 50 ? ' low' : '';
+  return `<div class="mini-card">
+    <h4 style="margin-bottom:8px;">${label}</h4>
+    <div style="font-family:var(--mono);">${p.cur} / ${p.max}</div>
+    <div class="resource-bar"><div class="resource-fill${barClass}" style="width:${pct}%;"></div></div>
+    <div class="resource-controls">
+      <button onclick="modShifterPart('${part}', -10)">-10</button>
+      <button onclick="modShifterPart('${part}', -1)">-1</button>
+      <button onclick="modShifterPart('${part}', 1)">+1</button>
+      <button onclick="modShifterPart('${part}', 10)">+10</button>
+    </div>
+  </div>`;
+}
+
+function modShifterPart(part, delta) {
+  const ch = getCurrentChar(); if (!ch) return;
+  const p = ch.shifter.parts[part]; if (!p) return;
+  p.cur = Math.max(0, Math.min(p.max, p.cur + delta));
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+}
+
+function transformShifter() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const titan = getTitanById(ch.shifter.titanId); if (!titan) { showNotification('Selecione um Titã primeiro.', '', true); return; }
+  if (ch.resources.sta.cur < titan.pdeTransform) { showNotification('PDE insuficiente para transformar.', '', true); return; }
+  ch.resources.sta.cur -= titan.pdeTransform;
+  ch.shifter.transformed = true;
+  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+  showNotification('Transformação ativada.', titan.name);
+}
+
+function transformShifterAgain() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const titan = getTitanById(ch.shifter.titanId); if (!titan) { showNotification('Selecione um Titã primeiro.', '', true); return; }
+  if (ch.shifter.controlLevel < 2) { showNotification('Requer Nível 2 de Controle ou superior.', '', true); return; }
+  const cost = titan.pdeTransform * 2;
+  if (ch.resources.sta.cur < cost) { showNotification('PDE insuficiente para a segunda transformação.', '', true); return; }
+  ch.resources.sta.cur -= cost;
+  ch.shifter.transformed = true;
+  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+  showNotification('Segunda transformação do dia ativada.', titan.name);
+}
+
+function maintainShifter() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const titan = getTitanById(ch.shifter.titanId); if (!titan) return;
+  if (ch.resources.sta.cur < titan.pdeMaintain) { showNotification('PDE insuficiente para manter a transformação.', '', true); return; }
+  ch.resources.sta.cur -= titan.pdeMaintain;
+  ch.updatedAt = new Date().toISOString(); saveChars(); updateResourceUI(); renderShifterTab();
+}
+
+function detransformShifter() {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.shifter.transformed = false;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+}
+
+function openShifterAbilityModal() {
+  document.getElementById('shifterAbilityName').value = '';
+  document.getElementById('shifterAbilityDesc').value = '';
+  document.getElementById('shifterAbilityModal').classList.remove('hidden');
+}
+function closeShifterAbilityModal() { document.getElementById('shifterAbilityModal').classList.add('hidden'); }
+
+function saveShifterCustomAbility() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const name = document.getElementById('shifterAbilityName').value.trim();
+  const description = document.getElementById('shifterAbilityDesc').value.trim();
+  if (!name || !description) { showNotification('Preencha nome e descrição.', '', true); return; }
+  if (!ch.shifter.customAbilities) ch.shifter.customAbilities = [];
+  ch.shifter.customAbilities.push({ name, description });
+  ch.updatedAt = new Date().toISOString(); saveChars();
+  closeShifterAbilityModal(); renderShifterTab();
+  showNotification('Habilidade adicionada ao Titã.', name);
+}
+
+function removeShifterCustomAbility(idx) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.shifter.customAbilities.splice(idx, 1);
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderShifterTab();
+}
+
+function openTitanCreatorModal() {
+  ['titNameCreate', 'titHeight', 'titDescription', 'titAtaqueTest', 'titAtaqueDano', 'titRegen', 'titAbilities'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('titPdvNuca').value = 90;
+  document.getElementById('titPdvBraco').value = 50;
+  document.getElementById('titPdvPerna').value = 50;
+  document.getElementById('titAgi').value = 6; document.getElementById('titSta').value = 6;
+  document.getElementById('titStr').value = 6; document.getElementById('titVit').value = 6;
+  document.getElementById('titDeslocamento').value = 8;
+  document.getElementById('titPdeTransform').value = 8;
+  document.getElementById('titPdeMaintain').value = 5;
+  document.getElementById('titanCreatorModal').classList.remove('hidden');
+}
+function closeTitanCreatorModal() { document.getElementById('titanCreatorModal').classList.add('hidden'); }
+
+function saveCustomTitan() {
+  const name = document.getElementById('titNameCreate').value.trim();
+  if (!name) { showNotification('Nome do Titã é obrigatório.', '', true); return; }
+  const id = 'custom_titan_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '_') + '_' + Date.now().toString(36);
+  const abilitiesText = document.getElementById('titAbilities').value.trim();
+  const abilities = abilitiesText ? abilitiesText.split('\n').filter(l => l.trim()).map(line => {
+    const idx = line.indexOf(':');
+    return idx > -1 ? { name: line.slice(0, idx).trim(), description: line.slice(idx + 1).trim() } : { name: line.trim(), description: '' };
+  }) : [];
+  const titan = {
+    id, name, custom: true,
+    height: document.getElementById('titHeight').value.trim() || 'Não especificada',
+    description: document.getElementById('titDescription').value.trim() || 'Titã customizado.',
+    pdvNuca: parseInt(document.getElementById('titPdvNuca').value) || 0,
+    pdvBraco: parseInt(document.getElementById('titPdvBraco').value) || 0,
+    pdvPerna: parseInt(document.getElementById('titPdvPerna').value) || 0,
+    attrs: {
+      agi: parseInt(document.getElementById('titAgi').value) || 0,
+      sta: parseInt(document.getElementById('titSta').value) || 0,
+      str: parseInt(document.getElementById('titStr').value) || 0,
+      vit: parseInt(document.getElementById('titVit').value) || 0
+    },
+    ataque: { test: document.getElementById('titAtaqueTest').value.trim() || 'Força', dano: document.getElementById('titAtaqueDano').value.trim() || 'Não definido', desvantagem: false },
+    deslocamentoBase: parseInt(document.getElementById('titDeslocamento').value) || 0,
+    pdeTransform: parseInt(document.getElementById('titPdeTransform').value) || 0,
+    pdeMaintain: parseInt(document.getElementById('titPdeMaintain').value) || 0,
+    regen: document.getElementById('titRegen').value.trim() || 'Não definida',
+    abilities
+  };
+  customTitans.push(titan);
+  saveCustomTitans();
+  closeTitanCreatorModal();
+  renderShifterTab();
+  showNotification('Titã customizado criado.', name);
+}
 
 function genId() { return 'mod_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 
@@ -1626,6 +2356,7 @@ function ensureCharDefaults(ch) {
   if (!ch.derivedModifiers) ch.derivedModifiers = { defesaEsquiva: 0, critMargin: 0, sanDamageReduction: 0, bodyDamageReduction: 0 };
   if (!ch.skillFlags) ch.skillFlags = {};
   if (!ch.originAbilityManualUnlock) ch.originAbilityManualUnlock = false;
+  if (ch.originAbilityChoice === undefined) ch.originAbilityChoice = null;
   if (!ch.originChoices) ch.originChoices = {};
   if (!ch.customSkills) ch.customSkills = [];
   if (!ch.abilities) ch.abilities = [];
@@ -1637,19 +2368,24 @@ function ensureCharDefaults(ch) {
     if (!s.modifiers) s.modifiers = [];
     s.modifiers.forEach(m => { if (!m.id) m.id = genId(); });
   });
-  if (!ch.resourceModifiers) ch.resourceModifiers = { hp: [], sta: [], san: [], energia: [] };
-  ['hp', 'sta', 'san', 'energia'].forEach(k => {
+  if (!ch.resourceModifiers) ch.resourceModifiers = { hp: [], sta: [], san: [] };
+  ['hp', 'sta', 'san'].forEach(k => {
     if (!ch.resourceModifiers[k]) ch.resourceModifiers[k] = [];
     ch.resourceModifiers[k].forEach(m => { if (!m.id) m.id = genId(); });
   });
   if (!ch.resources) ch.resources = {};
-  if (!ch.resources.energia) ch.resources.energia = { cur: 0, max: 0 };
   if (!ch.dmt) ch.dmt = { type: 'Tradicional', cylinderCapacity: 20, cylinder1: 20, cylinder2: 20 };
   if (ch.dmt.cylinderCapacity === undefined) ch.dmt.cylinderCapacity = 20;
   if (ch.dmt.cylinder1 === undefined) ch.dmt.cylinder1 = ch.dmt.cylinderCapacity;
   if (ch.dmt.cylinder2 === undefined) ch.dmt.cylinder2 = ch.dmt.cylinderCapacity;
   if (ch.dmt.bladeAttacksUsed === undefined) ch.dmt.bladeAttacksUsed = 0;
   if (ch.dmt.bladeReserve === undefined) ch.dmt.bladeReserve = 2;
+  if (!ch.dmt.weaponType) ch.dmt.weaponType = 'laminas';
+  if (ch.dmt.cannonAmmo === undefined) ch.dmt.cannonAmmo = 10;
+  if (ch.imageUrl === undefined) ch.imageUrl = null;
+  if (!ch.shifter) ch.shifter = { isShifter: false, titanId: null, controlLevel: 1, transformed: false, parts: {}, customAbilities: [] };
+  if (!ch.shifter.parts) ch.shifter.parts = {};
+  if (!ch.shifter.customAbilities) ch.shifter.customAbilities = [];
   if (!ch.conditions) ch.conditions = {};
   if (!ch.conditions.adrenalina) ch.conditions.adrenalina = { active: false, tier: null };
   if (!ch.conditions.sangramento) ch.conditions.sangramento = { active: false };
@@ -1672,7 +2408,7 @@ function recalcAllModifiers(ch) {
   ch.skillFlags = {};
   ch.skills.forEach(s => { s.modifiers = (s.modifiers || []).filter(m => m.sourceType === 'manual'); });
 
-  const originData = ORIGINS[ch.originId];
+  const originData = getOriginById(ch.originId);
   if (originData && originData.passive && originData.passive.effects) {
     originData.passive.effects.forEach(e => {
       if (e.type === 'attribute') ch.attributeBonuses[e.attribute] = (ch.attributeBonuses[e.attribute] || 0) + e.value;
@@ -1723,6 +2459,7 @@ function recalcAllModifiers(ch) {
   if (ch.conditions.ferido.active) { ch.derivedModifiers.testesAcerto -= 2; ch.derivedModifiers.movementFlat -= 4; }
 
   recalculateResources(ch);
+  if (ch.shifter && ch.shifter.isShifter && ch.shifter.titanId) recomputeShifterParts(ch);
 }
 
 /* ============================================================
@@ -1734,6 +2471,8 @@ function initializeCreationState() {
     attributes: { agi: 0, sta: 0, str: 0, int: 0, vit: 0 },
     availableValues: [4, 3, 2, 2, 1], selectedValue: null, transferUsed: false, transferConfirmed: false, skills: {}
   };
+  const statusEl = document.getElementById('transferStatus');
+  if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; statusEl.style.fontWeight = ''; }
 }
 
 function createNewCharacter() {
@@ -1741,11 +2480,12 @@ function createNewCharacter() {
   document.getElementById('screenHome').classList.add('hidden');
   document.getElementById('screenWizard').classList.remove('hidden');
   document.getElementById('screenSheet').classList.add('hidden');
+  document.getElementById('btnBackHeader').classList.remove('hidden');
   showWizardStep(1);
 }
 
 function saveWizardCharacter() {
-  const originData = ORIGINS[creationState.originId];
+  const originData = getOriginById(creationState.originId);
   const newChar = {
     id: Date.now().toString(), name: creationState.name, player: creationState.player,
     campaign: creationState.campaign, alignment: creationState.alignment, level: 0, exp: 0,
@@ -1823,11 +2563,11 @@ function importChar(file) {
 }
 
 function calculatePDVGain(originId, vitality) {
-  const originData = ORIGINS[originId]; if (!originData) return 0;
+  const originData = getOriginById(originId); if (!originData) return 0;
   return Math.floor(originData.initialStats.pdv / 2) + vitality;
 }
 function calculatePDEGain(originId, stamina) {
-  const originData = ORIGINS[originId]; if (!originData) return 0;
+  const originData = getOriginById(originId); if (!originData) return 0;
   return Math.floor(originData.initialStats.pde / 2) + stamina;
 }
 function countPDVGains(level) { let c = 0; for (let l = 2; l <= level; l++) if ((PROGRESSION[l] || []).includes('pdv')) c++; return c; }
@@ -1840,7 +2580,7 @@ function sumResourceModifiers(ch, key) {
 function recalculateResources(ch) {
   if (!ch.originId) return;
   ensureCharDefaults(ch);
-  const originData = ORIGINS[ch.originId];
+  const originData = getOriginById(ch.originId);
   const vitality = ch.attributes.vit + (ch.attributeBonuses.vit || 0);
   const stamina = ch.attributes.sta + (ch.attributeBonuses.sta || 0);
   const int = ch.attributes.int + (ch.attributeBonuses.int || 0);
@@ -1852,12 +2592,10 @@ function recalculateResources(ch) {
   const maxHP = baseHP + vitPDVBonus + (pdvGains * pdvGainPerLevel) + sumResourceModifiers(ch, 'hp');
   const maxSTA = baseSTA + stamina + (pdeGains * pdeGainPerLevel) + sumResourceModifiers(ch, 'sta');
   const maxSAN = baseSAN + intSANBonus + sumResourceModifiers(ch, 'san');
-  const maxEnergia = 0 + sumResourceModifiers(ch, 'energia');
   ch.resources.hp.max = Math.max(0, maxHP);
   ch.resources.sta.max = Math.max(0, maxSTA);
   ch.resources.san.max = Math.max(0, maxSAN);
-  ch.resources.energia.max = Math.max(0, maxEnergia);
-  ['hp', 'sta', 'san', 'energia'].forEach(k => {
+  ['hp', 'sta', 'san'].forEach(k => {
     if (ch.resources[k].cur > ch.resources[k].max) ch.resources[k].cur = ch.resources[k].max;
     if (ch.resources[k].cur < 0) ch.resources[k].cur = 0;
   });
@@ -1941,6 +2679,11 @@ function showSkillPopover(skillName, event) {
 
 function hidePopovers() { document.getElementById('attrPopover').classList.add('hidden'); document.getElementById('skillPopover').classList.add('hidden'); }
 document.addEventListener('click', (e) => { if (!e.target.closest('.attr-card') && !e.target.closest('.skill-name') && !e.target.closest('.popover')) hidePopovers(); });
+document.addEventListener('click', (e) => {
+  if (e.target.classList && (e.target.classList.contains('modal-overlay') || e.target.classList.contains('overlay-modal'))) {
+    e.target.classList.add('hidden');
+  }
+});
 
 function showWizardStep(step) {
   if (!creationState) initializeCreationState();
@@ -1984,7 +2727,7 @@ function toggleOriginExpand(originId, event) {
 function renderOriginSelection() {
   const container = document.getElementById('originSelection');
   container.innerHTML = '';
-  Object.values(ORIGINS).forEach(origin => {
+  Object.values(getAllOrigins()).forEach(origin => {
     const div = document.createElement('div');
     div.className = 'origin-option' + (creationState.originId === origin.id ? ' selected' : '');
     div.onclick = () => { creationState.originId = origin.id; renderOriginSelection(); document.getElementById('btnStep2Next').disabled = !creationState.originId; };
@@ -2004,13 +2747,14 @@ function renderOriginSelection() {
     }
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <h4>${origin.name}</h4>
+        <h4>${origin.name}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4>
         <button class="small" onclick="toggleOriginExpand('${origin.id}', event)">${expandedOriginId === origin.id ? 'Ocultar' : 'Detalhes'}</button>
       </div>
       <p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p>
       <p>${origin.description.substring(0, 100)}...</p>
       <div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv}</span><span class="origin-stat san">${origin.initialStats.san}</span><span class="origin-stat pde">${origin.initialStats.pde}</span></div>
       <div style="margin-top:10px;font-size:0.8rem;"><span class="tag passive">Passiva</span><span class="tag origin">Hab. N${origin.originAbility.unlockLevel}</span></div>
+      ${origin.custom ? `<button class="small danger" style="margin-top:10px;" onclick="deleteCustomFamily('${origin.id}', event)">Excluir Família</button>` : ''}
       ${expandedContent}`;
     container.appendChild(div);
   });
@@ -2056,6 +2800,8 @@ function resetAttributeDistribution() {
   creationState.attributes = { agi: 0, sta: 0, str: 0, int: 0, vit: 0 };
   creationState.availableValues = [4, 3, 2, 2, 1];
   creationState.selectedValue = null; creationState.transferUsed = false; creationState.transferConfirmed = false;
+  const statusEl = document.getElementById('transferStatus');
+  if (statusEl) { statusEl.textContent = ''; statusEl.style.color = ''; statusEl.style.fontWeight = ''; }
   renderAttributeDistribution();
 }
 
@@ -2076,10 +2822,16 @@ function applyAttributeTransfer() {
   if (creationState.attributes[from] < 2) { showNotification('Atributo de origem precisa ter valor 2 ou mais', '', true); return; }
   creationState.attributes[from]--; creationState.attributes[to]++;
   creationState.transferUsed = true; creationState.transferConfirmed = true;
-  document.getElementById('transferSection').innerHTML = '<p style="color:var(--success);font-weight:600;">Transferência realizada.</p>';
+  document.getElementById('transferStatus').textContent = 'Transferência realizada.';
+  document.getElementById('transferStatus').style.color = 'var(--success)';
+  document.getElementById('transferStatus').style.fontWeight = '600';
   renderAttributeDistribution();
 }
-function skipTransfer() { creationState.transferConfirmed = true; document.getElementById('transferSection').classList.add('hidden'); }
+function skipTransfer() {
+  creationState.transferConfirmed = true;
+  document.getElementById('transferStatus').textContent = '';
+  document.getElementById('transferSection').classList.add('hidden');
+}
 
 function renderWizardSkills() {
   const container = document.getElementById('wizardSkillList'); container.innerHTML = '';
@@ -2407,7 +3159,7 @@ function renderCharList() {
   const list = document.getElementById('charList'); list.innerHTML = '';
   if (characters.length === 0) { list.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:36px;">Nenhuma ficha encontrada. Crie uma nova.</p>'; return; }
   characters.forEach(ch => {
-    const originData = ORIGINS[ch.originId];
+    const originData = getOriginById(ch.originId);
     const card = document.createElement('div'); card.className = 'card';
     card.innerHTML = `<h3>${ch.name}</h3><p style="color:var(--text-muted);font-size:0.85rem;">Nível ${ch.level} — ${originData ? originData.name : 'Sem origem'}</p><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"><button onclick="openChar('${ch.id}')">Abrir</button><button onclick="duplicateChar('${ch.id}')">Duplicar</button><button onclick="exportChar('${ch.id}')">Exportar</button><button class="danger" onclick="deleteChar('${ch.id}')">Excluir</button></div>`;
     list.appendChild(card);
@@ -2418,6 +3170,7 @@ function showHome() {
   document.getElementById('screenHome').classList.remove('hidden');
   document.getElementById('screenWizard').classList.add('hidden');
   document.getElementById('screenSheet').classList.add('hidden');
+  document.getElementById('btnBackHeader').classList.add('hidden');
   currentCharId = null; creationState = null; hidePopovers();
 }
 
@@ -2429,11 +3182,12 @@ function openChar(id) {
   document.getElementById('screenHome').classList.add('hidden');
   document.getElementById('screenWizard').classList.add('hidden');
   document.getElementById('screenSheet').classList.remove('hidden');
+  document.getElementById('btnBackHeader').classList.remove('hidden');
   document.getElementById('charName').value = ch.name || '';
   document.getElementById('charPlayer').value = ch.player || '';
   document.getElementById('charLevel').value = ch.level || 0;
   document.getElementById('charExp').value = ch.exp || 0;
-  document.getElementById('charOrigin').value = ch.originId ? ORIGINS[ch.originId].name : '';
+  document.getElementById('charOrigin').value = ch.originId ? (getOriginById(ch.originId)?.name || '') : '';
   document.getElementById('charClass').value = ch.class || '';
   document.getElementById('charAlignment').value = ch.alignment || '';
   document.getElementById('charCampaign').value = ch.campaign || '';
@@ -2460,6 +3214,8 @@ function openChar(id) {
   renderModifierStats();
   renderDMT();
   renderConditions();
+  renderShifterTab();
+  renderCharImage();
   document.title = `Coordenada — ${ch.name}`;
 }
 
@@ -2488,6 +3244,7 @@ function modAttr(attr, delta) {
   ch.updatedAt = new Date().toISOString();
   saveChars(); recalculateResources(ch);
   updateAttrUI(); updateResourceUI(); renderSkills(); renderInventory();
+  if (ch.shifter && ch.shifter.isShifter) { recomputeShifterParts(ch); saveChars(); renderShifterTab(); }
 }
 
 function updateAttrUI() {
@@ -2552,16 +3309,31 @@ function updateResourceUI() {
   renderResourceBar('hp', 'hpCurrent', 'hpMax', 'hpBar');
   renderResourceBar('sta', 'staCurrent', 'staMax', 'staBar');
   renderResourceBar('san', 'sanCurrent', 'sanMax', 'sanBar');
-  renderResourceBar('energia', 'energiaCurrent', 'energiaMax', 'energiaBar');
   renderResourceModList('hp', 'hpModList');
   renderResourceModList('sta', 'staModList');
   renderResourceModList('san', 'sanModList');
-  renderResourceModList('energia', 'energiaModList');
+  renderCombatDefenses();
+}
+
+function renderCombatDefenses() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const agi = ch.attributes.agi + (ch.attributeBonuses.agi || 0);
+  const str = ch.attributes.str + (ch.attributeBonuses.str || 0);
+  const lutaResult = calculateSkill('luta', ch);
+  const lutaVal = lutaResult ? lutaResult.total : 0;
+  const talentBonus = ch.derivedModifiers.defesaEsquiva || 0;
+  const vulneravelPenalty = ch.conditions.vulneravel.active ? -4 : 0;
+  const esquivaTotal = agi + talentBonus + vulneravelPenalty;
+  document.getElementById('esquivaTotal').textContent = (esquivaTotal >= 0 ? '+' : '') + esquivaTotal;
+  document.getElementById('esquivaBreakdown').textContent = `Agilidade (+${agi})${talentBonus ? ` + talentos (${talentBonus >= 0 ? '+' : ''}${talentBonus})` : ''}${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
+  const bloqueioTotal = 8 + str + lutaVal + vulneravelPenalty;
+  document.getElementById('bloqueioTotal').textContent = bloqueioTotal;
+  document.getElementById('bloqueioBreakdown').textContent = `8 + Força (${str}) + Luta (${lutaVal})${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
 }
 
 function openResourceBonusModal(key) {
   document.getElementById('resourceBonusTarget').value = key;
-  const labels = { hp: 'PDV', sta: 'PDE', san: 'Sanidade', energia: 'Energia', personalCapacity: 'Capacidade de Inventário' };
+  const labels = { hp: 'PDV', sta: 'PDE', san: 'Sanidade', personalCapacity: 'Capacidade de Inventário' };
   document.getElementById('resourceBonusTitle').textContent = `Adicionar Bônus de ${labels[key] || key}`;
   document.getElementById('resourceBonusName').value = '';
   document.getElementById('resourceBonusValue').value = 1;
@@ -2585,7 +3357,7 @@ function addResourceModifier() {
     showNotification('Bônus de capacidade adicionado.', name);
     return;
   }
-  if (!ch.resourceModifiers) ch.resourceModifiers = { hp: [], sta: [], san: [], energia: [] };
+  if (!ch.resourceModifiers) ch.resourceModifiers = { hp: [], sta: [], san: [] };
   if (!ch.resourceModifiers[key]) ch.resourceModifiers[key] = [];
   ch.resourceModifiers[key].push({ id: genId(), name, value, origem: 'Manual' });
   ch.updatedAt = new Date().toISOString();
@@ -2707,13 +3479,31 @@ function removeSkillModifier(skillName, modifierId) {
   showNotification('Modificador removido.', '');
 }
 
+const PROGRESSION_INFO = {
+  origin: { title: 'Origem', desc: 'Escolha a Origem do personagem, definindo status iniciais, passiva e habilidade de origem.' },
+  initial_attributes: { title: 'Atributos Iniciais', desc: 'Distribua os valores 4, 3, 2, 2, 1 entre os atributos.' },
+  initial_skills: { title: 'Perícias Iniciais', desc: 'Distribua os pontos de perícia iniciais entre suas perícias.' },
+  class: { title: 'Classe', desc: 'Escolha sua Classe: Linha de Frente, Suporte de Campo ou Especialista de Batalha.' },
+  subclass: { title: 'Subclasse', desc: 'Escolha sua Subclasse com base na Classe selecionada.' },
+  pdv: { title: 'Pontos de Vida', desc: '' },
+  pde: { title: 'Pontos de Estamina', desc: '' },
+  ability: { title: 'Habilidade', desc: 'Escolha uma habilidade geral ou uma habilidade exclusiva com base na subclasse.' },
+  new_ability: { title: 'Nova Habilidade', desc: 'Em conjunto com o narrador da aventura, desenvolva uma habilidade exclusiva para o seu personagem, incorporando traços únicos da personalidade e estilo de combate do personagem.' },
+  ability_upgrade: { title: 'Aumento de Habilidade', desc: 'Todas as habilidades do personagem evoluem para o próximo nível, aumentando sua eficiência. Mesmo que o personagem desbloqueie uma nova habilidade após subir de nível, ela será adquirida já no nível atual das demais. No entanto, assim como as outras habilidades, também poderá ser utilizada em níveis inferiores ao atual.' },
+  attribute: { title: 'Atributo', desc: 'Distribua 1 ponto de Atributo na ficha do personagem como quiser.' },
+  skill: { title: 'Perícia', desc: 'Distribua 2 pontos de perícia entre as suas perícias, seguindo as regras de limite.' },
+  skill_limit: { title: 'Limite de Perícia', desc: 'O limite base de pontos por perícia é 3 pontos; no nível 4 passa a ser 5; no nível 9 passa a ser 10; e no nível 16, passa a ser 15.' },
+  origin_ability: { title: 'Habilidade de Origem', desc: 'A habilidade de origem do personagem se torna disponível (respeitando exceções narrativas).' }
+};
+
 function renderProgression() {
   const ch = getCurrentChar(); if (!ch) return;
   const container = document.getElementById('progressionList'); container.innerHTML = '';
   for (let lvl = 0; lvl <= ch.level; lvl++) {
     const benefits = PROGRESSION[lvl] || [];
+    const titles = benefits.map(b => (PROGRESSION_INFO[b] && PROGRESSION_INFO[b].title) || b);
     const div = document.createElement('div'); div.className = 'progress-item';
-    div.innerHTML = `<span class="lvl-badge">Nível ${lvl}</span><div style="font-size:0.83rem;color:var(--text-muted);">${benefits.join(' — ')}</div>`;
+    div.innerHTML = `<span class="lvl-badge">Nível ${lvl}</span><div style="font-size:0.83rem;color:var(--text-muted);">${titles.join(' — ')}</div>`;
     container.appendChild(div);
   }
 }
@@ -2723,13 +3513,9 @@ function renderAvailableBenefits() {
   const container = document.getElementById('availableBenefits'); container.innerHTML = '';
   const currentBenefits = PROGRESSION[ch.level] || [];
   currentBenefits.forEach(benefit => {
-    const div = document.createElement('div'); div.className = 'progress-item'; let text = benefit;
-    if (benefit === 'class' && !ch.class) text = 'Escolher Classe';
-    else if (benefit === 'subclass' && !ch.subclass) text = 'Escolher Subclasse';
-    else if (benefit === 'ability' || benefit === 'new_ability') text = 'Adicionar Habilidade';
-    else if (benefit === 'attribute') text = '+1 Atributo';
-    else if (benefit === 'skill') text = '+2 Pontos de Perícia';
-    div.innerHTML = `<span>${text}</span>`;
+    const info = PROGRESSION_INFO[benefit] || { title: benefit, desc: '' };
+    const div = document.createElement('div'); div.className = 'progress-item'; div.style.flexDirection = 'column'; div.style.alignItems = 'flex-start'; div.style.gap = '4px';
+    div.innerHTML = `<strong style="color:var(--accent);">${info.title}</strong>${info.desc ? `<span style="font-size:0.82rem;color:var(--text-muted);">${info.desc}</span>` : ''}`;
     container.appendChild(div);
   });
   if (currentBenefits.length === 0) container.innerHTML = '<p style="color:var(--text-dim);font-size:0.85rem;">Nenhum benefício disponível neste nível.</p>';
@@ -2933,6 +3719,71 @@ function updateMountCapacity() {
 }
 
 /* ============================================================
+   IMAGEM DO PERSONAGEM
+   ============================================================ */
+function handleCharImageUpload(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showNotification('Arquivo inválido.', 'Selecione uma imagem.', true); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 700;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+        else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      setCharacterImage(dataUrl);
+    };
+    img.onerror = () => showNotification('Não foi possível carregar a imagem.', '', true);
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setCharacterImage(dataUrl) {
+  const ch = getCurrentChar(); if (!ch) return;
+  try {
+    ch.imageUrl = dataUrl;
+    ch.updatedAt = new Date().toISOString();
+    saveChars();
+    renderCharImage();
+    showNotification('Imagem atualizada.', '');
+  } catch (e) {
+    showNotification('Não foi possível salvar a imagem.', 'O armazenamento local pode estar cheio.', true);
+  }
+}
+
+function removeCharImage() {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.imageUrl = null;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderCharImage();
+  showNotification('Imagem removida.', '');
+}
+
+function renderCharImage() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const thumbImg = document.getElementById('charThumbnailImg');
+  const thumbPlaceholder = document.getElementById('charThumbnailPlaceholder');
+  const portraitImg = document.getElementById('charPortraitImg');
+  const portraitPlaceholder = document.getElementById('charPortraitPlaceholder');
+  if (ch.imageUrl) {
+    thumbImg.src = ch.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden');
+    portraitImg.src = ch.imageUrl; portraitImg.classList.remove('hidden'); portraitPlaceholder.classList.add('hidden');
+  } else {
+    thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden');
+    portraitImg.classList.add('hidden'); portraitPlaceholder.classList.remove('hidden');
+  }
+}
+
+/* ============================================================
    DMT — DISPOSITIVO DE MANOBRA TRIDIMENSIONAL
    ============================================================ */
 function renderDMT() {
@@ -2956,6 +3807,51 @@ function renderDMT() {
   document.getElementById('bladeReserve').textContent = dmt.bladeReserve;
   const str = ch.attributes.str + (ch.attributeBonuses.str || 0);
   document.getElementById('bladeDamageAttr').textContent = str;
+  document.getElementById('cannonAmmo').textContent = dmt.cannonAmmo;
+
+  document.getElementById('bladesSection').classList.toggle('hidden', dmt.weaponType !== 'laminas');
+  document.getElementById('cannonSection').classList.toggle('hidden', dmt.weaponType !== 'canhao');
+  document.getElementById('btnWeaponBlades').classList.toggle('primary', dmt.weaponType === 'laminas');
+  document.getElementById('btnWeaponCannon').classList.toggle('primary', dmt.weaponType === 'canhao');
+}
+
+function setDMTWeaponType(type) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.dmt.weaponType = type;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
+}
+
+function fireCannon() {
+  const ch = getCurrentChar(); if (!ch) return;
+  if (ch.dmt.cannonAmmo <= 0) { showNotification('Sem munição.', 'Reponha a munição do Canhão de Mão.', true); return; }
+  ch.dmt.cannonAmmo -= 1;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
+}
+
+function reloadCannon() {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.dmt.cannonAmmo = 10;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
+  showNotification('Munição reposta.', '10/10');
+}
+
+function addThunderSpearItem() {
+  const ch = getCurrentChar(); if (!ch) return;
+  const currentUsed = ch.inventory.personal.items.reduce((sum, item) => sum + (item.weight * item.quantity), 0);
+  const capacity = getPersonalInventoryCapacity(ch);
+  if (currentUsed + 3 > capacity + 4) {
+    showNotification('Sobrecarga máxima excedida.', `Não há espaço para a Lança Trovão (3 espaços). Capacidade + sobrecarga: ${capacity + 4}.`, true);
+    return;
+  }
+  ch.inventory.personal.items.push({
+    id: 'item-' + Date.now(), name: 'Lança Trovão', quantity: 1, weight: 3, category: 'arma',
+    dice: '5d10 (área, raio de 3m)', range: 'DMT', inventoryType: 'personal',
+    description: 'Arma explosiva de Hange Zoe. Ao disparar, é gasta e causa 5d10 de dano em área a 3m. Teste de Acerto com Pontaria. Falha crítica: 2d12 de dano no usuário. Destrói placas do Titã Blindado / armadura do Titã Martelo de Guerra.',
+    properties: 'Uso único. Lanças múltiplas: +2d10 por lança adicional disparada junto; se falhar, teste de esquiva dificuldade 18 ou sofre 1d12 por lança.',
+    requirements: '', bonuses: '', notes: ''
+  });
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderInventory();
+  showNotification('Lança Trovão adicionada ao inventário.', '');
 }
 
 function modDMT(cylinder, delta) {
@@ -3149,7 +4045,7 @@ function renderConditions() {
    HABILIDADES — AGRUPADAS (ORIGEM, GERAIS, SUBCLASSE, EXCLUSIVAS)
    ============================================================ */
 function getOriginAbilityStatus(ch) {
-  const originData = ORIGINS[ch.originId]; if (!originData) return null;
+  const originData = getOriginById(ch.originId); if (!originData) return null;
   const ability = originData.originAbility;
   let unlocked = ability.manualUnlock ? !!ch.originAbilityManualUnlock : ch.level >= ability.unlockLevel;
   return { ...ability, unlocked };
@@ -3158,8 +4054,16 @@ function getOriginAbilityStatus(ch) {
 function renderAbilities() {
   const ch = getCurrentChar(); if (!ch) return;
 
+  const classPassiveContainer = document.getElementById('classPassiveDisplay');
+  if (ch.class && CLASS_PASSIVES[ch.class]) {
+    const tier = getClassPassiveTier(ch.class, ch.level);
+    classPassiveContainer.innerHTML = `<div class="ability-item"><h5>Passiva de Classe <span class="tag class" style="margin-left:8px;">${ch.class}</span></h5><p>${tier ? tier.text : 'Sem efeito neste nível.'}</p></div>`;
+  } else {
+    classPassiveContainer.innerHTML = '<p class="empty-note">Nenhuma classe selecionada.</p>';
+  }
+
   const passiveContainer = document.getElementById('originPassiveDisplay');
-  const originData = ORIGINS[ch.originId];
+  const originData = getOriginById(ch.originId);
   if (originData) {
     passiveContainer.innerHTML = `<div class="ability-item"><h5>${originData.passive.name}<span class="tag origin" style="margin-left:8px;">${originData.name}</span></h5><p>${originData.passive.description}</p></div>`;
   } else {
@@ -3173,7 +4077,12 @@ function renderAbilities() {
     if (originData.originAbility.manualUnlock) {
       toggle = `<label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" style="width:auto;" ${ch.originAbilityManualUnlock ? 'checked' : ''} onchange="toggleOriginAbilityUnlock(this.checked)" /> Marcar como desbloqueada (desbloqueio narrativo/manual)</label>`;
     }
-    abilityContainer.innerHTML = `<div class="ability-item"><h5>${abilityStatus.name} <span class="tag ${abilityStatus.unlocked ? 'origin' : 'locked'}" style="margin-left:8px;">${abilityStatus.unlocked ? 'Desbloqueada' : `Nível ${abilityStatus.unlockLevel}`}</span></h5><p>${abilityStatus.description}</p>${toggle}</div>`;
+    let ackermanChoice = '';
+    if (ch.originId === 'ackerman' && ch.originAbilityManualUnlock) {
+      const options = ch.abilities.map(a => { const d = findAbility(a.id); return d ? `<option value="${a.id}" ${ch.originAbilityChoice === a.id ? 'selected' : ''}>${d.name}</option>` : ''; }).join('');
+      ackermanChoice = `<div style="margin-top:12px;"><label>Habilidade escolhida para +1 nível permanente</label><select onchange="setAckermanAbilityChoice(this.value)"><option value="">Nenhuma</option>${options}</select></div>`;
+    }
+    abilityContainer.innerHTML = `<div class="ability-item"><h5>${abilityStatus.name} <span class="tag ${abilityStatus.unlocked ? 'origin' : 'locked'}" style="margin-left:8px;">${abilityStatus.unlocked ? 'Desbloqueada' : `Nível ${abilityStatus.unlockLevel}`}</span></h5><p>${abilityStatus.description}</p>${toggle}${ackermanChoice}</div>`;
   } else {
     abilityContainer.innerHTML = '<p class="empty-note">Nenhuma origem selecionada.</p>';
   }
@@ -3205,13 +4114,16 @@ function buildAbilityCard(acquired) {
     return div;
   }
   const div = document.createElement('div'); div.className = 'ability-item';
-  const unlockedLevel = getAbilityLevelForCharLevel(ch.level);
+  let unlockedLevel = getAbilityLevelForCharLevel(ch.level);
+  const ackermanBoosted = ch.originId === 'ackerman' && ch.originAbilityChoice === acquired.id;
+  if (ackermanBoosted) unlockedLevel = Math.min(4, unlockedLevel + 1);
   let levelsHtml = '';
   if (ability.levels && ability.levels.length) {
     const shown = ability.levels.slice(0, Math.max(1, unlockedLevel));
     levelsHtml = shown.map(l => `<p style="margin-top:6px;">${l}</p>`).join('');
     if (unlockedLevel === 0) levelsHtml = `<p style="margin-top:6px;color:var(--text-dim);">Disponível a partir do Nível 1 de personagem.</p>`;
   }
+  if (ackermanBoosted) levelsHtml += `<p style="margin-top:6px;color:var(--accent);font-style:italic;">Potencial Sobre-humano (Ackerman): +1 nível permanente aplicado.</p>`;
   const choiceNote = acquired.choiceValue ? `<div class="choice-note"><strong>${ability.requiresChoice ? ability.requiresChoice.label : 'Escolha'}:</strong> ${acquired.choiceValue}</div>` : '';
   const repeatableNote = (acquired.repeatableChoices && acquired.repeatableChoices.length) ? `<div class="choice-note"><strong>Perícias escolhidas:</strong> ${acquired.repeatableChoices.join(', ')}</div>` : '';
   let repeatableControl = '';
@@ -3248,6 +4160,12 @@ function buildCustomAbilityCard(sk) {
 function toggleOriginAbilityUnlock(checked) {
   const ch = getCurrentChar(); if (!ch) return;
   ch.originAbilityManualUnlock = checked; ch.updatedAt = new Date().toISOString(); saveChars(); renderAbilities();
+}
+
+function setAckermanAbilityChoice(abilityId) {
+  const ch = getCurrentChar(); if (!ch) return;
+  ch.originAbilityChoice = abilityId || null;
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderAbilities();
 }
 
 function removeSkill(skillId) {
@@ -3288,15 +4206,19 @@ function addCustomSkill() {
 /* ============================================================
    ORIGEM — ALTERAR
    ============================================================ */
-function openOriginSelector() {
+function renderOriginSelectorList() {
   const ch = getCurrentChar(); if (!ch) return;
   const container = document.getElementById('originSelectorList'); container.innerHTML = '';
-  Object.values(ORIGINS).forEach(origin => {
+  Object.values(getAllOrigins()).forEach(origin => {
     const div = document.createElement('div'); div.className = 'origin-option' + (ch.originId === origin.id ? ' selected' : '');
     div.onclick = () => changeOrigin(origin.id);
-    div.innerHTML = `<h4>${origin.name}</h4><p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p><p>${origin.description.substring(0, 100)}...</p><div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv} PDV</span><span class="origin-stat san">${origin.initialStats.san} SAN</span><span class="origin-stat pde">${origin.initialStats.pde} PDE</span></div>`;
+    div.innerHTML = `<h4>${origin.name}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4><p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p><p>${origin.description.substring(0, 100)}...</p><div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv} PDV</span><span class="origin-stat san">${origin.initialStats.san} SAN</span><span class="origin-stat pde">${origin.initialStats.pde} PDE</span></div>${origin.custom ? `<button class="small danger" style="margin-top:10px;" onclick="deleteCustomFamily('${origin.id}', event)">Excluir Família</button>` : ''}`;
     container.appendChild(div);
   });
+}
+function openOriginSelector() {
+  originSelectionContext = 'selector';
+  renderOriginSelectorList();
   document.getElementById('originSelectorModal').classList.remove('hidden');
 }
 function closeOriginSelector() { document.getElementById('originSelectorModal').classList.add('hidden'); }
@@ -3304,16 +4226,16 @@ function closeOriginSelector() { document.getElementById('originSelectorModal').
 function changeOrigin(newOriginId) {
   const ch = getCurrentChar(); if (!ch) return;
   const oldOriginId = ch.originId;
-  ch.originId = newOriginId; ch.originData = ORIGINS[newOriginId];
-  ch.originPassive = { ...ORIGINS[newOriginId].passive, acquired: true };
+  ch.originId = newOriginId; ch.originData = getOriginById(newOriginId);
+  ch.originPassive = { ...getOriginById(newOriginId).passive, acquired: true };
   ch.originAbilityManualUnlock = false;
   ch.updatedAt = new Date().toISOString();
   recalcAllModifiers(ch);
   saveChars();
   updateAttrUI(); updateResourceUI(); renderSkills(); renderAbilities();
   closeOriginSelector();
-  document.getElementById('charOrigin').value = ORIGINS[newOriginId].name;
-  showNotification('Origem alterada.', `De ${ORIGINS[oldOriginId].name} para ${ORIGINS[newOriginId].name}`);
+  document.getElementById('charOrigin').value = getOriginById(newOriginId).name;
+  showNotification('Origem alterada.', `De ${getOriginById(oldOriginId).name} para ${getOriginById(newOriginId).name}`);
 }
 
 /* ============================================================
@@ -3345,7 +4267,7 @@ document.getElementById('btnSave').addEventListener('click', () => {
 document.getElementById('btnDuplicate').addEventListener('click', () => { if (currentCharId) duplicateChar(currentCharId); });
 document.getElementById('btnExport').addEventListener('click', () => { if (currentCharId) exportChar(currentCharId); });
 document.getElementById('btnDelete').addEventListener('click', () => { if (currentCharId) deleteChar(currentCharId); });
-document.getElementById('btnBack').addEventListener('click', showHome);
+document.getElementById('btnBackHeader').addEventListener('click', showHome);
 document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click', () => { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.tab).classList.add('active'); }); });
 document.getElementById('charClass').addEventListener('change', () => { const ch = getCurrentChar(); if (!ch) return; ch.class = document.getElementById('charClass').value; updateClassSubclassOptions(); });
 document.getElementById('charSubclass').addEventListener('change', () => { const ch = getCurrentChar(); if (!ch) return; ch.subclass = document.getElementById('charSubclass').value; ch.updatedAt = new Date().toISOString(); saveChars(); renderSkills(); });
