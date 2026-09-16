@@ -172,9 +172,9 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .modal h2{margin-top:0;}
 .modal-actions{display:flex;gap:10px;margin-top:22px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border);}
 .modal-close{position:absolute;top:18px;right:18px;background:var(--surface-3);border:1px solid var(--border);
-  width:30px;height:30px;border-radius:var(--radius-sm);font-size:1.2rem;cursor:pointer;color:var(--text-muted);
-  transition:background .15s ease, transform .15s ease;
-  display:flex;align-items:center;justify-content:center;line-height:1;}
+  width:30px;height:30px;padding:0;border-radius:var(--radius-sm);cursor:pointer;color:var(--text-muted);
+  transition:background .15s ease, transform .15s ease;transform-origin:50% 50%;
+  display:flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box;}
 .modal-close:hover{background:var(--danger-2);color:var(--text);border-color:var(--danger);transform:rotate(90deg);}
 
 .progress-item{display:flex;align-items:center;gap:12px;padding:10px 14px;margin:5px 0;
@@ -771,8 +771,9 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
             <span><strong>Conjuntos de Reserva:</strong></span>
             <span id="bladeReserve">2</span>
           </div>
+          <p id="bladesDepletedWarning" class="hidden" style="color:var(--danger);font-size:0.82rem;font-weight:600;margin-top:8px;">Sem lâminas disponíveis — troque o conjunto ou reabasteça antes de atacar.</p>
           <div class="resource-controls">
-            <button onclick="registerBladeAttack()">Registrar Ataque</button>
+            <button id="btnRegisterBladeAttack" onclick="registerBladeAttack()">Registrar Ataque</button>
             <button onclick="swapBladeSet()">Trocar Conjunto</button>
             <button onclick="resetBladeSets()">Reabastecer (3 conjuntos)</button>
           </div>
@@ -786,7 +787,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
             <span><span id="cannonAmmo">10</span> / 10</span>
           </div>
           <div class="resource-controls">
-            <button onclick="fireCannon()">Disparar (-1 munição)</button>
+            <button id="btnFireCannon" onclick="fireCannon()">Disparar (-1 munição)</button>
             <button onclick="reloadCannon()">Repor Munição (10)</button>
           </div>
         </div>
@@ -1005,7 +1006,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="skillLibraryOverlay" class="overlay-modal hidden">
   <div class="big-modal">
-    <button class="modal-close" onclick="closeSkillLibrary()">&times;</button>
+    <button class="modal-close" onclick="closeSkillLibrary()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <div class="lib-header">
       <h2 style="margin:0;padding:0;border:none;">Biblioteca de Habilidades</h2>
       <div style="color:var(--text-muted);font-size:0.85rem;">
@@ -1032,7 +1033,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="talentDefectOverlay" class="overlay-modal hidden">
   <div class="big-modal">
-    <button class="modal-close" onclick="closeTalentDefectModal()">&times;</button>
+    <button class="modal-close" onclick="closeTalentDefectModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <div class="lib-header">
       <h2 style="margin:0;padding:0;border:none;">Talentos e Defeitos</h2>
       <div style="color:var(--text-muted);font-size:0.85rem;">Saldo atual: <strong id="tdModalBalance" style="color:var(--accent);font-family:var(--mono);">2</strong></div>
@@ -1049,7 +1050,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="tdChoiceModal" class="modal-overlay hidden">
   <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="closeTDChoiceModal()">&times;</button>
+    <button class="modal-close" onclick="closeTDChoiceModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2 id="tdChoiceTitle">Escolha</h2>
     <div id="tdChoiceBody"></div>
     <div class="modal-actions">
@@ -1061,7 +1062,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="originSelectorModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeOriginSelector()">&times;</button>
+    <button class="modal-close" onclick="closeOriginSelector()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2>Alterar Origem</h2>
     <p style="color:var(--text-muted);margin-bottom:18px;">Escolha uma nova Origem para seu personagem. Isso recalculará PDV, PDE, SAN e aplicará novas passivas.</p>
     <button onclick="openFamilyCreatorModal('selector')" style="margin-bottom:14px;">Criar Família Customizada</button>
@@ -1071,7 +1072,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="familyCreatorModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeFamilyCreatorModal()">&times;</button>
+    <button class="modal-close" onclick="closeFamilyCreatorModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2>Criar Família Customizada</h2>
     <div class="grid grid-2">
       <div><label>Nome da Família</label><input id="famName" placeholder="Ex: Órfãos de Marley" /></div>
@@ -1106,7 +1107,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="titanCreatorModal" class="overlay-modal hidden">
   <div class="big-modal">
-    <button class="modal-close" onclick="closeTitanCreatorModal()">&times;</button>
+    <button class="modal-close" onclick="closeTitanCreatorModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2 style="padding-right:40px;">Criar Titã Customizado</h2>
     <div class="grid grid-2">
       <div><label>Nome do Titã</label><input id="titNameCreate" placeholder="Ex: Titã Rastreador" /></div>
@@ -1151,7 +1152,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="shifterAbilityModal" class="modal-overlay hidden">
   <div class="modal" style="max-width:480px;">
-    <button class="modal-close" onclick="closeShifterAbilityModal()">&times;</button>
+    <button class="modal-close" onclick="closeShifterAbilityModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2>Adicionar Habilidade ao Titã</h2>
     <div><label>Nome</label><input id="shifterAbilityName" /></div>
     <div style="margin-top:14px;"><label>Descrição</label><textarea id="shifterAbilityDesc" style="min-height:80px;"></textarea></div>
@@ -1164,7 +1165,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="itemModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeItemModal()">&times;</button>
+    <button class="modal-close" onclick="closeItemModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2 id="itemModalTitle">Adicionar Item</h2>
     <input type="hidden" id="editingItemId" />
     <input type="hidden" id="itemTargetType" value="personal" />
@@ -1202,7 +1203,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="skillDetailModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeSkillDetailModal()">&times;</button>
+    <button class="modal-close" onclick="closeSkillDetailModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2 id="skillDetailTitle">Perícia</h2>
     <div style="margin-bottom:18px;">
       <label>Atributo Selecionado</label>
@@ -1240,7 +1241,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="skillBonusModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeSkillBonusModal()">&times;</button>
+    <button class="modal-close" onclick="closeSkillBonusModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2>Adicionar Bônus ou Penalidade de Perícia</h2>
     <div class="grid grid-2">
       <div><label>Nome do Modificador</label><input id="bonusSkillSource" placeholder="Ex: Botas" /></div>
@@ -1269,7 +1270,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="resourceBonusModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeResourceBonusModal()">&times;</button>
+    <button class="modal-close" onclick="closeResourceBonusModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
     <h2 id="resourceBonusTitle">Adicionar Bônus de Recurso</h2>
     <input type="hidden" id="resourceBonusTarget" />
     <div class="grid grid-2">
@@ -1285,8 +1286,8 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
 
 <div id="customSkillModal" class="modal-overlay hidden">
   <div class="modal">
-    <button class="modal-close" onclick="closeCustomSkillModal()">&times;</button>
-    <h2>Criar Nova Habilidade</h2>
+    <button class="modal-close" onclick="closeCustomSkillModal()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+    <h2 id="customSkillModalTitle">Criar Nova Habilidade</h2>
     <div class="grid grid-2">
       <div><label>Nome</label><input id="customSkillName" /></div>
       <div><label>Nível</label><input id="customSkillLevel" type="number" min="1" value="1" /></div>
@@ -1309,7 +1310,7 @@ footer{margin-top:40px;padding:22px 24px;border-top:1px solid var(--border);}
     <div style="margin-top:14px;"><label>Requisitos</label><input id="customSkillRequirements" placeholder="Ex: Nível 5, Força 4" /></div>
     <div class="modal-actions">
       <button onclick="closeCustomSkillModal()">Cancelar</button>
-      <button class="primary" onclick="addCustomSkill()">Criar Habilidade</button>
+      <button class="primary" onclick="addCustomSkill()" id="customSkillSaveBtn">Criar Habilidade</button>
     </div>
   </div>
 </div>
@@ -2400,6 +2401,7 @@ function ensureCharDefaults(ch) {
   if (ch.dmt.cylinder2 === undefined) ch.dmt.cylinder2 = ch.dmt.cylinderCapacity;
   if (ch.dmt.bladeAttacksUsed === undefined) ch.dmt.bladeAttacksUsed = 0;
   if (ch.dmt.bladeReserve === undefined) ch.dmt.bladeReserve = 2;
+  if (ch.dmt.bladesEquipped === undefined) ch.dmt.bladesEquipped = true;
   if (!ch.dmt.weaponType) ch.dmt.weaponType = 'laminas';
   if (ch.dmt.cannonAmmo === undefined) ch.dmt.cannonAmmo = 10;
   if (ch.imageUrl === undefined) ch.imageUrl = null;
@@ -2711,6 +2713,7 @@ function showWizardStep(step) {
   creationState.currentStep = step;
   document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
   document.querySelector(`.wizard-step[data-step="${step}"]`).classList.add('active');
+  window.scrollTo(0, 0);
   if (step === 1) {
     document.getElementById('wizardName').value = creationState.name;
     document.getElementById('wizardPlayer').value = creationState.player;
@@ -2793,11 +2796,18 @@ function renderAttributeDistribution() {
     div.onclick = () => { if (val !== null) { creationState.selectedValue = idx; renderAttributeDistribution(); } };
     valuesContainer.appendChild(div);
   });
-  const attrs = [{ key: 'agi', name: 'Agilidade' }, { key: 'sta', name: 'Estâmina' }, { key: 'str', name: 'Força' }, { key: 'int', name: 'Intelecto' }, { key: 'vit', name: 'Vitalidade' }];
+  const attrs = [
+    { key: 'agi', name: 'Agilidade', hint: v => `+${v}m de deslocamento` },
+    { key: 'sta', name: 'Estâmina', hint: v => `+${v} PDE` },
+    { key: 'str', name: 'Força', hint: v => `+${v} espaços de inventário` },
+    { key: 'int', name: 'Intelecto', hint: v => `+${v} pontos de perícia, +${v} SAN` },
+    { key: 'vit', name: 'Vitalidade', hint: v => `+${v * 2} PDV` }
+  ];
   attrs.forEach(attr => {
     const div = document.createElement('div');
     div.className = 'attribute-dist-item';
-    div.innerHTML = `<h4>${attr.name}</h4><div class="value">${creationState.attributes[attr.key]}</div><button onclick="assignValueToAttribute('${attr.key}')" ${creationState.selectedValue === null || creationState.attributes[attr.key] > 0 ? 'disabled' : ''}>Atribuir</button>`;
+    const val = creationState.attributes[attr.key];
+    div.innerHTML = `<h4>${attr.name}</h4><div class="value">${val}</div>${val > 0 ? `<div style="font-size:0.72rem;color:var(--accent);margin-bottom:8px;">${attr.hint(val)}</div>` : ''}<button onclick="assignValueToAttribute('${attr.key}')" ${creationState.selectedValue === null || val > 0 ? 'disabled' : ''}>Atribuir</button>`;
     distContainer.appendChild(div);
   });
   const allAssigned = Object.values(creationState.attributes).every(v => v > 0);
@@ -3079,6 +3089,8 @@ function renderTalentDefectLibrary() {
   const term = document.getElementById('talentDefectSearch').value.toLowerCase();
   const all = [...TALENTS_DB.map(t => t), ...DEFECTS_DB.map(d => d)];
   const b = calculateAdvantagesDisadvantages(ch);
+  const modalBalanceEl = document.getElementById('tdModalBalance');
+  if (modalBalanceEl) modalBalanceEl.textContent = b.balance;
   all.forEach(def => {
     if (currentTDFilter !== 'all' && def.category !== currentTDFilter) return;
     if (term && !def.name.toLowerCase().includes(term) && !def.description.toLowerCase().includes(term)) return;
@@ -3152,6 +3164,7 @@ function removeTalentDefect(uid) {
   recalcAllModifiers(ch);
   saveChars();
   renderTalentsDefectsSummary();
+  if (!document.getElementById('talentDefectOverlay').classList.contains('hidden')) renderTalentDefectLibrary();
   updateAttrUI(); updateResourceUI(); renderSkills(); renderModifierStats();
   showNotification('Removido.', '');
 }
@@ -3204,6 +3217,7 @@ function openChar(id) {
   document.getElementById('screenWizard').classList.add('hidden');
   document.getElementById('screenSheet').classList.remove('hidden');
   document.getElementById('btnBackHeader').classList.remove('hidden');
+  window.scrollTo(0, 0);
   document.getElementById('charName').value = ch.name || '';
   document.getElementById('charPlayer').value = ch.player || '';
   document.getElementById('charLevel').value = ch.level || 0;
@@ -3340,16 +3354,16 @@ function renderCombatDefenses() {
   const ch = getCurrentChar(); if (!ch) return;
   const agi = ch.attributes.agi + (ch.attributeBonuses.agi || 0);
   const str = ch.attributes.str + (ch.attributeBonuses.str || 0);
-  const lutaResult = calculateSkill('luta', ch);
-  const lutaVal = lutaResult ? lutaResult.total : 0;
+  const lutaSkill = ch.skills.find(s => s.name === 'Luta');
+  const lutaInvested = lutaSkill ? lutaSkill.base : 0;
   const talentBonus = ch.derivedModifiers.defesaEsquiva || 0;
   const vulneravelPenalty = ch.conditions.vulneravel.active ? -4 : 0;
   const esquivaTotal = agi + talentBonus + vulneravelPenalty;
   document.getElementById('esquivaTotal').textContent = (esquivaTotal >= 0 ? '+' : '') + esquivaTotal;
   document.getElementById('esquivaBreakdown').textContent = `Agilidade (+${agi})${talentBonus ? ` + talentos (${talentBonus >= 0 ? '+' : ''}${talentBonus})` : ''}${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
-  const bloqueioTotal = 8 + str + lutaVal + vulneravelPenalty;
+  const bloqueioTotal = 8 + str + lutaInvested + vulneravelPenalty;
   document.getElementById('bloqueioTotal').textContent = bloqueioTotal;
-  document.getElementById('bloqueioBreakdown').textContent = `8 + Força (${str}) + Luta (${lutaVal})${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
+  document.getElementById('bloqueioBreakdown').textContent = `8 + Força (${str}) + Luta investida (${lutaInvested})${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
 }
 
 function openResourceBonusModal(key) {
@@ -3420,7 +3434,7 @@ function modSkill(skillName, delta) {
   const skill = ch.skills.find(s => s.name === skillName); if (!skill) return;
   if (delta > 0) { if (!canAddSkillPoint(ch, skillName)) return; skill.base++; }
   else { if (skill.base <= 0) return; skill.base--; }
-  ch.updatedAt = new Date().toISOString(); saveChars(); renderSkills();
+  ch.updatedAt = new Date().toISOString(); saveChars(); renderSkills(); renderCombatDefenses();
 }
 
 function openSkillDetailModal(skillName) {
@@ -3830,6 +3844,14 @@ function renderDMT() {
   const str = ch.attributes.str + (ch.attributeBonuses.str || 0);
   document.getElementById('bladeDamageAttr').textContent = str;
   document.getElementById('cannonAmmo').textContent = dmt.cannonAmmo;
+  const fireBtn = document.getElementById('btnFireCannon');
+  fireBtn.disabled = dmt.cannonAmmo <= 0;
+  fireBtn.classList.toggle('danger', dmt.cannonAmmo <= 0);
+
+  const attackBtn = document.getElementById('btnRegisterBladeAttack');
+  attackBtn.disabled = !dmt.bladesEquipped;
+  attackBtn.classList.toggle('danger', !dmt.bladesEquipped);
+  document.getElementById('bladesDepletedWarning').classList.toggle('hidden', dmt.bladesEquipped);
 
   document.getElementById('bladesSection').classList.toggle('hidden', dmt.weaponType !== 'laminas');
   document.getElementById('cannonSection').classList.toggle('hidden', dmt.weaponType !== 'canhao');
@@ -3934,11 +3956,17 @@ function consumeDMTGas(baseAmount, label) {
 
 function registerBladeAttack() {
   const ch = getCurrentChar(); if (!ch) return;
+  if (!ch.dmt.bladesEquipped) { showNotification('Sem lâminas disponíveis.', 'Troque o conjunto ou reabasteça antes de atacar.', true); return; }
   ch.dmt.bladeAttacksUsed = (ch.dmt.bladeAttacksUsed || 0) + 1;
   if (ch.dmt.bladeAttacksUsed >= 3) {
     ch.dmt.bladeAttacksUsed = 0;
-    if (ch.dmt.bladeReserve > 0) { ch.dmt.bladeReserve -= 1; showNotification('Conjunto de lâminas quebrado.', 'Um conjunto de reserva foi equipado.'); }
-    else showNotification('Conjunto de lâminas quebrado.', 'Sem conjuntos de reserva — é preciso reabastecer.', true);
+    if (ch.dmt.bladeReserve > 0) {
+      ch.dmt.bladeReserve -= 1;
+      showNotification('Conjunto de lâminas quebrado.', 'Um conjunto de reserva foi equipado.');
+    } else {
+      ch.dmt.bladesEquipped = false;
+      showNotification('Conjunto de lâminas quebrado.', 'Sem conjuntos de reserva — reabasteça antes de atacar novamente.', true);
+    }
   }
   ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
 }
@@ -3946,14 +3974,14 @@ function registerBladeAttack() {
 function swapBladeSet() {
   const ch = getCurrentChar(); if (!ch) return;
   if (ch.dmt.bladeReserve <= 0) { showNotification('Sem conjuntos de reserva.', '', true); return; }
-  ch.dmt.bladeReserve -= 1; ch.dmt.bladeAttacksUsed = 0;
+  ch.dmt.bladeReserve -= 1; ch.dmt.bladeAttacksUsed = 0; ch.dmt.bladesEquipped = true;
   ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
   showNotification('Conjunto de lâminas trocado.', '');
 }
 
 function resetBladeSets() {
   const ch = getCurrentChar(); if (!ch) return;
-  ch.dmt.bladeAttacksUsed = 0; ch.dmt.bladeReserve = 2;
+  ch.dmt.bladeAttacksUsed = 0; ch.dmt.bladeReserve = 2; ch.dmt.bladesEquipped = true;
   ch.updatedAt = new Date().toISOString(); saveChars(); renderDMT();
   showNotification('Lâminas reabastecidas.', '3 conjuntos disponíveis.');
 }
@@ -4175,7 +4203,7 @@ function addRepeatableAbilityChoice(abilityId) {
 
 function buildCustomAbilityCard(sk) {
   const div = document.createElement('div'); div.className = 'ability-item';
-  div.innerHTML = `<h5>${sk.name} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(Nível ${sk.level})</span></h5><p>${sk.desc}</p><div class="ability-meta">${sk.category ? `Categoria: ${sk.category}` : ''}${sk.cost ? ` — Custo: ${sk.cost}` : ''}</div><button class="danger small" style="margin-top:10px;" onclick="removeSkill('${sk.id}')">Remover</button>`;
+  div.innerHTML = `<h5>${sk.name} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(Nível ${sk.level})</span></h5><p>${sk.desc}</p><div class="ability-meta">${sk.category ? `Categoria: ${sk.category}` : ''}${sk.cost ? ` — Custo: ${sk.cost}` : ''}</div><div style="margin-top:10px;display:flex;gap:8px;"><button class="small" onclick="openCustomSkillModal('${sk.id}')">Editar</button><button class="danger small" onclick="removeSkill('${sk.id}')">Remover</button></div>`;
   return div;
 }
 
@@ -4207,8 +4235,35 @@ function removeSkill(skillId) {
   showNotification('Habilidade removida.', '');
 }
 
-function openCustomSkillModal() { document.getElementById('customSkillModal').classList.remove('hidden'); }
-function closeCustomSkillModal() { document.getElementById('customSkillModal').classList.add('hidden'); }
+let editingCustomSkillId = null;
+
+function openCustomSkillModal(skillId) {
+  const ch = getCurrentChar();
+  editingCustomSkillId = skillId || null;
+  if (editingCustomSkillId && ch) {
+    const sk = ch.customSkills.find(s => s.id === editingCustomSkillId);
+    if (sk) {
+      document.getElementById('customSkillModalTitle').textContent = 'Editar Habilidade';
+      document.getElementById('customSkillSaveBtn').textContent = 'Salvar Alterações';
+      document.getElementById('customSkillName').value = sk.name;
+      document.getElementById('customSkillLevel').value = sk.level;
+      document.getElementById('customSkillDesc').value = sk.desc;
+      document.getElementById('customSkillCost').value = sk.cost || '';
+      document.getElementById('customSkillCategory').value = sk.category || 'general';
+      document.getElementById('customSkillRequirements').value = sk.requirements || '';
+      document.getElementById('customSkillModal').classList.remove('hidden');
+      return;
+    }
+  }
+  editingCustomSkillId = null;
+  document.getElementById('customSkillModalTitle').textContent = 'Criar Nova Habilidade';
+  document.getElementById('customSkillSaveBtn').textContent = 'Criar Habilidade';
+  ['customSkillName', 'customSkillDesc', 'customSkillCost', 'customSkillRequirements'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('customSkillLevel').value = 1;
+  document.getElementById('customSkillCategory').value = 'general';
+  document.getElementById('customSkillModal').classList.remove('hidden');
+}
+function closeCustomSkillModal() { document.getElementById('customSkillModal').classList.add('hidden'); editingCustomSkillId = null; }
 
 function addCustomSkill() {
   const ch = getCurrentChar(); if (!ch) return;
@@ -4219,10 +4274,15 @@ function addCustomSkill() {
   const category = document.getElementById('customSkillCategory').value;
   const requirements = document.getElementById('customSkillRequirements').value.trim();
   if (!name || !desc) { showNotification('Nome e descrição são obrigatórios', '', true); return; }
-  ch.customSkills.push({ id: 'custom_' + Date.now(), name, desc, level, cost, category, requirements, custom: true });
+  if (editingCustomSkillId) {
+    const sk = ch.customSkills.find(s => s.id === editingCustomSkillId);
+    if (sk) { sk.name = name; sk.level = level; sk.desc = desc; sk.cost = cost; sk.category = category; sk.requirements = requirements; }
+    showNotification('Habilidade atualizada.', name);
+  } else {
+    ch.customSkills.push({ id: 'custom_' + Date.now(), name, desc, level, cost, category, requirements, custom: true });
+    showNotification('Habilidade criada.', name);
+  }
   ch.updatedAt = new Date().toISOString(); saveChars(); closeCustomSkillModal(); renderAbilities();
-  ['customSkillName', 'customSkillDesc', 'customSkillCost', 'customSkillRequirements'].forEach(id => document.getElementById(id).value = '');
-  showNotification('Habilidade criada.', name);
 }
 
 /* ============================================================
