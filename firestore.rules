@@ -3,23 +3,45 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function logado() { return request.auth != null; }
+    function mesaDoc(id) { return get(/databases/$(database)/documents/mesas/$(id)); }
+    function ehMestre(id) { return mesaDoc(id).data.gm == request.auth.uid; }
+    function ehMembro(id) { return exists(/databases/$(database)/documents/mesas/$(id)/membros/$(request.auth.uid)); }
 
-    // Dados particulares de cada conta (origens/titãs customizados, escudo do mestre)
+    // Dados particulares de cada conta: escudo do mestre, conteúdo customizado,
+    // lista de campanhas em que joga.
     match /users/{uid}/{doc=**} {
       allow read, write: if logado() && request.auth.uid == uid;
     }
 
-    // Mesas: o código da mesa é o ID do documento
+    // Perfil público (apelido e avatar)
+    match /perfis/{uid} {
+      allow read: if logado();
+      allow create, update: if logado() && request.auth.uid == uid
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 30;
+    }
+
+    // Campanhas: o código é o ID do documento
     match /mesas/{mesaId} {
-      allow get: if logado();                                        // jogador confere o código
+      allow get: if logado();                                          // jogador confere o código
       allow list: if logado() && resource.data.gm == request.auth.uid; // mestre lista só as dele
       allow create: if logado() && request.resource.data.gm == request.auth.uid;
       allow update: if logado() && resource.data.gm == request.auth.uid
                     && request.resource.data.gm == resource.data.gm;
       allow delete: if logado() && resource.data.gm == request.auth.uid;
+
+      // Participantes: o mestre e os participantes veem a lista;
+      // cada um entra/sai por conta própria; o mestre pode remover.
+      match /membros/{uid} {
+        allow read: if logado() && (request.auth.uid == uid || ehMestre(mesaId) || ehMembro(mesaId));
+        allow create, update: if logado() && request.auth.uid == uid
+                              && exists(/databases/$(database)/documents/mesas/$(mesaId));
+        allow delete: if logado() && (request.auth.uid == uid || ehMestre(mesaId));
+      }
     }
 
-    // Fichas: só o dono e o mestre da mesa em que ela está podem ver
+    // Fichas: só o dono e o mestre da campanha em que ela está podem ver.
     match /chars/{charId} {
       allow read: if logado() && (resource.data.owner == request.auth.uid
                                || resource.data.mesaGm == request.auth.uid);
@@ -28,14 +50,16 @@ service cloud.firestore {
                     && request.resource.data.owner == request.auth.uid
                     && charId.matches(request.auth.uid + '_.*');
 
-      // O dono edita tudo; o mestre pode editar (dano, PE etc.)
-      // mas não pode mudar o dono nem tirar/trocar a ficha de mesa.
+      // O dono edita tudo. O mestre pode editar (dano, PE etc.) sem trocar o dono
+      // nem mudar a ficha de campanha, mas pode tirá-la da campanha dele.
       allow update: if logado()
                     && request.resource.data.owner == resource.data.owner
                     && (resource.data.owner == request.auth.uid
                         || (resource.data.mesaGm == request.auth.uid
-                            && request.resource.data.mesaId == resource.data.mesaId
-                            && request.resource.data.mesaGm == resource.data.mesaGm));
+                            && ((request.resource.data.mesaId == resource.data.mesaId
+                                 && request.resource.data.mesaGm == resource.data.mesaGm)
+                                || (request.resource.data.mesaId == ''
+                                    && request.resource.data.mesaGm == ''))));
 
       allow delete: if logado() && resource.data.owner == request.auth.uid;
     }
