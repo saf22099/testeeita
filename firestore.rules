@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() { return request.auth != null; }
+
+    // Dados particulares de cada conta (origens/titãs customizados, escudo do mestre)
+    match /users/{uid}/{doc=**} {
+      allow read, write: if logado() && request.auth.uid == uid;
+    }
+
+    // Mesas: o código da mesa é o ID do documento
+    match /mesas/{mesaId} {
+      allow get: if logado();                                        // jogador confere o código
+      allow list: if logado() && resource.data.gm == request.auth.uid; // mestre lista só as dele
+      allow create: if logado() && request.resource.data.gm == request.auth.uid;
+      allow update: if logado() && resource.data.gm == request.auth.uid
+                    && request.resource.data.gm == resource.data.gm;
+      allow delete: if logado() && resource.data.gm == request.auth.uid;
+    }
+
+    // Fichas: só o dono e o mestre da mesa em que ela está podem ver
+    match /chars/{charId} {
+      allow read: if logado() && (resource.data.owner == request.auth.uid
+                               || resource.data.mesaGm == request.auth.uid);
+
+      allow create: if logado()
+                    && request.resource.data.owner == request.auth.uid
+                    && charId.matches(request.auth.uid + '_.*');
+
+      // O dono edita tudo; o mestre pode editar (dano, PE etc.)
+      // mas não pode mudar o dono nem tirar/trocar a ficha de mesa.
+      allow update: if logado()
+                    && request.resource.data.owner == resource.data.owner
+                    && (resource.data.owner == request.auth.uid
+                        || (resource.data.mesaGm == request.auth.uid
+                            && request.resource.data.mesaId == resource.data.mesaId
+                            && request.resource.data.mesaGm == resource.data.mesaGm));
+
+      allow delete: if logado() && resource.data.owner == request.auth.uid;
+    }
+  }
+}
