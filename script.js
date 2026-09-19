@@ -862,9 +862,12 @@ let pendingGMPrimordialImage = null;
 function saveGMPrimordialTitans() { localStorage.setItem('rpgGMPrimordialTitans', JSON.stringify(gmPrimordialTitans)); }
 let gmHiddenSoldiers = JSON.parse(localStorage.getItem('rpgGMHiddenSoldiers') || '[]');
 let gmHiddenTitans = JSON.parse(localStorage.getItem('rpgGMHiddenTitans') || '[]');
+// Em campanhas: suas fichas e NPCs só aparecem no encontro quando você adiciona
+let gmShownSoldiers = JSON.parse(localStorage.getItem('rpgGMShownSoldiers') || '[]');
 function saveGMHidden() {
   localStorage.setItem('rpgGMHiddenSoldiers', JSON.stringify(gmHiddenSoldiers));
   localStorage.setItem('rpgGMHiddenTitans', JSON.stringify(gmHiddenTitans));
+  localStorage.setItem('rpgGMShownSoldiers', JSON.stringify(gmShownSoldiers));
 }
 let pendingGMTitanDamageId = null;
 function saveGMTitans() { localStorage.setItem('rpgGMTitans', JSON.stringify(gmTitans)); }
@@ -2150,17 +2153,60 @@ function switchEscudoTab(tabId, btn) {
   if (tabId === 'escudoBiomas') renderBiomas();
 }
 
+/* ---- Grupos do escudo: jogadores da campanha / NPCs / suas fichas / titãs ---- */
+function escapeHtmlBasic(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escudoCampanhaAtual() { return (window.nuvem && typeof nuvem.campanhaGM === 'function') ? nuvem.campanhaGM() : null; }
+function soldierGroup(ch) { if (ch._remote) return 'jogadores'; if (ch.npcCampanha) return 'npcs'; return 'fichas'; }
+function escudoSoldados() {
+  const camp = escudoCampanhaAtual();
+  return characters.filter(c => !c._ro && (c.npcCampanha ? c.npcCampanha === camp : true) && (camp ? true : !c._remote));
+}
+function isSoldierVisible(ch) {
+  if (escudoCampanhaAtual() && !ch._remote) return gmShownSoldiers.includes(ch.id);
+  return !gmHiddenSoldiers.includes(ch.id);
+}
+const ESCUDO_GRUPOS = [
+  { id: 'jogadores', nome: 'Jogadores da campanha' },
+  { id: 'npcs', nome: 'NPCs' },
+  { id: 'fichas', nome: 'Suas fichas' }
+];
+let escudoGruposFechados = JSON.parse(localStorage.getItem('rpgUIGruposFechados') || '[]');
+function toggleEscudoGrupo(id) {
+  escudoGruposFechados = escudoGruposFechados.includes(id) ? escudoGruposFechados.filter(x => x !== id) : [...escudoGruposFechados, id];
+  try { localStorage.setItem('rpgUIGruposFechados', JSON.stringify(escudoGruposFechados)); } catch (e) { }
+  renderEscudoEncontro();
+}
+
 function renderEscudoEncontro() {
-  const visibleSoldiers = characters.filter(c => !gmHiddenSoldiers.includes(c.id));
+  const escudoTodos = escudoSoldados();
+  const visibleSoldiers = escudoTodos.filter(isSoldierVisible);
   const visibleTitans = gmTitans.filter(t => !gmHiddenTitans.includes(t.id));
   document.getElementById('encontroTitanCount').textContent = visibleTitans.length + ' / ' + gmTitans.length;
-  document.getElementById('encontroSoldierCount').textContent = visibleSoldiers.length + ' / ' + characters.length;
+  document.getElementById('encontroSoldierCount').textContent = visibleSoldiers.length + ' / ' + escudoTodos.length;
 
   const soldiersList = document.getElementById('encontroSoldiersList');
   soldiersList.innerHTML = '';
   if (visibleSoldiers.length === 0) soldiersList.innerHTML = '<p class="empty-note">Nenhum soldado visível no encontro. Use "Adicionar ao Encontro" para trazer alguém.</p>';
+  const gruposUsados = ESCUDO_GRUPOS.filter(g => visibleSoldiers.some(ch => soldierGroup(ch) === g.id));
+  const alvoGrupo = {};
+  gruposUsados.forEach(g => {
+    const n = visibleSoldiers.filter(ch => soldierGroup(ch) === g.id).length;
+    const fechado = escudoGruposFechados.includes(g.id);
+    if (gruposUsados.length > 1 || fechado) {
+      const cab = document.createElement('button');
+      cab.type = 'button'; cab.className = 'escudo-grupo-cab' + (fechado ? ' fechado' : '');
+      cab.innerHTML = `<span class="escudo-grupo-seta"></span><span>${g.nome}</span><span class="escudo-grupo-n">${n}</span>`;
+      cab.onclick = () => toggleEscudoGrupo(g.id);
+      soldiersList.appendChild(cab);
+    }
+    const box = document.createElement('div'); box.className = 'escudo-grupo-corpo';
+    if (fechado) box.classList.add('hidden');
+    soldiersList.appendChild(box);
+    alvoGrupo[g.id] = box;
+  });
   visibleSoldiers.forEach(ch => {
     ensureCharDefaults(ch);
+    const destinoGrupo = alvoGrupo[soldierGroup(ch)] || soldiersList;
     const sta = ch.resources && ch.resources.sta ? ch.resources.sta : { cur: 0, max: 0 };
     const isShifterReady = ch.shifter && ch.shifter.isShifter && ch.shifter.titanId;
     const titan = isShifterReady ? getTitanById(ch.shifter.titanId) : null;
@@ -2180,8 +2226,8 @@ function renderEscudoEncontro() {
       const hp = ch.resources && ch.resources.hp ? ch.resources.hp : { cur: 0, max: 0 };
       pvBlockHtml = `<div class="derived-stat"><span>PDV</span><span style="font-family:var(--mono);">${hp.cur} / ${hp.max}</span></div><div class="resource-controls"><button onclick="modSoldierHP('${ch.id}', -5)">-5</button><button onclick="modSoldierHP('${ch.id}', -1)">-1</button><button onclick="modSoldierHP('${ch.id}', 1)">+1</button><button onclick="modSoldierHP('${ch.id}', 5)">+5</button></div>`;
     }
-    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><h4>${ch.name}${isTransformed ? ' <span class="tag origin">Transformado</span>' : ''}</h4><button class="small" onclick="hideSoldierFromEncounter('${ch.id}')" title="Ocultar do encontro">Ocultar</button></div>${pvBlockHtml}<div class="derived-stat" style="margin-top:6px;"><span>PDE</span><span style="font-family:var(--mono);">${sta.cur} / ${sta.max}</span></div><div class="resource-controls"><button onclick="modSoldierSTA('${ch.id}', -5)">-5</button><button onclick="modSoldierSTA('${ch.id}', -1)">-1</button><button onclick="modSoldierSTA('${ch.id}', 1)">+1</button><button onclick="modSoldierSTA('${ch.id}', 5)">+5</button></div>${transformHtml}`;
-    soldiersList.appendChild(div);
+    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;"><h4>${escapeHtmlBasic(ch.name)}${isTransformed ? ' <span class="tag origin">Transformado</span>' : ''}</h4><button class="small" onclick="hideSoldierFromEncounter('${ch.id}')" title="Ocultar do encontro">Ocultar</button></div>${pvBlockHtml}<div class="derived-stat" style="margin-top:6px;"><span>PDE</span><span style="font-family:var(--mono);">${sta.cur} / ${sta.max}</span></div><div class="resource-controls"><button onclick="modSoldierSTA('${ch.id}', -5)">-5</button><button onclick="modSoldierSTA('${ch.id}', -1)">-1</button><button onclick="modSoldierSTA('${ch.id}', 1)">+1</button><button onclick="modSoldierSTA('${ch.id}', 5)">+5</button></div>${transformHtml}`;
+    destinoGrupo.appendChild(div);
   });
 
   const titansList = document.getElementById('encontroTitansList');
@@ -2199,10 +2245,96 @@ function renderEscudoEncontro() {
 
 function getCharByIdGM(id) { return characters.find(c => c.id === id); }
 
-function hideSoldierFromEncounter(id) { if (!gmHiddenSoldiers.includes(id)) gmHiddenSoldiers.push(id); saveGMHidden(); renderEscudoEncontro(); }
+function hideSoldierFromEncounter(id) { gmShownSoldiers = gmShownSoldiers.filter(x => x !== id); if (!gmHiddenSoldiers.includes(id)) gmHiddenSoldiers.push(id); saveGMHidden(); renderEscudoEncontro(); if (window.nuvem && nuvem.renderNpcs) nuvem.renderNpcs(); }
 function hideTitanFromEncounter(id) { if (!gmHiddenTitans.includes(id)) gmHiddenTitans.push(id); saveGMHidden(); renderEscudoEncontro(); }
-function unhideSoldier(id) { gmHiddenSoldiers = gmHiddenSoldiers.filter(x => x !== id); saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu(); }
+function unhideSoldier(id) { gmHiddenSoldiers = gmHiddenSoldiers.filter(x => x !== id); if (!gmShownSoldiers.includes(id)) gmShownSoldiers.push(id); saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu(); if (window.nuvem && nuvem.renderNpcs) nuvem.renderNpcs(); }
 function unhideTitanFromEncounter(id) { gmHiddenTitans = gmHiddenTitans.filter(x => x !== id); saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu(); }
+
+let escudoPickerAba = { encontro: null, iniciativa: null };
+let escudoPickerBusca = { encontro: '', iniciativa: '' };
+function escudoAbasDisponiveis() {
+  return escudoCampanhaAtual()
+    ? [{ id: 'jogadores', nome: 'Jogadores' }, { id: 'npcs', nome: 'NPCs' }, { id: 'fichas', nome: 'Suas fichas' }, { id: 'titas', nome: 'Titãs' }]
+    : [{ id: 'fichas', nome: 'Suas fichas' }, { id: 'titas', nome: 'Titãs' }];
+}
+function escudoTrocarAba(modo, aba) { escudoPickerAba[modo] = aba; renderEscudoPicker(modo); }
+function escudoBuscar(modo, texto) {
+  escudoPickerBusca[modo] = texto;
+  renderEscudoPicker(modo, true);
+}
+function escudoAdicionarTodos(aba) {
+  const lista = escudoSoldados().filter(ch => soldierGroup(ch) === aba && !isSoldierVisible(ch));
+  lista.forEach(ch => {
+    gmHiddenSoldiers = gmHiddenSoldiers.filter(x => x !== ch.id);
+    if (!gmShownSoldiers.includes(ch.id)) gmShownSoldiers.push(ch.id);
+  });
+  saveGMHidden(); renderEscudoEncontro(); renderEncounterAddMenu();
+}
+function renderEscudoPicker(modo, soGrade) {
+  const grid = document.getElementById(modo === 'encontro' ? 'encounterAddGrid' : 'initiativePickerGrid');
+  if (!grid) return;
+  const abas = escudoAbasDisponiveis();
+  if (!abas.some(a => a.id === escudoPickerAba[modo])) escudoPickerAba[modo] = abas[0].id;
+  const aba = escudoPickerAba[modo];
+  let cab = grid.previousElementSibling;
+  if (!cab || !cab.classList.contains('escudo-picker-cab')) {
+    cab = document.createElement('div'); cab.className = 'escudo-picker-cab';
+    grid.parentNode.insertBefore(cab, grid);
+  }
+  const busca = (escudoPickerBusca[modo] || '').trim().toLowerCase();
+  const soldados = escudoSoldados();
+  const contar = id => id === 'titas' ? gmTitans.length : soldados.filter(ch => soldierGroup(ch) === id).length;
+  if (!soGrade) {
+    cab.innerHTML = `<div class="tabs escudo-picker-abas">${abas.map(a =>
+      `<button type="button" class="tab ${a.id === aba ? 'active' : ''}" onclick="escudoTrocarAba('${modo}','${a.id}')">${a.nome} <span class="escudo-grupo-n">${contar(a.id)}</span></button>`).join('')}</div>
+      <div class="escudo-picker-linha"><input type="search" class="escudo-picker-busca" placeholder="Buscar pelo nome…" value="${escapeHtmlBasic(escudoPickerBusca[modo] || '')}" oninput="escudoBuscar('${modo}', this.value)" />
+      ${modo === 'encontro' && aba !== 'titas' && soldados.some(ch => soldierGroup(ch) === aba && !isSoldierVisible(ch)) ? `<button type="button" class="small" onclick="escudoAdicionarTodos('${aba}')">Adicionar todos</button>` : ''}</div>`;
+  }
+  grid.innerHTML = '';
+  const bate = nome => !busca || String(nome || '').toLowerCase().includes(busca);
+  const vazio = msg => { grid.innerHTML = `<p class="empty-note">${msg}</p>`; };
+  if (aba === 'titas') {
+    const lista = gmTitans.filter(t => bate(t.name));
+    if (!gmTitans.length) return vazio('Nenhum Titã cadastrado ainda. Vá até a aba Titãs.');
+    if (!lista.length) return vazio('Nenhum Titã com esse nome.');
+    lista.forEach(t => {
+      const cat = getPureTitanCategory(t.categoryId);
+      const div = document.createElement('div'); div.className = 'mini-card';
+      let botao;
+      if (modo === 'encontro') {
+        const visivel = !gmHiddenTitans.includes(t.id);
+        botao = visivel
+          ? `<button class="small" style="margin-top:10px;width:100%;" onclick="hideTitanFromEncounter('${t.id}'); renderEncounterAddMenu();">No encontro · Ocultar</button>`
+          : `<button class="primary" style="margin-top:10px;width:100%;" onclick="unhideTitanFromEncounter('${t.id}')">Adicionar ao Encontro</button>`;
+      } else {
+        const ja = gmInitiative.some(p => p.sourceId === t.id && p.sourceType === 'titan');
+        botao = `<button ${ja ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullTitanToInitiative('${t.id}')">${ja ? 'Já na Iniciativa' : 'Puxar para a Iniciativa'}</button>`;
+      }
+      div.innerHTML = `<h4>${escapeHtmlBasic(t.name)}</h4><p class="desc">Titã — ${cat ? cat.label : 'Custom'}</p>${botao}`;
+      grid.appendChild(div);
+    });
+    return;
+  }
+  const doGrupo = soldados.filter(ch => soldierGroup(ch) === aba);
+  const lista = doGrupo.filter(ch => bate(ch.name));
+  if (!doGrupo.length) return vazio(aba === 'jogadores' ? 'Nenhum jogador enviou ficha para esta campanha ainda.' : aba === 'npcs' ? 'Nenhum NPC nesta campanha. Crie na aba NPCs.' : 'Nenhuma ficha sua ainda.');
+  if (!lista.length) return vazio('Ninguém com esse nome.');
+  lista.forEach(ch => {
+    const div = document.createElement('div'); div.className = 'mini-card';
+    let botao;
+    if (modo === 'encontro') {
+      botao = isSoldierVisible(ch)
+        ? `<button class="small" style="margin-top:10px;width:100%;" onclick="hideSoldierFromEncounter('${ch.id}'); renderEncounterAddMenu();">No encontro · Ocultar</button>`
+        : `<button class="primary" style="margin-top:10px;width:100%;" onclick="unhideSoldier('${ch.id}')">Adicionar ao Encontro</button>`;
+    } else {
+      const ja = gmInitiative.some(p => p.sourceId === ch.id && p.sourceType === 'soldado');
+      botao = `<button ${ja ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullSoldierToInitiative('${ch.id}')">${ja ? 'Já na Iniciativa' : 'Puxar para a Iniciativa'}</button>`;
+    }
+    const dono = ch._remote && ch._ownerName ? ` · ${escapeHtmlBasic(ch._ownerName)}` : '';
+    div.innerHTML = `<h4>${escapeHtmlBasic(ch.name)}</h4><p class="desc">Nível ${escapeHtmlBasic(ch.level)}${dono}</p>${botao}`;
+    grid.appendChild(div);
+  });
+}
 
 function openEncounterAddModal() {
   renderEncounterAddMenu();
@@ -2210,23 +2342,7 @@ function openEncounterAddModal() {
 }
 function closeEncounterAddModal() { document.getElementById('encounterAddModal').classList.add('hidden'); }
 
-function renderEncounterAddMenu() {
-  const container = document.getElementById('encounterAddGrid'); container.innerHTML = '';
-  const hiddenSoldiers = characters.filter(c => gmHiddenSoldiers.includes(c.id));
-  const hiddenTitans = gmTitans.filter(t => gmHiddenTitans.includes(t.id));
-  if (hiddenSoldiers.length === 0 && hiddenTitans.length === 0) { container.innerHTML = '<p class="empty-note">Todos os soldados e Titãs já estão visíveis no encontro.</p>'; return; }
-  hiddenSoldiers.forEach(ch => {
-    const div = document.createElement('div'); div.className = 'mini-card';
-    div.innerHTML = `<h4>${ch.name}</h4><p class="desc">Soldado — Nível ${ch.level}</p><button class="primary" style="margin-top:10px;width:100%;" onclick="unhideSoldier('${ch.id}')">Adicionar ao Encontro</button>`;
-    container.appendChild(div);
-  });
-  hiddenTitans.forEach(t => {
-    const cat = getPureTitanCategory(t.categoryId);
-    const div = document.createElement('div'); div.className = 'mini-card';
-    div.innerHTML = `<h4>${t.name}</h4><p class="desc">Titã — ${cat ? cat.label : ''}</p><button class="primary" style="margin-top:10px;width:100%;" onclick="unhideTitanFromEncounter('${t.id}')">Adicionar ao Encontro</button>`;
-    container.appendChild(div);
-  });
-}
+function renderEncounterAddMenu() { renderEscudoPicker('encontro'); }
 
 function modSoldierHP(charId, delta) {
   const ch = characters.find(c => c.id === charId); if (!ch) return;
@@ -3008,33 +3124,14 @@ function clearInitiative() {
 let initiativePickerType = 'soldados';
 function openInitiativePickerModal(type) {
   initiativePickerType = type;
-  document.getElementById('initiativePickerTitle').textContent = type === 'soldados' ? 'Puxar Soldado para a Iniciativa' : 'Puxar Titã para a Iniciativa';
+  document.getElementById('initiativePickerTitle').textContent = 'Puxar para a Iniciativa';
+  escudoPickerAba.iniciativa = type === 'titans' ? 'titas' : (escudoCampanhaAtual() ? 'jogadores' : 'fichas');
   renderInitiativePickerGrid();
   document.getElementById('initiativePickerModal').classList.remove('hidden');
 }
 function closeInitiativePickerModal() { document.getElementById('initiativePickerModal').classList.add('hidden'); }
 
-function renderInitiativePickerGrid() {
-  const container = document.getElementById('initiativePickerGrid'); container.innerHTML = '';
-  if (initiativePickerType === 'soldados') {
-    if (characters.length === 0) { container.innerHTML = '<p class="empty-note">Nenhuma ficha de personagem salva ainda.</p>'; return; }
-    characters.forEach(ch => {
-      const already = gmInitiative.some(p => p.sourceId === ch.id && p.sourceType === 'soldado');
-      const div = document.createElement('div'); div.className = 'mini-card';
-      div.innerHTML = `<h4>${ch.name}</h4><p class="desc">Nível ${ch.level}</p><button ${already ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullSoldierToInitiative('${ch.id}')">${already ? 'Já na Iniciativa' : 'Puxar'}</button>`;
-      container.appendChild(div);
-    });
-  } else {
-    if (gmTitans.length === 0) { container.innerHTML = '<p class="empty-note">Nenhum Titã cadastrado ainda. Vá até a aba Titãs.</p>'; return; }
-    gmTitans.forEach(t => {
-      const already = gmInitiative.some(p => p.sourceId === t.id && p.sourceType === 'titan');
-      const cat = getPureTitanCategory(t.categoryId);
-      const div = document.createElement('div'); div.className = 'mini-card';
-      div.innerHTML = `<h4>${t.name}</h4><p class="desc">${cat ? cat.label : 'Custom'}</p><button ${already ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullTitanToInitiative('${t.id}')">${already ? 'Já na Iniciativa' : 'Puxar'}</button>`;
-      container.appendChild(div);
-    });
-  }
-}
+function renderInitiativePickerGrid() { renderEscudoPicker('iniciativa'); }
 
 function pullSoldierToInitiative(charId) {
   const ch = characters.find(c => c.id === charId); if (!ch) return;

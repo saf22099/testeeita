@@ -20,8 +20,9 @@ import {
 const CONFIGURADO = !!(firebaseConfig && firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes('COLE'));
 const LIMITE_FICHAS = 20;
 const LIMITE_MESAS = 5;
+const LIMITE_NPCS = 30;
 const GLOBAL_KEYS = ['rpgCustomOrigins', 'rpgCustomTitans'];
-const GM_KEYS = ['rpgGMTitans', 'rpgGMInitiative', 'rpgGMActiveBiomas', 'rpgGMPrimordialTitans', 'rpgGMHiddenSoldiers', 'rpgGMHiddenTitans'];
+const GM_KEYS = ['rpgGMTitans', 'rpgGMInitiative', 'rpgGMActiveBiomas', 'rpgGMPrimordialTitans', 'rpgGMHiddenSoldiers', 'rpgGMHiddenTitans', 'rpgGMShownSoldiers'];
 const LS = {
   uid: 'coordNuvemUid', known: 'coordNuvemConhecidas', pendState: 'coordNuvemPendente',
   pendChars: 'coordNuvemFichasPendentes', slot: 'coordNuvemSlot'
@@ -29,7 +30,6 @@ const LS = {
 const CHUNK = 350000;
 const MAX_IMG = 150000;
 const MAX_DOC = 950000;
-const AVATARES = ['⚔️', '🛡️', '🗡️', '🏹', '🐎', '🔥', '🌙', '⭐', '🦅', '🐺', '💀', '👁️', '🧭', '🎲', '🪖', '🌲'];
 
 // ------------------------------------------------------------
 // Estado
@@ -58,6 +58,12 @@ const pool = new Map();       // fichas dos jogadores da campanha aberta (visão
 let voltarPara = null;
 let pendingSheetRefresh = null;
 let criandoConta = false;
+let criandoNpcPara = null;
+let pendentes = [];            // campanhas em que pedi para entrar (aguardando o mestre)
+const unsubPendentes = new Map();
+let pedidos = new Map();       // pedidos para entrar na campanha aberta (visão do mestre)
+let unsubPedidos = null, unsubMesaDoc = null, unsubCompartilhadas = null;
+let conviteCodigo = normCodigo(new URLSearchParams(location.search).get('convite') || '');
 let saindo = false;
 
 // ------------------------------------------------------------
@@ -67,6 +73,8 @@ function safeParse(s, d) { try { return s == null ? d : JSON.parse(s); } catch (
 const origSetItem = Storage.prototype.setItem;
 function lsSet(k, v) { suppress = true; try { origSetItem.call(localStorage, k, v); } finally { suppress = false; } }
 function ownChars() { return characters.filter(c => !c._remote); }
+function fichasProprias() { return characters.filter(c => !c._remote && !c.npcCampanha); }
+function npcsProprios(code) { return characters.filter(c => !c._remote && c.npcCampanha && (!code || c.npcCampanha === code)); }
 function docIdDe(ch) { return user.uid + '_' + ch.id; }
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function avisar(t, m, erro) { if (typeof showNotification === 'function') showNotification(t, m || '', !!erro); }
@@ -97,11 +105,12 @@ function savePendState() { lsSet(LS.pendState, JSON.stringify([...dirtyState]));
 function setStatus(s) { status = s; renderConta(); }
 function nomeEstado(key) { return GM_KEYS.includes(key) && slot ? `${key}@${slot}` : key; }
 
+function fotoValida(u) { return typeof u === 'string' && /^(https:\/\/|data:image\/(png|jpeg|webp);base64,)/.test(u); }
+// Foto por cima da inicial: se a imagem não carregar, a inicial aparece.
 function avatarHtml(p, cls = '') {
-  if (!p) return `<span class="nv-avatar ${cls}">?</span>`;
-  if (p.avatar === 'foto' && p.foto) return `<img class="nv-avatar ${cls}" src="${esc(p.foto)}" alt="" referrerpolicy="no-referrer" />`;
-  if (p.avatar && p.avatar !== 'foto') return `<span class="nv-avatar ${cls}">${esc(p.avatar)}</span>`;
-  return `<span class="nv-avatar ${cls}">${esc((p.nome || '?').trim().charAt(0).toUpperCase())}</span>`;
+  const ini = esc(((p && p.nome) || '?').trim().charAt(0).toUpperCase() || '?');
+  const foto = p && fotoValida(p.foto) ? p.foto : '';
+  return `<span class="nv-avatar ${cls}">${ini}${foto ? `<img src="${esc(foto)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.remove()" />` : ''}</span>`;
 }
 
 // ------------------------------------------------------------
@@ -155,13 +164,49 @@ function readRemote(x) {
   if (x && typeof x.data === 'string') { const o = safeParse(x.data, null); if (o) return { R: toKeys(o), lg: true }; }
   return { R: {}, lg: !!(x && x.data) };
 }
-function metaDoc(x) { return { mesaId: x.mesaId || '', mesaGm: x.mesaGm || '', ownerName: x.ownerName || '', name: x.name || '' }; }
+function metaDoc(x) { return { mesaId: x.mesaId || '', mesaGm: x.mesaGm || '', ownerName: x.ownerName || '', name: x.name || '', leitores: Array.isArray(x.leitores) ? x.leitores : [] }; }
 function sameKeys(a, b) {
   const ka = Object.keys(a), kb = Object.keys(b);
   if (ka.length !== kb.length) return false;
   for (const k of ka) if (a[k] !== b[k]) return false;
   return true;
 }
+// ------------------------------------------------------------
+// Segurança: textos vindos de OUTRAS pessoas passam por aqui antes
+// de aparecer na tela, para ninguém conseguir injetar código.
+// Troca < > " ' ` por caracteres parecidos (‹ › ” ’ ‘).
+// ------------------------------------------------------------
+const TROCAS = { '<': '‹', '>': '›', '"': '”', "'": '’', '`': '‘' };
+function limparValor(v, d = 0) {
+  if (typeof v === 'string') return v.startsWith('data:image/') ? v.replace(/[<>"'`\s]/g, '') : v.replace(/[<>"'`]/g, c => TROCAS[c]);
+  if (d > 30) return null;
+  if (Array.isArray(v)) return v.map(x => limparValor(x, d + 1));
+  if (v && typeof v === 'object') {
+    const o = {};
+    for (const k of Object.keys(v)) o[/[<>"`]/.test(k) ? k.replace(/[<>"`]/g, '') : k] = limparValor(v[k], d + 1);
+    return o;
+  }
+  return v;
+}
+const cacheVista = new Map();
+function vistaStr(str) {
+  let r = cacheVista.get(str);
+  if (r === undefined) {
+    const v = safeParse(str, undefined);
+    r = v === undefined ? str : JSON.stringify(limparValor(v));
+    if (cacheVista.size > 4000) cacheVista.clear();
+    cacheVista.set(str, r);
+  }
+  return r;
+}
+function vista(R) {
+  if (!R) return R;
+  const o = {};
+  for (const k in R) { if (/[<>"'`\s]/.test(k)) continue; o[k] = vistaStr(R[k]); }
+  return o;
+}
+function idSeguro(s) { return typeof s === 'string' && /^[\w.-]{1,160}$/.test(s); }
+
 function isObj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 function merge3(b, l, r) {
   const sb = JSON.stringify(b), sl = JSON.stringify(l), sr = JSON.stringify(r);
@@ -242,9 +287,9 @@ window.saveChars = function () {
 const origRenderCharList = window.renderCharList;
 window.renderCharList = function () {
   const all = characters;
-  characters = all.filter(c => !c._remote);
+  characters = all.filter(c => !c._remote && !c.npcCampanha);
   try { origRenderCharList(); } finally { characters = all; }
-  const n = all.filter(c => !c._remote).length;
+  const n = all.filter(c => !c._remote && !c.npcCampanha).length;
   const badge = el('nuvemFichaCount');
   if (badge) { badge.textContent = `${n}/${LIMITE_FICHAS}`; badge.classList.toggle('cheio', n >= LIMITE_FICHAS); }
   if (carregando && n === 0) {
@@ -254,21 +299,40 @@ window.renderCharList = function () {
 };
 
 const origOpenChar = window.openChar;
-window.openChar = function (id) { origOpenChar(id); renderSheetMesa(); };
+window.openChar = function (id) {
+  origOpenChar(id);
+  const ch = characters.find(c => c.id === id);
+  const tela = el('screenSheet');
+  const ro = !!(ch && ch._ro);
+  tela && tela.classList.toggle('nv-somente-leitura', ro);
+  if (ro) tela.querySelectorAll('input, textarea, select').forEach(e => { if (!e.closest('.nuvem-painel')) e.disabled = true; });
+  renderSheetMesa();
+};
+// ao trocar de aba numa ficha somente leitura, bloqueia os campos novos
+document.addEventListener('click', e => {
+  const tela = el('screenSheet');
+  if (tela && tela.classList.contains('nv-somente-leitura') && e.target.closest && e.target.closest('#screenSheet .tab')) {
+    setTimeout(() => tela.querySelectorAll('input, textarea, select').forEach(x => { if (!x.closest('.nuvem-painel')) x.disabled = true; }), 30);
+  }
+}, true);
 
 const origGoToMainMenu = window.goToMainMenu;
-window.goToMainMenu = function () { voltarPara = null; origGoToMainMenu(); };
+window.goToMainMenu = function () { voltarPara = null; criandoNpcPara = null; origGoToMainMenu(); };
 
 const origOpenEscudo = window.openEscudoDoMestre;
 window.openEscudoDoMestre = function () {
   origOpenEscudo();
   const tab = document.querySelector('[data-escudo-tab="escudoJogadores"]');
+  const tabNpc = document.querySelector('[data-escudo-tab="escudoNpcs"]');
   if (campanhaAberta && campanhaAberta.papel === 'gm') {
     tab && tab.classList.remove('hidden');
+    tabNpc && tabNpc.classList.remove('hidden');
     tab && switchEscudoTab('escudoJogadores', tab);
     renderJogadoresGM();
+    renderNpcsGM();
   } else {
     tab && tab.classList.add('hidden');
+    tabNpc && tabNpc.classList.add('hidden');
     const enc = document.querySelector('[data-escudo-tab="escudoEncontro"]');
     enc && switchEscudoTab('escudoEncontro', enc);
   }
@@ -283,8 +347,15 @@ window.enterCatalog = function (nome) {
 };
 
 // Limite de fichas
+function podeCriarNpc() {
+  if (npcsProprios().length >= LIMITE_NPCS) {
+    avisar('Limite de NPCs atingido', `Cada conta pode ter até ${LIMITE_NPCS} NPCs somando todas as campanhas.`, true);
+    return false;
+  }
+  return true;
+}
 function podeCriarFicha() {
-  if (ownChars().length >= LIMITE_FICHAS) {
+  if (fichasProprias().length >= LIMITE_FICHAS) {
     avisar('Limite de fichas atingido', `Cada conta pode ter até ${LIMITE_FICHAS} fichas. Exclua uma para criar outra.`, true);
     return false;
   }
@@ -299,8 +370,8 @@ window.importChar = function (file) { if (!podeCriarFicha()) return; origImport(
 const origDuplicate = window.duplicateChar;
 window.duplicateChar = function (id) {
   const orig = characters.find(c => c.id === id);
-  if (orig && orig._remote) { avisar('Não dá para duplicar aqui', 'Esta ficha é de um jogador da sua campanha.', true); return; }
-  if (!podeCriarFicha()) return;
+  if (orig && orig._remote) { avisar('Não dá para duplicar aqui', 'Esta ficha é de outro jogador.', true); return; }
+  if (orig && orig.npcCampanha ? !podeCriarNpc() : !podeCriarFicha()) return;
   const antes = new Set(characters.map(c => c.id));
   origDuplicate(id);
   const nova = characters.find(c => !antes.has(c.id));
@@ -317,17 +388,56 @@ btnDup && btnDup.addEventListener('click', e => {
   if (ch && ch._remote) { e.stopImmediatePropagation(); avisar('Não dá para duplicar aqui', 'Esta ficha é de um jogador da sua campanha.', true); }
 }, true);
 
+// Criar NPC pelo assistente normal de criação
+const origSaveWizard = window.saveWizardCharacter;
+window.saveWizardCharacter = function () {
+  const alvo = criandoNpcPara;
+  if (!alvo && !podeCriarFicha()) return;
+  const antes = new Set(characters.map(c => c.id));
+  origSaveWizard();
+  criandoNpcPara = null;
+  if (alvo) {
+    const nova = characters.find(c => !antes.has(c.id));
+    if (nova) {
+      nova.npcCampanha = alvo;
+      window.saveChars();
+      renderCharList();
+      voltarPara = 'gm-npcs';
+      renderSheetMesa();
+      avisar('NPC criado', `${esc(nova.name)} foi adicionado aos NPCs da campanha.`);
+    }
+  }
+};
+function irParaEscudo(aba) {
+  window.openEscudoDoMestre();
+  const b = document.querySelector(`[data-escudo-tab="${aba}"]`);
+  if (b && !b.classList.contains('hidden')) b.click();
+}
+
 // Voltar da ficha para a campanha de onde ela foi aberta
 const btnBack = el('btnBackHeader');
 btnBack && btnBack.addEventListener('click', e => {
+  if (criandoNpcPara && isVisible('screenWizard')) {
+    e.stopImmediatePropagation();
+    criandoNpcPara = null; creationState = null;
+    voltarPara = null;
+    irParaEscudo('escudoNpcs');
+    return;
+  }
   if (!voltarPara || !isVisible('screenSheet')) return;
   e.stopImmediatePropagation();
   const destino = voltarPara; voltarPara = null;
   currentCharId = null;
-  if (destino === 'gm' && campanhaAberta) window.openEscudoDoMestre();
+  el('screenSheet') && el('screenSheet').classList.remove('nv-somente-leitura');
+  if (destino === 'gm-npcs' && campanhaAberta) irParaEscudo('escudoNpcs');
+  else if (destino === 'gm' && campanhaAberta) window.openEscudoDoMestre();
   else if (destino === 'jogador' && campanhaAberta) abrirCampanhaJogador(campanhaAberta.id);
   else window.showHome();
 }, true);
+
+btnBack && btnBack.addEventListener('click', () => setTimeout(() => { if (isVisible('screenHome')) renderCharList(); }, 0));
+const origShowHome = window.showHome;
+window.showHome = function () { origShowHome(); renderCharList(); };
 
 // Salva na hora quando a pessoa troca de aba ou fecha
 document.addEventListener('visibilitychange', () => {
@@ -373,7 +483,7 @@ async function pushChars() {
       const remoto = !!ch._remote;
       const id = remoto ? ch._docId : docIdDe(ch);
       vistos.add(id);
-      if (remoto && pool.get(id) !== ch) continue;
+      if (remoto && (pool.get(id) !== ch || ch._ro)) continue;
       await compressImagesIn(ch);
       const L = toKeys(ch);
       let tamanho = 0; for (const k in L) tamanho += L[k].length + k.length;
@@ -406,13 +516,16 @@ async function pushChars() {
 
       const args = ['updatedAt', Date.now()];
       let mudou = false;
-      for (const k in L) if (L[k] !== B[k]) { args.push(new FieldPath('d', k), L[k]); mudou = true; }
-      for (const k in B) if (!(k in L)) { args.push(new FieldPath('d', k), deleteField()); mudou = true; }
+      // para fichas de outras pessoas, compara com a versão sanitizada: só envia o que foi mexido de verdade
+      const Bv = remoto ? vista(B) : B;
+      const novaB = { ...B };
+      for (const k in L) if (L[k] !== Bv[k]) { args.push(new FieldPath('d', k), L[k]); novaB[k] = L[k]; mudou = true; }
+      for (const k in Bv) if (!(k in L)) { args.push(new FieldPath('d', k), deleteField()); delete novaB[k]; mudou = true; }
       const velhaM = baseMeta.get(id) || {};
       const novaM = { ...velhaM };
       for (const [k, v] of Object.entries(meta)) if (velhaM[k] !== v) { args.push(k, v); novaM[k] = v; mudou = true; }
       if (!mudou) continue;
-      base.set(id, L); baseMeta.set(id, novaM);
+      base.set(id, novaB); baseMeta.set(id, novaM);
       try { await updateDoc(ref, ...args); }
       catch (e) {
         base.set(id, B); baseMeta.set(id, velhaM);
@@ -500,6 +613,7 @@ function applyState(key, str) {
     case 'rpgGMPrimordialTitans': gmPrimordialTitans = val; break;
     case 'rpgGMHiddenSoldiers': gmHiddenSoldiers = val; break;
     case 'rpgGMHiddenTitans': gmHiddenTitans = val; break;
+    case 'rpgGMShownSoldiers': gmShownSoldiers = val; break;
   }
 }
 
@@ -596,6 +710,7 @@ async function startSession(u) {
     if (dirtyState.size) await pushState();
     ouvirMinhasFichas();
     setStatus(navigator.onLine ? 'ok' : 'offline');
+    if (conviteCodigo) mostrarConvite();
     if (!perfil) abrirPerfil(true);
   } catch (e) {
     console.error(e);
@@ -663,13 +778,17 @@ function ouvirMinhasFichas() {
 }
 
 function sincronizarPool() {
-  const desejados = [...pool.values()].filter(o => membros.has(o._owner));
+  let desejados = [];
+  if (campanhaAberta && campanhaAberta.papel === 'gm') desejados = [...pool.values()].filter(o => !o._ro && membros.has(o._owner));
+  else if (campanhaAberta && campanhaAberta.papel === 'jogador') desejados = [...pool.values()].filter(o => o._ro && o._mesa === campanhaAberta.id);
   characters = characters.filter(c => !c._remote).concat(desejados);
 }
 
 function pararCampanha() {
   unsubChars && unsubChars(); unsubMembros && unsubMembros();
-  unsubChars = unsubMembros = null;
+  unsubPedidos && unsubPedidos(); unsubMesaDoc && unsubMesaDoc(); unsubCompartilhadas && unsubCompartilhadas();
+  unsubChars = unsubMembros = unsubPedidos = unsubMesaDoc = unsubCompartilhadas = null;
+  pedidos = new Map();
   for (const id of pool.keys()) { base.delete(id); baseMeta.delete(id); legacy.delete(id); }
   pool.clear(); membros = new Map();
   characters = characters.filter(c => !c._remote);
@@ -682,12 +801,18 @@ function ouvirCampanhaGM(code) {
     const m = minhasMesas.find(x => x.id === code); if (m) m._n = membros.size;
     sincronizarPool();
     depoisDeMudancaRemota(new Set());
+    agendarLeitores();
   }, e => { console.error(e); avisar('Erro ao ler os jogadores', erroTexto(e), true); });
+  unsubPedidos = onSnapshot(collection(db, 'mesas', code, 'pedidos'), snap => {
+    pedidos = new Map(); snap.forEach(d => { if (idSeguro(d.id)) pedidos.set(d.id, d.data()); });
+    const m = minhasMesas.find(x => x.id === code); if (m) m._p = pedidos.size;
+    if (isVisible('screenEscudo')) renderJogadoresGM();
+  }, e => console.error(e));
   unsubChars = onSnapshot(query(collection(db, 'chars'), where('mesaGm', '==', user.uid), where('mesaId', '==', code)), snap => {
     const tocados = new Set(); let reenviar = false;
     snap.docChanges().forEach(c => {
       const id = c.doc.id, x = c.doc.data();
-      if (x.owner === user.uid) return;
+      if (x.owner === user.uid || !idSeguro(id) || !idSeguro(x.owner)) return;
       if (c.type === 'removed') { pool.delete(id); base.delete(id); baseMeta.delete(id); return; }
       const { R, lg } = readRemote(x);
       if (lg) legacy.add(id); else legacy.delete(id);
@@ -695,38 +820,98 @@ function ouvirCampanhaGM(code) {
       let obj = pool.get(id);
       const B = base.get(id);
       if (!obj) {
-        obj = fromKeys(R);
-        Object.assign(obj, { _remote: true, _docId: id, _owner: x.owner, _ownerName: x.ownerName || '' });
+        obj = fromKeys(vista(R));
+        if (!idSeguro(obj.id)) return;
+        Object.assign(obj, { _remote: true, _docId: id, _owner: x.owner, _ownerName: limparValor(x.ownerName || '') });
         pool.set(id, obj); base.set(id, R); tocados.add(obj.id);
         return;
       }
-      obj._ownerName = x.ownerName || obj._ownerName;
+      obj._ownerName = limparValor(x.ownerName || '') || obj._ownerName;
       if (B && sameKeys(R, B)) return;
-      if (aplicarRemoto(obj, R, B)) reenviar = true;
+      if (aplicarRemoto(obj, vista(R), vista(B))) reenviar = true;
       base.set(id, R); tocados.add(obj.id);
     });
     sincronizarPool();
     depoisDeMudancaRemota(tocados);
+    agendarLeitores();
     if (reenviar) agendarPush(600);
   }, e => { console.error(e); avisar('Erro ao ler as fichas da campanha', erroTexto(e), true); });
 }
 
 function ouvirCampanhaJogador(code) {
   pararCampanha();
+  unsubMesaDoc = onSnapshot(doc(db, 'mesas', code), s => {
+    const p = participacoes.find(x => x.id === code);
+    if (!s.exists()) { marcarRemovida(code); return; }
+    if (p) Object.assign(p, s.data());
+    if (isVisible('screenCampanhaJogador')) renderCampanhaJogador();
+    agendarLeitoresProprios(code);
+  }, e => console.error(e));
+  unsubCompartilhadas = onSnapshot(query(collection(db, 'chars'), where('leitores', 'array-contains', user.uid)), snap => {
+    const tocados = new Set();
+    snap.docChanges().forEach(c => {
+      const id = c.doc.id, x = c.doc.data();
+      if (x.owner === user.uid || !idSeguro(id)) return;
+      if (c.type === 'removed') { pool.delete(id); base.delete(id); baseMeta.delete(id); return; }
+      const { R } = readRemote(x);
+      const obj = fromKeys(vista(R));
+      if (!idSeguro(obj.id)) return;
+      Object.assign(obj, { _remote: true, _ro: true, _docId: id, _owner: x.owner, _ownerName: limparValor(x.ownerName || ''), _mesa: x.mesaId || '' });
+      const antigo = pool.get(id);
+      if (antigo) { for (const k of Object.keys(antigo)) delete antigo[k]; Object.assign(antigo, obj); }
+      else pool.set(id, obj);
+      base.set(id, R); baseMeta.set(id, metaDoc(x));
+      tocados.add(obj.id);
+    });
+    sincronizarPool();
+    depoisDeMudancaRemota(tocados);
+  }, e => console.error(e));
   unsubMembros = onSnapshot(collection(db, 'mesas', code, 'membros'), snap => {
     membros = new Map(); snap.forEach(d => membros.set(d.id, d.data()));
     if (!membros.has(user.uid) && campanhaAberta && campanhaAberta.id === code) {
       marcarRemovida(code);
       return;
     }
+    agendarLeitoresProprios(code);
     if (isVisible('screenCampanhaJogador')) renderCampanhaJogador();
   }, e => { console.error(e); avisar('Não consegui abrir a campanha', erroTexto(e), true); });
+}
+
+// Quem pode ver cada ficha (quando o mestre libera "jogadores veem as fichas uns dos outros")
+let leitoresTimer = null, leitoresPropriosTimer = null;
+function listaIgual(a, b) { return JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort()); }
+function agendarLeitores() { clearTimeout(leitoresTimer); leitoresTimer = setTimeout(sincronizarLeitores, 700); }
+async function sincronizarLeitores() {
+  if (!user || !campanhaAberta || campanhaAberta.papel !== 'gm') return;
+  const m = minhasMesas.find(x => x.id === campanhaAberta.id); if (!m) return;
+  const ids = [...membros.keys()].sort();
+  for (const [id, obj] of pool) {
+    if (obj._ro) continue;
+    const desejado = m.fichasVisiveis && membros.has(obj._owner) ? ids : [];
+    const bm = baseMeta.get(id) || {};
+    if (listaIgual(bm.leitores, desejado)) continue;
+    try { await updateDoc(doc(db, 'chars', id), { leitores: desejado }); baseMeta.set(id, { ...bm, leitores: desejado }); }
+    catch (e) { console.error(e); }
+  }
+}
+function agendarLeitoresProprios(code) { clearTimeout(leitoresPropriosTimer); leitoresPropriosTimer = setTimeout(() => sincronizarLeitoresProprios(code), 900); }
+async function sincronizarLeitoresProprios(code) {
+  if (!user || !ready) return;
+  const p = participacoes.find(x => x.id === code); if (!p) return;
+  if (!membros.has(user.uid)) return;
+  const desejado = p.fichasVisiveis ? [...membros.keys()].sort() : [];
+  for (const ch of ownChars().filter(c => c.mesaCode === code)) {
+    const id = docIdDe(ch); const bm = baseMeta.get(id);
+    if (!bm || listaIgual(bm.leitores, desejado)) continue;
+    try { await updateDoc(doc(db, 'chars', id), { leitores: desejado }); baseMeta.set(id, { ...bm, leitores: desejado }); }
+    catch (e) { console.error(e); }
+  }
 }
 
 function depoisDeMudancaRemota(tocados) {
   renderCharList();
   refreshEncontroIfVisible();
-  if (isVisible('screenEscudo')) renderJogadoresGM();
+  if (isVisible('screenEscudo')) { renderJogadoresGM(); renderNpcsGM(); }
   if (isVisible('screenCampanhaJogador')) renderCampanhaJogador();
   if (isVisible('screenCampanhas')) renderCampanhas();
   if (currentCharId && tocados.has(currentCharId)) refreshOpenSheet(currentCharId);
@@ -753,12 +938,12 @@ document.addEventListener('focusout', () => setTimeout(() => {
 // ------------------------------------------------------------
 // Perfil
 // ------------------------------------------------------------
-function dadosMembro() { return { nome: perfil ? perfil.nome : '', avatar: perfil ? perfil.avatar || '' : '', foto: perfil ? perfil.foto || '' : '' }; }
+function dadosMembro() { return { nome: perfil ? perfil.nome : '', foto: perfil && fotoValida(perfil.foto) ? perfil.foto : '' }; }
 
-async function salvarPerfil(nome, avatar) {
+async function salvarPerfil(nome, foto) {
   nome = String(nome || '').trim().slice(0, 30);
   if (!nome) { avisar('Escolha um apelido', '', true); return false; }
-  const novo = { nome, avatar: avatar || '', foto: user.photoURL || '', atualizadoEm: Date.now() };
+  const novo = { nome, foto: fotoValida(foto) ? foto : '', atualizadoEm: Date.now() };
   try {
     await setDoc(doc(db, 'perfis', user.uid), novo);
     const mudouNome = !perfil || perfil.nome !== nome;
@@ -767,7 +952,7 @@ async function salvarPerfil(nome, avatar) {
     const m = dadosMembro();
     await Promise.all([
       ...participacoes.filter(p => !p.removida).map(p => updateDoc(doc(db, 'mesas', p.id, 'membros', user.uid), m).catch(() => { })),
-      ...minhasMesas.map(ms => updateDoc(doc(db, 'mesas', ms.id), { gmName: m.nome, gmAvatar: m.avatar, gmFoto: m.foto }).catch(() => { }))
+      ...minhasMesas.map(ms => updateDoc(doc(db, 'mesas', ms.id), { gmName: m.nome, gmFoto: m.foto }).then(() => { ms.gmName = m.nome; ms.gmFoto = m.foto; }).catch(() => { }))
     ]);
     if (mudouNome && ownChars().length) agendarPush(300);
     renderTudo();
@@ -775,32 +960,61 @@ async function salvarPerfil(nome, avatar) {
   } catch (e) { avisar('Erro ao salvar o perfil', erroTexto(e), true); return false; }
 }
 
+let fotoEscolhida = '';
+function atualizarPreviewPerfil() {
+  const nome = el('nvPerfilNome').value || (perfil && perfil.nome) || '?';
+  el('nvPerfilPreview').innerHTML = avatarHtml({ nome, foto: fotoEscolhida }, 'nv-avatar-xl');
+  el('nvPerfilUsarGoogle').classList.toggle('hidden', !(user && user.photoURL) || fotoEscolhida === user.photoURL);
+  el('nvPerfilRemover').classList.toggle('hidden', !fotoEscolhida);
+}
 function abrirPerfil(obrigatorio) {
   if (!user) return;
-  const p = perfil || { nome: (user.displayName || '').split(' ')[0] || '', avatar: user.photoURL ? 'foto' : AVATARES[0] };
-  const opcoes = [];
-  if (user.photoURL) opcoes.push({ v: 'foto', html: avatarHtml({ avatar: 'foto', foto: user.photoURL }, 'nv-avatar-lg') });
-  AVATARES.forEach(a => opcoes.push({ v: a, html: `<span class="nv-avatar nv-avatar-lg">${a}</span>` }));
+  const nomePadrao = (user.displayName || '').split(' ')[0] || '';
+  el('nvPerfilNome').value = perfil ? perfil.nome : nomePadrao;
+  fotoEscolhida = perfil ? (fotoValida(perfil.foto) ? perfil.foto : '') : (user.photoURL || '');
   el('nvPerfilTitulo').textContent = obrigatorio ? 'Crie seu perfil' : 'Seu perfil';
   el('nvPerfilSub').textContent = obrigatorio
     ? 'É assim que o mestre e os outros jogadores vão ver você nas campanhas.'
-    : 'Seu apelido e avatar aparecem nas campanhas.';
-  el('nvPerfilNome').value = p.nome || '';
-  el('nvPerfilAvatares').innerHTML = opcoes.map(o =>
-    `<button type="button" class="nv-avatar-opcao ${o.v === (p.avatar || '') ? 'ativo' : ''}" data-v="${esc(o.v)}">${o.html}</button>`).join('');
-  el('nvPerfilAvatares').querySelectorAll('.nv-avatar-opcao').forEach(b => b.addEventListener('click', () => {
-    el('nvPerfilAvatares').querySelectorAll('.nv-avatar-opcao').forEach(x => x.classList.remove('ativo'));
-    b.classList.add('ativo');
-  }));
+    : 'Seu apelido e sua foto aparecem nas campanhas.';
   el('nvPerfilFechar').classList.toggle('hidden', !!obrigatorio);
   el('nvPerfilCancelar').classList.toggle('hidden', !!obrigatorio);
+  atualizarPreviewPerfil();
   el('nvPerfilModal').classList.remove('hidden');
   setTimeout(() => el('nvPerfilNome').focus(), 50);
 }
+// Corta a imagem em quadrado e reduz para 256x256 (fica leve para o banco)
+async function prepararFoto(file) {
+  if (!file || !file.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem (JPG, PNG ou WebP).');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Imagem grande demais (máximo 15 MB).');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const lado = Math.min(img.width, img.height);
+    const sx = (img.width - lado) / 2, sy = (img.height - lado) / 2;
+    for (const [tam, q] of [[256, 0.85], [256, 0.7], [192, 0.7], [160, 0.6]]) {
+      const c = document.createElement('canvas'); c.width = c.height = tam;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#16213a'; ctx.fillRect(0, 0, tam, tam);
+      ctx.drawImage(img, sx, sy, lado, lado, 0, 0, tam, tam);
+      let out = c.toDataURL('image/webp', q);
+      if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/jpeg', q);
+      if (out.length < 120000) return out;
+    }
+    throw new Error('Não consegui reduzir essa imagem. Tente outra.');
+  } catch (e) {
+    if (e instanceof Event) throw new Error('Não consegui abrir essa imagem. Tente outra.');
+    throw e;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function escolherArquivoFoto(input) {
+  const file = input.files && input.files[0]; input.value = '';
+  if (!file) return;
+  try { fotoEscolhida = await prepararFoto(file); atualizarPreviewPerfil(); }
+  catch (e) { avisar('Foto não aceita', esc(e.message), true); }
+}
 async function confirmarPerfil() {
-  const ativo = el('nvPerfilAvatares').querySelector('.nv-avatar-opcao.ativo');
   const btn = el('nvPerfilSalvar'); btn.disabled = true;
-  const ok = await salvarPerfil(el('nvPerfilNome').value, ativo ? ativo.dataset.v : '');
+  const ok = await salvarPerfil(el('nvPerfilNome').value, fotoEscolhida);
   btn.disabled = false;
   if (ok) { el('nvPerfilModal').classList.add('hidden'); avisar('Perfil salvo', ''); }
 }
@@ -873,6 +1087,7 @@ async function sairDaConta(depois) {
   if (charsDirty) await pushChars();
   if (dirtyState.size) await pushState();
   unsubOwn && unsubOwn(); pararCampanha();
+  for (const un of unsubPendentes.values()) un();
   await signOut(auth);
   Object.keys(localStorage).filter(k => k.startsWith('rpg') || k.startsWith('coordNuvem')).forEach(k => localStorage.removeItem(k));
   location.reload();
@@ -904,6 +1119,8 @@ function menuConta(ev) {
   el('nvMenuConta') && el('nvMenuConta').classList.toggle('hidden');
 }
 document.addEventListener('click', e => {
+  const toast = e.target.closest && e.target.closest('.notification');
+  if (toast) { toast.remove(); return; }
   const m = el('nvMenuConta');
   if (m && !m.classList.contains('hidden') && !e.target.closest('.nv-conta-wrap')) m.classList.add('hidden');
 });
@@ -926,14 +1143,18 @@ async function carregarMinhasMesas() {
 }
 async function contarMembros() {
   await Promise.all(minhasMesas.map(async m => {
-    try { const s = await getDocs(collection(db, 'mesas', m.id, 'membros')); m._n = s.size; } catch (e) { }
+    try {
+      const [s, pd] = await Promise.all([getDocs(collection(db, 'mesas', m.id, 'membros')), getDocs(collection(db, 'mesas', m.id, 'pedidos'))]);
+      m._n = s.size; m._p = pd.size;
+    } catch (e) { }
   }));
   if (isVisible('screenCampanhas')) renderCampanhas();
 }
 
 async function carregarParticipacoes() {
   const s = await getDoc(doc(db, 'users', user.uid, 'meta', 'campanhas'));
-  const codigos = s.exists() ? (s.data().codigos || []) : [];
+  const dados = s.exists() ? s.data() : {};
+  const codigos = (dados.codigos || []).filter(idSeguro);
   const lista = await Promise.all(codigos.map(async code => {
     try {
       const [ms, mb] = await Promise.all([getDoc(doc(db, 'mesas', code)), getDoc(doc(db, 'mesas', code, 'membros', user.uid))]);
@@ -948,17 +1169,61 @@ async function carregarParticipacoes() {
   participacoes = lista;
   participacoesOk = !lista.some(p => p.erro);
   const removidas = lista.filter(p => p.removida);
+  let mudouMeta = false;
   if (removidas.length) {
     removidas.forEach(p => avisar('Campanha indisponível', p.removida === 'apagada'
       ? `A campanha ${esc(p.id)} foi apagada pelo mestre.` : `Você não faz mais parte da campanha "${esc(p.name || p.id)}".`, true));
     participacoes = lista.filter(p => !p.removida);
-    await salvarParticipacoes();
+    mudouMeta = true;
     for (const ch of ownChars()) if (removidas.some(p => p.id === ch.mesaCode)) { delete ch.mesaCode; delete ch.mesaGm; delete ch.mesaNome; delete ch.mesaGmNome; }
     salvarLocal(); marcarFichasPendentes(true);
   }
+  // pedidos aguardando o mestre
+  pendentes = [];
+  for (const code of (dados.pendentes || []).filter(idSeguro)) {
+    if (participacoes.some(p => p.id === code)) { mudouMeta = true; continue; }
+    try {
+      const [ms, mb, pd] = await Promise.all([getDoc(doc(db, 'mesas', code)), getDoc(doc(db, 'mesas', code, 'membros', user.uid)), getDoc(doc(db, 'mesas', code, 'pedidos', user.uid))]);
+      if (!ms.exists()) { mudouMeta = true; continue; }
+      if (mb.exists()) { participacoes.push({ id: code, ...ms.data() }); mudouMeta = true; avisar('Pedido aceito', `Você entrou na campanha "${esc(ms.data().name)}".`); continue; }
+      if (!pd.exists()) { mudouMeta = true; avisar('Pedido recusado', `O mestre de "${esc(ms.data().name)}" não aceitou o pedido.`, true); continue; }
+      pendentes.push({ id: code, ...ms.data() });
+    } catch (e) { console.error(e); pendentes.push({ id: code, erro: true }); }
+  }
+  if (mudouMeta) await salvarParticipacoes();
+  ouvirPendentes();
 }
 async function salvarParticipacoes() {
-  await setDoc(doc(db, 'users', user.uid, 'meta', 'campanhas'), { codigos: participacoes.filter(p => !p.removida).map(p => p.id) });
+  await setDoc(doc(db, 'users', user.uid, 'meta', 'campanhas'), {
+    codigos: participacoes.filter(p => !p.removida).map(p => p.id),
+    pendentes: pendentes.map(p => p.id)
+  });
+}
+// Avisa na hora quando o mestre aceita o pedido
+function ouvirPendentes() {
+  for (const [code, un] of unsubPendentes) if (!pendentes.some(p => p.id === code)) { un(); unsubPendentes.delete(code); }
+  for (const p of pendentes) {
+    if (unsubPendentes.has(p.id)) continue;
+    const un = onSnapshot(doc(db, 'mesas', p.id, 'membros', user.uid), s => {
+      if (!s.exists()) return;
+      pendentes = pendentes.filter(x => x.id !== p.id);
+      if (!participacoes.some(x => x.id === p.id)) participacoes.push({ ...p, erro: undefined });
+      salvarParticipacoes().catch(() => { });
+      unsubPendentes.get(p.id) && unsubPendentes.get(p.id)();
+      unsubPendentes.delete(p.id);
+      avisar('Pedido aceito!', `Você entrou na campanha "${esc(p.name || p.id)}".`);
+      if (isVisible('screenCampanhas')) renderCampanhas();
+      if (isVisible('screenConvite')) mostrarConvite();
+    }, () => { });
+    unsubPendentes.set(p.id, un);
+  }
+}
+async function cancelarPedido(code) {
+  try { await deleteDoc(doc(db, 'mesas', code, 'pedidos', user.uid)); } catch (e) { }
+  pendentes = pendentes.filter(p => p.id !== code);
+  await salvarParticipacoes().catch(() => { });
+  ouvirPendentes();
+  renderCampanhas();
 }
 function marcarRemovida(code) {
   participacoes = participacoes.filter(p => p.id !== code);
@@ -981,7 +1246,7 @@ async function criarCampanha() {
       const ex = await getDoc(ref);
       if (ex.exists()) continue;
       const m = dadosMembro();
-      const dados = { gm: user.uid, name: nome, gmName: m.nome, gmAvatar: m.avatar, gmFoto: m.foto, createdAt: Date.now() };
+      const dados = { gm: user.uid, name: nome, gmName: m.nome, gmFoto: m.foto, createdAt: Date.now() };
       await setDoc(ref, dados);
       minhasMesas.push({ id: code, ...dados, _n: 0 });
       el('nvNovaCampanhaNome').value = '';
@@ -1000,13 +1265,24 @@ async function entrarComCodigo(raw, fichaId) {
     if (fichaId) { avisar('Essa campanha é sua', 'Você é o mestre dela: as fichas dos jogadores já aparecem para você.', true); return null; }
     abrirCampanhaGM(code); return null;
   }
+  if (pendentes.some(p => p.id === code)) { avisar('Pedido já enviado', 'Aguarde o mestre aceitar.'); return null; }
   let p = participacoes.find(x => x.id === code);
   if (!p) {
     try {
       const s = await getDoc(doc(db, 'mesas', code));
       if (!s.exists()) { avisar('Campanha não encontrada', 'Confira o código com o mestre.', true); return null; }
+      const dados = s.data();
+      if (dados.entrada === 'aprovacao') {
+        await setDoc(doc(db, 'mesas', code, 'pedidos', user.uid), { ...dadosMembro(), pediuEm: Date.now() });
+        pendentes.push({ id: code, ...dados });
+        await salvarParticipacoes();
+        ouvirPendentes();
+        avisar('Pedido enviado', `O mestre de "${esc(dados.name)}" precisa aceitar. Você recebe um aviso aqui quando ele aceitar.`);
+        if (isVisible('screenCampanhas')) renderCampanhas();
+        return null;
+      }
       await setDoc(doc(db, 'mesas', code, 'membros', user.uid), { ...dadosMembro(), entrouEm: Date.now() });
-      p = { id: code, ...s.data() };
+      p = { id: code, ...dados };
       participacoes.push(p);
       await salvarParticipacoes();
       avisar('Você entrou na campanha', `"${esc(p.name)}"${p.gmName ? ` de ${esc(p.gmName)}` : ''}.`);
@@ -1017,8 +1293,26 @@ async function entrarComCodigo(raw, fichaId) {
   return code;
 }
 
+// ---- pedidos (visão do mestre) ----
+async function aceitarPedido(uid) {
+  if (!campanhaAberta) return;
+  const pd = pedidos.get(uid); if (!pd) return;
+  try {
+    const b = writeBatch(db);
+    b.set(doc(db, 'mesas', campanhaAberta.id, 'membros', uid), { nome: pd.nome || '', foto: fotoValida(pd.foto) ? pd.foto : '', entrouEm: Date.now() });
+    b.delete(doc(db, 'mesas', campanhaAberta.id, 'pedidos', uid));
+    await b.commit();
+    avisar('Jogador aceito', esc(pd.nome || ''));
+  } catch (e) { avisar('Erro ao aceitar', erroTexto(e), true); }
+}
+async function recusarPedido(uid) {
+  if (!campanhaAberta) return;
+  try { await deleteDoc(doc(db, 'mesas', campanhaAberta.id, 'pedidos', uid)); }
+  catch (e) { avisar('Erro ao recusar', erroTexto(e), true); }
+}
+
 function enviarFicha(fichaId, code) {
-  const ch = characters.find(c => c.id === fichaId && !c._remote);
+  const ch = characters.find(c => c.id === fichaId && !c._remote && !c.npcCampanha);
   const p = participacoes.find(x => x.id === code);
   if (!ch || !p) return;
   ch.mesaCode = code; ch.mesaGm = p.gm; ch.mesaNome = p.name || code; ch.mesaGmNome = p.gmName || '';
@@ -1116,11 +1410,13 @@ async function renomearCampanha() {
 
 function apagarCampanha() {
   const m = campanhaAberta && minhasMesas.find(x => x.id === campanhaAberta.id); if (!m) return;
-  showConfirm(`Apagar a campanha "${m.name}"? Os jogadores saem dela e o escudo desta campanha (encontro, iniciativa, titãs) é apagado. As fichas continuam com os jogadores.`, async () => {
+  showConfirm(`Apagar a campanha "${m.name}"? Os jogadores saem dela e o escudo desta campanha (encontro, iniciativa, titãs) é apagado. As fichas continuam com os jogadores, e os seus NPCs voltam para Soldados.`, async () => {
     try {
       const batch = writeBatch(db);
       const mb = await getDocs(collection(db, 'mesas', m.id, 'membros'));
       mb.forEach(d => batch.delete(d.ref));
+      const pd = await getDocs(collection(db, 'mesas', m.id, 'pedidos'));
+      pd.forEach(d => batch.delete(d.ref));
       for (const key of GM_KEYS) {
         const nome = `${key}@${m.id}`;
         for (let i = 0; i < (stateChunks[nome] || 0); i++) batch.delete(doc(db, 'users', user.uid, 'state', `${nome}__${i}`));
@@ -1129,6 +1425,9 @@ function apagarCampanha() {
       batch.delete(doc(db, 'mesas', m.id));
       await batch.commit();
       minhasMesas = minhasMesas.filter(x => x.id !== m.id);
+      const npcs = npcsProprios(m.id);
+      npcs.forEach(n => { delete n.npcCampanha; });
+      if (npcs.length) { window.saveChars(); renderCharList(); }
       campanhaAberta = null; pararCampanha();
       await trocarSlotSemEnviar('');
       savePendState();
@@ -1156,6 +1455,179 @@ function tirarFichaDoJogador(docId) {
     sincronizarPool();
     renderJogadoresGM(); refreshEncontroIfVisible();
   });
+}
+
+// ---- configurações da campanha ----
+let fotoCampanha = '';
+function linkConvite(code) { return `${location.origin}${location.pathname}?convite=${encodeURIComponent(code)}`; }
+function abrirConfigCampanha() {
+  const m = campanhaAberta && minhasMesas.find(x => x.id === campanhaAberta.id); if (!m) return;
+  el('nvCfgNome').value = m.name || '';
+  el('nvCfgDescricao').value = m.descricao || '';
+  el('nvCfgEntradaAberta').checked = m.entrada !== 'aprovacao';
+  el('nvCfgEntradaAprovacao').checked = m.entrada === 'aprovacao';
+  el('nvCfgFichasVisiveis').checked = !!m.fichasVisiveis;
+  el('nvCfgLink').value = linkConvite(m.id);
+  fotoCampanha = fotoValida(m.foto) ? m.foto : '';
+  previewFotoCampanha();
+  el('nvCfgModal').classList.remove('hidden');
+}
+function previewFotoCampanha() {
+  el('nvCfgFotoPreview').innerHTML = fotoCampanha
+    ? `<img src="${esc(fotoCampanha)}" alt="" />`
+    : `<span>Sem foto</span>`;
+  el('nvCfgFotoRemover').classList.toggle('hidden', !fotoCampanha);
+}
+async function prepararCapa(file) {
+  if (!file || !file.type.startsWith('image/')) throw new Error('Escolha um arquivo de imagem (JPG, PNG ou WebP).');
+  if (file.size > 15 * 1024 * 1024) throw new Error('Imagem grande demais (máximo 15 MB).');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    // corta em 16:9 pelo centro
+    let w = img.width, h = Math.round(img.width * 9 / 16);
+    if (h > img.height) { h = img.height; w = Math.round(img.height * 16 / 9); }
+    const sx = (img.width - w) / 2, sy = (img.height - h) / 2;
+    for (const [lw, q] of [[800, 0.82], [800, 0.7], [640, 0.7], [560, 0.6]]) {
+      const lh = Math.round(lw * 9 / 16);
+      const c = document.createElement('canvas'); c.width = lw; c.height = lh;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#16213a'; ctx.fillRect(0, 0, lw, lh);
+      ctx.drawImage(img, sx, sy, w, h, 0, 0, lw, lh);
+      let out = c.toDataURL('image/webp', q);
+      if (!out.startsWith('data:image/webp')) out = c.toDataURL('image/jpeg', q);
+      if (out.length < 200000) return out;
+    }
+    throw new Error('Não consegui reduzir essa imagem. Tente outra.');
+  } catch (e) {
+    if (e instanceof Event) throw new Error('Não consegui abrir essa imagem. Tente outra.');
+    throw e;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function escolherCapa(input) {
+  const file = input.files && input.files[0]; input.value = '';
+  if (!file) return;
+  try { fotoCampanha = await prepararCapa(file); previewFotoCampanha(); }
+  catch (e) { avisar('Foto não aceita', esc(e.message), true); }
+}
+async function salvarConfigCampanha() {
+  const m = campanhaAberta && minhasMesas.find(x => x.id === campanhaAberta.id); if (!m) return;
+  const nome = el('nvCfgNome').value.trim().slice(0, 60);
+  if (!nome) { avisar('Dê um nome para a campanha', '', true); return; }
+  const dados = {
+    name: nome,
+    descricao: el('nvCfgDescricao').value.trim().slice(0, 1000),
+    entrada: el('nvCfgEntradaAprovacao').checked ? 'aprovacao' : 'aberta',
+    fichasVisiveis: el('nvCfgFichasVisiveis').checked,
+    foto: fotoCampanha || ''
+  };
+  const btn = el('nvCfgSalvar'); btn.disabled = true;
+  try {
+    await updateDoc(doc(db, 'mesas', m.id), dados);
+    Object.assign(m, dados);
+    el('nvCfgModal').classList.add('hidden');
+    renderCabecalhoEscudo(); renderJogadoresGM();
+    agendarLeitores();
+    avisar('Campanha atualizada', '');
+  } catch (e) { avisar('Erro ao salvar', erroTexto(e), true); }
+  finally { btn.disabled = false; }
+}
+function copiarTexto(txt, titulo) {
+  const ok = () => avisar(titulo || 'Copiado', '');
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, () => prompt('Copie:', txt));
+  else prompt('Copie:', txt);
+}
+function copiarLink(code) { copiarTexto(linkConvite(code), 'Link de convite copiado'); }
+
+// ---- convite por link ----
+function limparConviteDaUrl() {
+  conviteCodigo = '';
+  const u = new URL(location.href); u.searchParams.delete('convite');
+  history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+}
+function mostrarTelaConvite() {
+  hideAllTopScreens();
+  el('appHeaderActions').classList.add('hidden');
+  el('screenConvite').classList.remove('hidden');
+  window.scrollTo(0, 0);
+}
+async function mostrarConvite() {
+  const code = conviteCodigo; if (!code) return;
+  const box = el('nvConviteConteudo'); if (!box) return;
+  mostrarTelaConvite();
+  const recusar = `<button class="ghost" onclick="nuvem.fecharConvite()">Agora não</button>`;
+  if (!user) {
+    box.innerHTML = `<div class="card nv-convite"><span class="nv-cab-rotulo">Convite</span><h2>Você foi convidado para uma campanha</h2>
+      <p class="nv-nota">Entre com a sua conta para ver o convite e participar.</p>
+      <div class="nv-acoes"><button class="primary" onclick="nuvem.abrirLogin()">Entrar ou criar conta</button>${recusar}</div></div>`;
+    return;
+  }
+  if (!ready) { box.innerHTML = `<div class="card"><p class="nv-carregando">Carregando o convite…</p></div>`; return; }
+  let m;
+  try { const s = await getDoc(doc(db, 'mesas', code)); m = s.exists() ? s.data() : null; }
+  catch (e) { box.innerHTML = `<div class="card nv-convite"><h2>Não consegui abrir o convite</h2><p class="nv-nota">${erroTexto(e)}</p><div class="nv-acoes">${recusar}</div></div>`; return; }
+  if (!m) { box.innerHTML = `<div class="card nv-convite"><h2>Convite inválido</h2><p class="nv-nota">Essa campanha não existe mais ou o link está errado.</p><div class="nv-acoes">${recusar}</div></div>`; return; }
+  const capa = fotoValida(m.foto) ? `<img class="nv-capa" src="${esc(m.foto)}" alt="" />` : '';
+  const mestre = `<p class="nv-camp-mestre">Mestre: ${avatarHtml({ nome: m.gmName, foto: m.gmFoto }, 'nv-avatar-sm')} ${esc(m.gmName || '—')}</p>`;
+  const desc = m.descricao ? `<p class="nv-descricao">${esc(m.descricao)}</p>` : '';
+  let acoes;
+  if (m.gm === user.uid) acoes = `<p class="nv-nota">Essa campanha é sua.</p><div class="nv-acoes"><button class="primary" onclick="nuvem.aceitarConvite()">Abrir campanha</button></div>`;
+  else if (participacoes.some(p => p.id === code)) acoes = `<p class="nv-nota">Você já participa dessa campanha.</p><div class="nv-acoes"><button class="primary" onclick="nuvem.aceitarConvite()">Abrir campanha</button></div>`;
+  else if (pendentes.some(p => p.id === code)) acoes = `<p class="nv-nota">Pedido enviado. Você recebe um aviso quando o mestre aceitar.</p><div class="nv-acoes">${recusar}</div>`;
+  else acoes = `<p class="nv-nota">${m.entrada === 'aprovacao' ? 'O mestre precisa aprovar a sua entrada.' : 'Qualquer pessoa com este convite pode entrar.'}</p>
+    <div class="nv-acoes"><button class="primary" onclick="nuvem.aceitarConvite()">${m.entrada === 'aprovacao' ? 'Pedir para entrar' : 'Entrar na campanha'}</button>${recusar}</div>`;
+  box.innerHTML = `<div class="card nv-convite">${capa}<span class="nv-cab-rotulo">Convite para a campanha</span><h2>${esc(m.name)}</h2>${mestre}${desc}${acoes}</div>`;
+}
+async function aceitarConvite() {
+  const code = conviteCodigo;
+  limparConviteDaUrl();
+  if (minhasMesas.some(m => m.id === code)) return abrirCampanhaGM(code);
+  if (participacoes.some(p => p.id === code)) return abrirCampanhaJogador(code);
+  const r = await entrarComCodigo(code);
+  if (!r) abrirCampanhas();
+}
+function fecharConvite() { limparConviteDaUrl(); window.goToMainMenu(); }
+
+// ---- NPCs da campanha ----
+function criarNpc() {
+  if (!campanhaAberta || campanhaAberta.papel !== 'gm') return;
+  if (!podeCriarNpc()) return;
+  criandoNpcPara = campanhaAberta.id;
+  hideAllTopScreens();
+  el('appHeaderActions').classList.remove('hidden');
+  createNewCharacter();
+  window.scrollTo(0, 0);
+}
+function trazerFichaComoNpc(id) {
+  const ch = characters.find(c => c.id === id && !c._remote);
+  if (!ch || !campanhaAberta) return;
+  if (!podeCriarNpc()) return;
+  ch.npcCampanha = campanhaAberta.id;
+  ch.updatedAt = new Date().toISOString();
+  window.saveChars();
+  renderCharList(); renderNpcsGM(); refreshEncontroIfVisible();
+  avisar('Ficha virou NPC', `${esc(ch.name)} agora está nos NPCs desta campanha.`);
+}
+function devolverNpc(id) {
+  const ch = characters.find(c => c.id === id && !c._remote && c.npcCampanha); if (!ch) return;
+  if (fichasProprias().length >= LIMITE_FICHAS) { avisar('Soldados está cheio', `Você já tem ${LIMITE_FICHAS} fichas. Exclua uma para devolver este NPC.`, true); return; }
+  showConfirm(`Devolver "${ch.name}" para as suas fichas em Soldados? Ele sai dos NPCs desta campanha.`, () => {
+    delete ch.npcCampanha;
+    ch.updatedAt = new Date().toISOString();
+    window.saveChars();
+    renderCharList(); renderNpcsGM(); renderSheetMesa(); refreshEncontroIfVisible();
+  });
+}
+function excluirNpc(id) {
+  const ch = characters.find(c => c.id === id && !c._remote && c.npcCampanha); if (!ch) return;
+  showConfirm(`Excluir o NPC "${ch.name}"? Não dá para desfazer.`, () => {
+    characters = characters.filter(c => c !== ch);
+    window.saveChars();
+    renderNpcsGM(); refreshEncontroIfVisible();
+  });
+}
+function npcNoEncontro(id, mostrar) {
+  if (mostrar) unhideSoldier(id); else hideSoldierFromEncounter(id);
+  renderNpcsGM();
 }
 
 function copiarCodigo(code) {
@@ -1192,6 +1664,8 @@ function cardFicha(ch, botoes, dono) {
   </div>`;
 }
 
+function capaHtml(foto, cls = '') { return fotoValida(foto) ? `<img class="nv-capa ${cls}" src="${esc(foto)}" alt="" loading="lazy" />` : ''; }
+
 function renderCampanhas() {
   const box = el('nvCampanhasConteudo'); if (!box) return;
   if (!user) {
@@ -1206,27 +1680,42 @@ function renderCampanhas() {
   }
   if (carregando) { box.innerHTML = `<div class="card"><p class="nv-carregando">Carregando suas campanhas…</p></div>`; return; }
   const minhas = minhasMesas.map(m => `
-    <div class="nv-camp-card" onclick="nuvem.abrirCampanhaGM('${esc(m.id)}')" role="button" tabindex="0">
-      <div class="nv-camp-tag gm">Mestre</div>
-      <h4>${esc(m.name)}</h4>
-      <p>Código <span class="nv-codigo-mini">${esc(m.id)}</span></p>
-      <p class="nv-camp-sub">${m._n == null ? '&nbsp;' : m._n === 1 ? '1 jogador' : `${m._n} jogadores`}</p>
+    <div class="nv-camp-card ${fotoValida(m.foto) ? 'com-capa' : ''}" onclick="nuvem.abrirCampanhaGM('${esc(m.id)}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')this.click()">
+      ${capaHtml(m.foto)}
+      <div class="nv-camp-corpo">
+        <div class="nv-camp-tags"><span class="nv-camp-tag gm">Mestre</span>${m.entrada === 'aprovacao' ? '<span class="nv-camp-tag">Com aprovação</span>' : ''}${m._p ? `<span class="nv-camp-tag alerta">${m._p} ${m._p === 1 ? 'pedido' : 'pedidos'}</span>` : ''}</div>
+        <h4>${esc(m.name)}</h4>
+        <p>Código <span class="nv-codigo-mini">${esc(m.id)}</span></p>
+        <p class="nv-camp-sub">${m._n == null ? '&nbsp;' : m._n === 1 ? '1 jogador' : `${m._n} jogadores`} · ${npcsProprios(m.id).length} NPCs</p>
+      </div>
     </div>`).join('');
   const cheia = minhasMesas.length >= LIMITE_MESAS;
   const jogando = participacoes.filter(p => !p.removida).map(p => {
     const n = ownChars().filter(c => c.mesaCode === p.id).length;
-    return `<div class="nv-camp-card" onclick="nuvem.abrirCampanhaJogador('${esc(p.id)}')" role="button" tabindex="0">
-      <div class="nv-camp-tag">Jogador</div>
-      <h4>${esc(p.name || p.id)}</h4>
-      <p class="nv-camp-mestre">${avatarHtml({ nome: p.gmName, avatar: p.gmAvatar, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || 'Mestre')}</p>
-      <p class="nv-camp-sub">${n === 0 ? 'Nenhuma ficha enviada' : n === 1 ? '1 ficha sua' : `${n} fichas suas`}</p>
+    return `<div class="nv-camp-card ${fotoValida(p.foto) ? 'com-capa' : ''}" onclick="nuvem.abrirCampanhaJogador('${esc(p.id)}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter')this.click()">
+      ${capaHtml(p.foto)}
+      <div class="nv-camp-corpo">
+        <div class="nv-camp-tags"><span class="nv-camp-tag">Jogador</span></div>
+        <h4>${esc(p.name || p.id)}</h4>
+        <p class="nv-camp-mestre">${avatarHtml({ nome: p.gmName, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || 'Mestre')}</p>
+        <p class="nv-camp-sub">${n === 0 ? 'Nenhuma ficha enviada' : n === 1 ? '1 ficha sua' : `${n} fichas suas`}</p>
+      </div>
     </div>`;
   }).join('');
+  const aguardando = pendentes.map(p => `
+    <div class="nv-camp-card nv-camp-pendente">
+      <div class="nv-camp-corpo">
+        <div class="nv-camp-tags"><span class="nv-camp-tag alerta">Aguardando o mestre</span></div>
+        <h4>${esc(p.name || p.id)}</h4>
+        <p class="nv-camp-mestre">${avatarHtml({ nome: p.gmName, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || 'Mestre')}</p>
+        <button class="small ghost" onclick="event.stopPropagation(); nuvem.cancelarPedido('${esc(p.id)}')">Cancelar pedido</button>
+      </div>
+    </div>`).join('');
   box.innerHTML = `
     <div class="card">
       <div class="nv-titulo-linha"><h2>Campanhas que você mestra <span class="nv-contador ${cheia ? 'cheio' : ''}">${minhasMesas.length}/${LIMITE_MESAS}</span></h2>
         <button class="ghost small" onclick="nuvem.escudoAvulso()" title="Encontro, iniciativa e titãs sem ligar a uma campanha">Escudo avulso</button></div>
-      <div class="nv-camp-grid">${minhas || ''}
+      <div class="nv-camp-grid">${minhas}
         <div class="nv-camp-card nv-camp-nova ${cheia ? 'desativada' : ''}">
           <h4>Nova campanha</h4>
           <input id="nvNovaCampanhaNome" placeholder="Nome da campanha" maxlength="60" ${cheia ? 'disabled' : ''} onkeydown="if(event.key==='Enter')nuvem.criarCampanha()" />
@@ -1237,14 +1726,14 @@ function renderCampanhas() {
     </div>
     <div class="card">
       <h2>Campanhas que você joga</h2>
-      <div class="nv-camp-grid">${jogando}
+      <div class="nv-camp-grid">${jogando}${aguardando}
         <div class="nv-camp-card nv-camp-nova">
           <h4>Entrar numa campanha</h4>
           <input id="nvCodigoEntrar" class="nv-input-codigo" placeholder="Código do mestre" maxlength="12" autocomplete="off" onkeydown="if(event.key==='Enter')nuvem.entrarComCodigo(this.value)" />
           <button class="primary small" onclick="nuvem.entrarComCodigo(document.getElementById('nvCodigoEntrar').value)">Entrar</button>
         </div>
       </div>
-      ${!jogando ? '<p class="nv-nota">Peça o código de 6 letras para o mestre da sua campanha.</p>' : ''}
+      ${!jogando && !aguardando ? '<p class="nv-nota">Peça o código de 6 letras ou o link de convite para o mestre da sua campanha.</p>' : ''}
     </div>`;
 }
 
@@ -1263,11 +1752,13 @@ function renderCabecalhoEscudo() {
   }
   box.innerHTML = `<div class="nv-cab">
     <button class="ghost small" onclick="nuvem.abrirCampanhas()">&larr; Campanhas</button>
-    <div class="nv-cab-titulo"><span class="nv-cab-rotulo">Campanha</span><h3>${esc(m.name)}</h3></div>
+    ${fotoValida(m.foto) ? `<img class="nv-cab-foto" src="${esc(m.foto)}" alt="" />` : ''}
+    <div class="nv-cab-titulo"><span class="nv-cab-rotulo">Campanha${m.entrada === 'aprovacao' ? ' · entrada com aprovação' : ''}</span><h3>${esc(m.name)}</h3></div>
     <div class="nv-cab-codigo"><span>Código</span><strong>${esc(m.id)}</strong>
-      <button class="small" onclick="nuvem.copiarCodigo('${esc(m.id)}')">Copiar</button></div>
+      <button class="small" onclick="nuvem.copiarCodigo('${esc(m.id)}')">Copiar</button>
+      <button class="small" onclick="nuvem.copiarLink('${esc(m.id)}')" title="Link que abre uma página de convite">Link</button></div>
     <div class="nv-cab-acoes">
-      <button class="small" onclick="nuvem.renomearCampanha()">Renomear</button>
+      <button class="small primary" onclick="nuvem.configurarCampanha()">Configurar</button>
       <button class="small danger" onclick="nuvem.apagarCampanha()">Apagar</button>
     </div>
   </div>`;
@@ -1277,13 +1768,24 @@ function renderJogadoresGM() {
   const box = el('nvJogadoresGM'); if (!box) return;
   if (!campanhaAberta || campanhaAberta.papel !== 'gm') { box.innerHTML = ''; return; }
   const code = campanhaAberta.id;
+  const mesa = minhasMesas.find(x => x.id === code) || {};
   const lista = [...membros.entries()];
+  const listaPedidos = [...pedidos.entries()];
   const chips = lista.map(([uid, m]) => {
     const n = [...pool.values()].filter(o => o._owner === uid).length;
     return `<div class="nv-membro">${avatarHtml(m)}<span><strong>${esc(m.nome || 'Jogador')}</strong><small>${n === 1 ? '1 ficha' : `${n} fichas`}</small></span>
-      <button class="nv-membro-x" title="Remover da campanha" onclick="nuvem.removerJogador('${esc(uid)}')">&times;</button></div>`;
+      <button class="nv-membro-x" title="Remover da campanha" aria-label="Remover ${esc(m.nome || 'jogador')}" onclick="nuvem.removerJogador('${esc(uid)}')">&times;</button></div>`;
   }).join('');
-  const fichas = characters.filter(c => c._remote).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const blocoPedidos = listaPedidos.length ? `
+    <div class="card nv-pedidos">
+      <h2>Pedidos para entrar <span class="nv-contador cheio">${listaPedidos.length}</span></h2>
+      <div class="nv-pedidos-lista">${listaPedidos.map(([uid, pd]) => `
+        <div class="nv-pedido">${avatarHtml(pd)}<strong>${esc(pd.nome || 'Jogador')}</strong>
+          <button class="small primary" onclick="nuvem.aceitarPedido('${esc(uid)}')">Aceitar</button>
+          <button class="small ghost" onclick="nuvem.recusarPedido('${esc(uid)}')">Recusar</button></div>`).join('')}
+      </div>
+    </div>` : '';
+  const fichas = characters.filter(c => c._remote && !c._ro).sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const cards = fichas.map(ch => {
     const m = membros.get(ch._owner);
     const dono = m ? `${avatarHtml(m, 'nv-avatar-sm')} ${esc(m.nome)}` : esc(ch._ownerName || '');
@@ -1291,14 +1793,52 @@ function renderJogadoresGM() {
       <button class="small primary" onclick="nuvem.verFicha('${esc(ch.id)}','gm')">Abrir ficha</button>
       <button class="small ghost" onclick="nuvem.tirarFichaDoJogador('${esc(ch._docId)}')">Tirar da campanha</button>`, dono);
   }).join('');
+  const regras = `<div class="nv-regras">
+      <span class="nv-selo ${mesa.entrada === 'aprovacao' ? '' : 'nv-selo-apagado'}">${mesa.entrada === 'aprovacao' ? 'Entrada com aprovação' : 'Entrada livre com o código'}</span>
+      <span class="nv-selo ${mesa.fichasVisiveis ? '' : 'nv-selo-apagado'}">${mesa.fichasVisiveis ? 'Jogadores veem as fichas uns dos outros' : 'Fichas visíveis só para você'}</span>
+      <button class="nv-link" onclick="nuvem.configurarCampanha()">Mudar</button></div>`;
   box.innerHTML = `
+    ${blocoPedidos}
     <div class="card">
       <div class="nv-titulo-linha"><h2>Jogadores <span class="nv-contador">${lista.length}</span></h2><span class="nv-ao-vivo"><i></i>ao vivo</span></div>
-      ${lista.length ? `<div class="nv-membros">${chips}</div>` : `<p class="nv-nota">Ninguém entrou ainda. Passe o código <strong class="nv-codigo-mini">${esc(code)}</strong> para os jogadores: eles clicam em Campanhas, colam o código e enviam a ficha.</p>`}
+      ${mesa.descricao ? `<p class="nv-descricao">${esc(mesa.descricao)}</p>` : ''}
+      ${regras}
+      ${lista.length ? `<div class="nv-membros">${chips}</div>` : `<p class="nv-nota">Ninguém entrou ainda. Mande o código <strong class="nv-codigo-mini">${esc(code)}</strong> ou o <button class="nv-link" onclick="nuvem.copiarLink('${esc(code)}')">link de convite</button> para os jogadores.</p>`}
     </div>
     <div class="card">
       <h2>Fichas na campanha <span class="nv-contador">${fichas.length}</span></h2>
       ${fichas.length ? `<div class="nv-fichas-grid">${cards}</div>` : '<p class="nv-nota">Nenhuma ficha enviada ainda. As fichas também aparecem na aba Encontro.</p>'}
+    </div>`;
+}
+
+function renderNpcsGM() {
+  const box = el('nvNpcsGM'); if (!box) return;
+  if (!campanhaAberta || campanhaAberta.papel !== 'gm') { box.innerHTML = ''; return; }
+  const code = campanhaAberta.id;
+  const npcs = npcsProprios(code).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const disponiveis = fichasProprias().filter(c => !c.mesaCode);
+  const total = npcsProprios().length;
+  const cards = npcs.map(ch => {
+    const noEnc = gmShownSoldiers.includes(ch.id);
+    return cardFicha(ch, `
+      <button class="small primary" onclick="nuvem.verFicha('${esc(ch.id)}','gm-npcs')">Abrir ficha</button>
+      <button class="small ${noEnc ? '' : 'ghost'}" onclick="nuvem.npcNoEncontro('${esc(ch.id)}', ${!noEnc})">${noEnc ? 'No encontro ✓' : 'Pôr no encontro'}</button>
+      <button class="small ghost" onclick="pullSoldierToInitiative('${esc(ch.id)}')">Iniciativa</button>
+      <button class="small ghost" onclick="nuvem.devolverNpc('${esc(ch.id)}')" title="Volta para as suas fichas em Soldados">Devolver</button>
+      <button class="small danger" onclick="nuvem.excluirNpc('${esc(ch.id)}')">Excluir</button>`);
+  }).join('');
+  box.innerHTML = `
+    <div class="card">
+      <div class="nv-titulo-linha"><h2>NPCs desta campanha <span class="nv-contador ${total >= LIMITE_NPCS ? 'cheio' : ''}">${npcs.length}</span></h2>
+        <span class="nv-nota">Total na conta: ${total}/${LIMITE_NPCS}</span></div>
+      <p class="nv-nota nv-nota-topo">Só você vê os NPCs. Eles não contam no limite de fichas dos Soldados. Use "Pôr no encontro" para levá-los para a aba Encontro.</p>
+      <div class="nv-acoes nv-acoes-topo">
+        <button class="primary" onclick="nuvem.criarNpc()" ${total >= LIMITE_NPCS ? 'disabled' : ''}>+ Criar NPC</button>
+        ${disponiveis.length ? `<span class="nv-ou">ou traga uma ficha sua:</span>
+          <select id="nvTrazerNpc">${disponiveis.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
+          <button class="small" onclick="nuvem.trazerFichaComoNpc(document.getElementById('nvTrazerNpc').value)" ${total >= LIMITE_NPCS ? 'disabled' : ''}>Trazer</button>` : ''}
+      </div>
+      ${npcs.length ? `<div class="nv-fichas-grid">${cards}</div>` : '<p class="nv-nota">Nenhum NPC ainda.</p>'}
     </div>`;
 }
 
@@ -1307,28 +1847,42 @@ function renderCampanhaJogador() {
   const p = participacoes.find(x => x.id === campanhaAberta.id);
   if (!p) { box.innerHTML = ''; return; }
   const minhas = ownChars().filter(c => c.mesaCode === p.id);
-  const livres = ownChars().filter(c => !c.mesaCode);
+  const livres = fichasProprias().filter(c => !c.mesaCode);
   const outrosMembros = [...membros.entries()];
+  const outras = characters.filter(c => c._ro && c._mesa === p.id).sort((a, b) => String(a.name).localeCompare(String(b.name)));
   const cards = minhas.map(ch => cardFicha(ch, `
       <button class="small primary" onclick="nuvem.verFicha('${esc(ch.id)}','jogador')">Abrir ficha</button>
       <button class="small ghost" onclick="nuvem.tirarFicha('${esc(ch.id)}')">Tirar da campanha</button>`)).join('');
+  const cardsOutras = outras.map(ch => {
+    const m = membros.get(ch._owner);
+    return cardFicha(ch, `<button class="small" onclick="nuvem.verFicha('${esc(ch.id)}','jogador')">Ver ficha</button>`,
+      m ? `${avatarHtml(m, 'nv-avatar-sm')} ${esc(m.nome)}` : esc(ch._ownerName || ''));
+  }).join('');
   box.innerHTML = `
-    <div class="card nv-cab">
-      <button class="ghost small" onclick="nuvem.abrirCampanhas()">&larr; Campanhas</button>
-      <div class="nv-cab-titulo"><span class="nv-cab-rotulo">Campanha</span><h3>${esc(p.name || p.id)}</h3>
-        <p class="nv-camp-mestre">Mestre: ${avatarHtml({ nome: p.gmName, avatar: p.gmAvatar, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || '—')}</p></div>
-      <div class="nv-cab-acoes"><button class="small danger" onclick="nuvem.sairDaCampanha('${esc(p.id)}')">Sair da campanha</button></div>
+    <div class="card nv-cab-jogador">
+      ${capaHtml(p.foto, 'nv-capa-topo')}
+      <div class="nv-cab">
+        <button class="ghost small" onclick="nuvem.abrirCampanhas()">&larr; Campanhas</button>
+        <div class="nv-cab-titulo"><span class="nv-cab-rotulo">Campanha</span><h3>${esc(p.name || p.id)}</h3>
+          <p class="nv-camp-mestre">Mestre: ${avatarHtml({ nome: p.gmName, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || '—')}</p></div>
+        <div class="nv-cab-acoes"><button class="small danger" onclick="nuvem.sairDaCampanha('${esc(p.id)}')">Sair da campanha</button></div>
+      </div>
+      ${p.descricao ? `<p class="nv-descricao">${esc(p.descricao)}</p>` : ''}
     </div>
     <div class="card">
       <h2>Suas fichas nesta campanha <span class="nv-contador">${minhas.length}</span></h2>
-      <p class="nv-nota nv-nota-topo">Só você e o mestre veem estas fichas. O mestre pode aplicar dano e mudanças durante a sessão, e tudo aparece aqui em tempo real.</p>
+      <p class="nv-nota nv-nota-topo">${p.fichasVisiveis ? 'O mestre e os outros jogadores desta campanha podem ver estas fichas (só você e o mestre podem mexer nelas).' : 'Só você e o mestre veem estas fichas.'} O que o mestre muda durante a sessão aparece aqui em tempo real.</p>
       ${minhas.length ? `<div class="nv-fichas-grid">${cards}</div>` : '<p class="nv-nota">Você ainda não enviou nenhuma ficha.</p>'}
       <div class="nv-enviar-linha">
         ${livres.length ? `<select id="nvEnviarSelect">${livres.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>
         <button class="primary small" onclick="nuvem.enviarFicha(document.getElementById('nvEnviarSelect').value,'${esc(p.id)}')">Enviar ficha</button>`
-      : `<p class="nv-nota">${ownChars().length ? 'Todas as suas fichas já estão em alguma campanha.' : 'Crie uma ficha em Soldados para enviar aqui.'}</p>`}
+      : `<p class="nv-nota">${fichasProprias().length ? 'Todas as suas fichas já estão em alguma campanha.' : 'Crie uma ficha em Soldados para enviar aqui.'}</p>`}
       </div>
     </div>
+    ${p.fichasVisiveis ? `<div class="card">
+      <h2>Fichas dos outros jogadores <span class="nv-contador">${outras.length}</span></h2>
+      ${outras.length ? `<div class="nv-fichas-grid">${cardsOutras}</div>` : '<p class="nv-nota">Nenhuma ficha liberada ainda. Elas aparecem quando o mestre abre a campanha e os jogadores enviam as fichas.</p>'}
+    </div>` : ''}
     <div class="card">
       <h2>Participantes <span class="nv-contador">${outrosMembros.length}</span></h2>
       <div class="nv-membros">${outrosMembros.map(([uid, m]) => `<div class="nv-membro">${avatarHtml(m)}<span><strong>${esc(m.nome || 'Jogador')}${uid === user.uid ? ' (você)' : ''}</strong></span></div>`).join('')}</div>
@@ -1344,24 +1898,36 @@ function renderSheetMesa() {
     box.innerHTML = `<div class="nv-linha"><p class="nv-nota">Esta ficha está salva só neste navegador.</p><button class="small" onclick="nuvem.abrirLogin()">Entrar para salvar na nuvem</button></div>`;
     return;
   }
+  if (ch._ro) {
+    const m = membros.get(ch._owner);
+    box.innerHTML = `<div class="nv-linha"><span class="nv-selo nv-selo-apagado">Somente leitura</span><p>Ficha de ${m ? `${avatarHtml(m, 'nv-avatar-sm')} <strong>${esc(m.nome)}</strong>` : 'outro jogador'}. Você pode olhar, mas só o dono e o mestre podem mudar.</p></div>`;
+    return;
+  }
   if (ch._remote) {
     const m = membros.get(ch._owner);
     box.innerHTML = `<div class="nv-linha"><span class="nv-selo">Ficha de jogador</span><p>${m ? `${avatarHtml(m, 'nv-avatar-sm')} <strong>${esc(m.nome)}</strong> · ` : ''}suas alterações vão direto para a ficha dele, em tempo real.</p></div>`;
     return;
   }
+  if (ch.npcCampanha) {
+    const m = minhasMesas.find(x => x.id === ch.npcCampanha);
+    box.innerHTML = `<div class="nv-linha"><span class="nv-selo">NPC</span><p>NPC da campanha <strong>${esc(m ? m.name : ch.npcCampanha)}</strong>. Só você vê.</p>
+      ${m ? `<button class="small" onclick="nuvem.abrirCampanhaGM('${esc(m.id)}')">Ver campanha</button>` : ''}
+      <button class="small ghost" onclick="nuvem.devolverNpc('${esc(ch.id)}')">Devolver para Soldados</button></div>`;
+    return;
+  }
   if (ch.mesaCode) {
     const p = participacoes.find(x => x.id === ch.mesaCode);
-    box.innerHTML = `<div class="nv-linha"><span class="nv-selo">Campanha</span><p><strong>${esc((p && p.name) || ch.mesaNome || ch.mesaCode)}</strong>${(p && p.gmName) || ch.mesaGmNome ? ` · mestre ${esc((p && p.gmName) || ch.mesaGmNome)}` : ''}. Só você e o mestre veem esta ficha.</p>
+    box.innerHTML = `<div class="nv-linha"><span class="nv-selo">Campanha</span><p><strong>${esc((p && p.name) || ch.mesaNome || ch.mesaCode)}</strong>${(p && p.gmName) || ch.mesaGmNome ? ` · mestre ${esc((p && p.gmName) || ch.mesaGmNome)}` : ''}. ${p && p.fichasVisiveis ? 'O mestre e os jogadores da campanha podem ver esta ficha.' : 'Só você e o mestre veem esta ficha.'}</p>
       ${p ? `<button class="small" onclick="nuvem.abrirCampanhaJogador('${esc(p.id)}')">Ver campanha</button>` : ''}
       <button class="small ghost" onclick="nuvem.tirarFicha('${esc(ch.id)}')">Tirar da campanha</button></div>`;
     return;
   }
   const ativas = participacoes.filter(p => !p.removida);
   box.innerHTML = `<div class="nv-linha"><span class="nv-selo nv-selo-apagado">Sem campanha</span>
-    ${ativas.length ? `<select id="nvFichaCampSelect">${ativas.map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('')}</select>
+    ${ativas.length ? `<select id="nvFichaCampSelect" aria-label="Campanha">${ativas.map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join('')}</select>
       <button class="small primary" onclick="nuvem.enviarFicha('${esc(ch.id)}', document.getElementById('nvFichaCampSelect').value)">Enviar para o mestre</button>
       <span class="nv-ou">ou</span>` : ''}
-    <input id="nvFichaCodigo" class="nv-input-codigo" placeholder="Código da campanha" maxlength="12" autocomplete="off" />
+    <input id="nvFichaCodigo" class="nv-input-codigo" placeholder="Código da campanha" maxlength="12" autocomplete="off" aria-label="Código da campanha" />
     <button class="small ${ativas.length ? '' : 'primary'}" onclick="nuvem.entrarComCodigo(document.getElementById('nvFichaCodigo').value, '${esc(ch.id)}')">Entrar e enviar</button></div>`;
 }
 
@@ -1397,15 +1963,57 @@ function montarModais() {
       </form>
     </div>
   </div>
+  <div id="nvCfgModal" class="modal-overlay hidden">
+    <div class="modal nv-modal-cfg">
+      <button class="modal-close" onclick="document.getElementById('nvCfgModal').classList.add('hidden')">${x}</button>
+      <h2>Configurar campanha</h2>
+      <label>Foto de capa</label>
+      <div class="nv-cfg-capa">
+        <div id="nvCfgFotoPreview" class="nv-cfg-capa-preview"></div>
+        <div class="nv-perfil-foto-botoes">
+          <button type="button" class="small primary" onclick="document.getElementById('nvCfgArquivo').click()">Enviar foto</button>
+          <button type="button" id="nvCfgFotoRemover" class="small ghost" onclick="nuvem.removerCapa()">Remover</button>
+          <p class="nv-nota">Cortada em formato de capa (16:9).</p>
+        </div>
+        <input type="file" id="nvCfgArquivo" accept="image/png,image/jpeg,image/webp,image/*" class="file-input" onchange="nuvem.escolherCapa(this)" />
+      </div>
+      <label for="nvCfgNome">Nome</label>
+      <input id="nvCfgNome" maxlength="60" />
+      <label for="nvCfgDescricao">Descrição</label>
+      <textarea id="nvCfgDescricao" maxlength="1000" rows="4" placeholder="Sobre o que é a campanha, dia e horário das sessões, regras da mesa…"></textarea>
+      <label>Quem pode entrar</label>
+      <div class="nv-opcoes">
+        <label class="nv-opcao"><input type="radio" name="nvCfgEntrada" id="nvCfgEntradaAberta" /><span><strong>Qualquer pessoa com o código ou link</strong><small>Entra na hora.</small></span></label>
+        <label class="nv-opcao"><input type="radio" name="nvCfgEntrada" id="nvCfgEntradaAprovacao" /><span><strong>Só quem eu aprovar</strong><small>A pessoa pede para entrar e você aceita ou recusa na aba Jogadores.</small></span></label>
+      </div>
+      <label>Fichas</label>
+      <label class="nv-opcao"><input type="checkbox" id="nvCfgFichasVisiveis" /><span><strong>Jogadores podem ver as fichas uns dos outros</strong><small>Só para olhar. Só o dono e você podem mudar uma ficha.</small></span></label>
+      <label for="nvCfgLink">Link de convite</label>
+      <div class="nv-linha"><input id="nvCfgLink" readonly onclick="this.select()" /><button type="button" class="small" onclick="nuvem.copiarLink(nuvem.campanhaGM())">Copiar</button></div>
+      <div class="modal-actions">
+        <button onclick="document.getElementById('nvCfgModal').classList.add('hidden')">Cancelar</button>
+        <button id="nvCfgSalvar" class="primary" onclick="nuvem.salvarConfig()">Salvar</button>
+      </div>
+    </div>
+  </div>
   <div id="nvPerfilModal" class="modal-overlay hidden">
     <div class="modal nv-modal-perfil">
       <button id="nvPerfilFechar" class="modal-close" onclick="document.getElementById('nvPerfilModal').classList.add('hidden')">${x}</button>
       <h2 id="nvPerfilTitulo">Seu perfil</h2>
       <p id="nvPerfilSub" class="nv-nota nv-nota-topo"></p>
       <label for="nvPerfilNome">Apelido</label>
-      <input id="nvPerfilNome" maxlength="30" autocomplete="nickname" onkeydown="if(event.key==='Enter')nuvem.confirmarPerfil()" />
-      <label>Avatar</label>
-      <div id="nvPerfilAvatares" class="nv-avatares"></div>
+      <input id="nvPerfilNome" maxlength="30" autocomplete="nickname" oninput="nuvem.previewPerfil()" onkeydown="if(event.key==='Enter')nuvem.confirmarPerfil()" />
+      <label>Foto</label>
+      <div class="nv-perfil-foto">
+        <div id="nvPerfilPreview"></div>
+        <div class="nv-perfil-foto-botoes">
+          <button type="button" class="small primary" onclick="document.getElementById('nvPerfilArquivo').click()">Enviar foto</button>
+          <button type="button" id="nvPerfilUsarGoogle" class="small ghost" onclick="nuvem.fotoGoogle()">Usar foto do Google</button>
+          <button type="button" id="nvPerfilRemover" class="small ghost" onclick="nuvem.removerFoto()">Remover foto</button>
+          <p class="nv-nota">JPG, PNG ou WebP. Ela é cortada em quadrado.</p>
+        </div>
+        <input type="file" id="nvPerfilArquivo" accept="image/png,image/jpeg,image/webp,image/*" class="file-input" onchange="nuvem.arquivoFoto(this)" />
+      </div>
       <div class="modal-actions">
         <button id="nvPerfilCancelar" onclick="document.getElementById('nvPerfilModal').classList.add('hidden')">Cancelar</button>
         <button id="nvPerfilSalvar" class="primary" onclick="nuvem.confirmarPerfil()">Salvar</button>
@@ -1418,18 +2026,28 @@ function montarModais() {
 // ------------------------------------------------------------
 // Ligação
 // ------------------------------------------------------------
-['screenCampanhas', 'screenCampanhaJogador'].forEach(id => { if (!ALL_TOP_SCREENS.includes(id)) ALL_TOP_SCREENS.push(id); });
+['screenCampanhas', 'screenCampanhaJogador', 'screenConvite'].forEach(id => { if (!ALL_TOP_SCREENS.includes(id)) ALL_TOP_SCREENS.push(id); });
 montarModais();
 
 window.nuvem = {
   abrirLogin, fecharLogin, trocarAbaLogin, entrarGoogle, enviarLoginEmail, esqueciSenha,
   abrirPerfil: () => abrirPerfil(false), confirmarPerfil, menuConta,
+  previewPerfil: () => atualizarPreviewPerfil(),
+  arquivoFoto: escolherArquivoFoto,
+  fotoGoogle: () => { fotoEscolhida = (user && user.photoURL) || ''; atualizarPreviewPerfil(); },
+  removerFoto: () => { fotoEscolhida = ''; atualizarPreviewPerfil(); },
   sair: () => showConfirm('Sair da conta? Suas fichas continuam salvas na nuvem e voltam quando você entrar de novo.', () => sairDaConta()),
   trocarConta: () => showConfirm('Trocar de conta? Você sai desta e escolhe outra em seguida. Nada é perdido.', () => sairDaConta('trocar')),
   abrirCampanhas, abrirCampanhaGM, abrirCampanhaJogador, escudoAvulso: abrirEscudoAvulso,
   criarCampanha, entrarComCodigo, enviarFicha, tirarFicha, sairDaCampanha,
   renomearCampanha, apagarCampanha, removerJogador, tirarFichaDoJogador, copiarCodigo,
-  verFicha: abrirFicha, renderJogadores: renderJogadoresGM
+  verFicha: abrirFicha, renderJogadores: renderJogadoresGM, renderNpcs: renderNpcsGM,
+  campanhaGM: () => (campanhaAberta && campanhaAberta.papel === 'gm' ? campanhaAberta.id : null),
+  aceitarPedido, recusarPedido, cancelarPedido,
+  configurarCampanha: abrirConfigCampanha, salvarConfig: salvarConfigCampanha,
+  escolherCapa, removerCapa: () => { fotoCampanha = ''; previewFotoCampanha(); },
+  copiarLink, aceitarConvite, fecharConvite,
+  criarNpc, trazerFichaComoNpc, devolverNpc, excluirNpc, npcNoEncontro
 };
 
 if (CONFIGURADO) {
@@ -1445,7 +2063,7 @@ if (CONFIGURADO) {
         // conta nova por e-mail: já cria o perfil com o apelido digitado
         const apelido = criandoConta; criandoConta = false;
         user = u;
-        try { await setDoc(doc(db, 'perfis', u.uid), { nome: apelido, avatar: AVATARES[0], foto: '', atualizadoEm: Date.now() }); } catch (e) { }
+        try { await setDoc(doc(db, 'perfis', u.uid), { nome: apelido, foto: '', atualizadoEm: Date.now() }); } catch (e) { }
       }
       startSession(u);
     } else {
@@ -1453,6 +2071,7 @@ if (CONFIGURADO) {
       setStatus('off');
       renderTudo();
       if (sessionStorage.getItem('coordNuvemAbrirLogin')) { sessionStorage.removeItem('coordNuvemAbrirLogin'); abrirLogin(); }
+      if (conviteCodigo) mostrarConvite();
     }
   });
 } else {
@@ -1460,3 +2079,7 @@ if (CONFIGURADO) {
 }
 renderConta();
 renderCharList();
+if (conviteCodigo && CONFIGURADO) {
+  mostrarTelaConvite();
+  el('nvConviteConteudo').innerHTML = '<div class="card"><p class="nv-carregando">Abrindo o convite…</p></div>';
+}

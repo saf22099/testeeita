@@ -147,6 +147,7 @@
     <div id="nuvemEscudoMesa" class="card nuvem-painel hidden"></div>
     <div class="tabs">
       <button class="escudo-tab hidden" data-escudo-tab="escudoJogadores" onclick="switchEscudoTab('escudoJogadores', this); window.nuvem && nuvem.renderJogadores()">Jogadores</button>
+      <button class="escudo-tab hidden" data-escudo-tab="escudoNpcs" onclick="switchEscudoTab('escudoNpcs', this); window.nuvem && nuvem.renderNpcs()">NPCs</button>
       <button class="escudo-tab active" data-escudo-tab="escudoEncontro" onclick="switchEscudoTab('escudoEncontro', this)">Encontro</button>
       <button class="escudo-tab" data-escudo-tab="escudoIniciativa" onclick="switchEscudoTab('escudoIniciativa', this)">Iniciativa</button>
       <button class="escudo-tab" data-escudo-tab="escudoTitans" onclick="switchEscudoTab('escudoTitans', this)">Titãs</button>
@@ -155,6 +156,7 @@
     </div>
 
     <div id="escudoJogadores" class="escudo-section"><div id="nvJogadoresGM"></div></div>
+    <div id="escudoNpcs" class="escudo-section"><div id="nvNpcsGM"></div></div>
 
     <div id="escudoEncontro" class="escudo-section active">
       <div class="card">
@@ -240,6 +242,8 @@
   <div id="screenCampanhas" class="hidden top-screen"><div id="nvCampanhasConteudo"></div></div>
 
   <div id="screenCampanhaJogador" class="hidden top-screen"><div id="nvCampanhaJogadorConteudo"></div></div>
+
+  <div id="screenConvite" class="hidden top-screen"><div id="nvConviteConteudo"></div></div>
 
   <div id="screenHome" class="hidden top-screen">
     <div class="card">
