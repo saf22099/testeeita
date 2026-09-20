@@ -1,5 +1,23 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 3
+- **Configurar campanha** (botão no topo do escudo):
+  - Foto de capa e descrição.
+  - Quem pode entrar: qualquer pessoa com o código/link, ou só quem o mestre aprovar.
+  - Opção de os jogadores verem as fichas uns dos outros, só para olhar.
+- **Link de convite:** abre uma página com a capa, a descrição e o botão "Entrar" (ou "Pedir para entrar").
+- **Pedidos para entrar:** aparecem na aba Jogadores, com Aceitar/Recusar. O jogador é avisado na hora.
+- **Aba NPCs:** crie NPCs pelo assistente de criação ou transforme uma ficha sua em NPC.
+  - Os NPCs não aparecem em Soldados e têm limite próprio: 30 por conta.
+- **Encontro e Iniciativa:**
+  - O "Adicionar" tem abas Jogadores / NPCs / Suas fichas / Titãs, com busca.
+  - O Encontro separa os soldados em grupos que dá para recolher.
+  - Dentro de uma campanha, suas fichas e NPCs só entram no encontro quando você adiciona.
+- **Segurança:** textos que vêm de outros jogadores são tratados antes de aparecer na tela, para ninguém conseguir injetar código pelo nome da ficha.
+  - As aspas e os sinais < > nesses textos aparecem como “ ’ ‹ ›.
+
+**IMPORTANTE:** publique de novo o `firestore.rules`. Sem isso, pedidos, fichas compartilhadas e as configurações da campanha dão erro de permissão.
+
 ## O que mudou nesta versão
 - **Campanhas** substitui o card "Escudo do Mestre" no Hub:
   - O **mestre** cria a campanha e recebe um código de 6 letras.
@@ -14,3 +32,36 @@
   - A ficha parava de atualizar em tempo real.
   - O mestre podia sobrescrever a ficha do jogador com uma cópia velha.
 - **Edição simultânea:** se o mestre muda o PDV enquanto o jogador mexe no inventário, as duas mudanças são mantidas.
+
+## O que você precisa fazer no Firebase
+
+### 1. Publicar as regras novas (obrigatório)
+Abra o Firestore > aba **Regras**, apague tudo, cole o conteúdo do `firestore.rules` e clique em **Publicar**.
+Sem isso, as campanhas dão erro de permissão.
+
+### 2. Ativar login por e-mail (opcional)
+Abra **Authentication > Método de login > Adicionar novo provedor > E-mail/senha**, ative a primeira chave e salve.
+Se você não ativar, o botão do Google continua funcionando normalmente.
+
+### 3. Subir os arquivos
+Substitua os arquivos no seu projeto e faça commit + push, como antes.
+**Mantenha o seu `firebase-config.js`**, que já tem os seus dados. Os outros arquivos podem ser trocados.
+
+## Como usar
+- **Mestre:** Hub > Campanhas > "Nova campanha" > passe o código.
+- **Jogador:** Hub > Campanhas > cole o código em "Entrar numa campanha" > "Enviar ficha".
+  - Também dá para enviar direto de dentro da ficha, no painel do topo.
+- **Remover jogador:** o mestre clica no × ao lado do nome dele, na aba Jogadores.
+- **Escudo avulso:** é o escudo sem campanha, para usar sem precisar criar uma.
+  - Os dados do escudo antigo continuam nele.
+
+## Quem vê o quê
+- **Fichas:** só o dono e o mestre da campanha em que a ficha está.
+- **Lista de participantes:** o mestre e os participantes daquela campanha veem os apelidos, mas não as fichas uns dos outros.
+- **Edição:** o mestre pode editar as fichas da campanha (dano, PE, condições), mas não pode excluí-las.
+
+## Problemas comuns
+- **"Sem permissão":** as regras novas não foram publicadas (passo 1).
+- **`auth/unauthorized-domain`:** falta adicionar o domínio do Vercel em Authentication > Configurações > Domínios autorizados.
+- **"Login por e-mail ainda não foi ativado":** falta o passo 2.
+- **Status "Erro ao salvar" no topo:** passe o mouse ou clique no seu nome. Na maioria das vezes é falta de internet, e o site tenta de novo sozinho quando a conexão volta.

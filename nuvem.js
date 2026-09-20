@@ -305,19 +305,27 @@ window.openChar = function (id) {
   const tela = el('screenSheet');
   const ro = !!(ch && ch._ro);
   tela && tela.classList.toggle('nv-somente-leitura', ro);
-  if (ro) tela.querySelectorAll('input, textarea, select').forEach(e => { if (!e.closest('.nuvem-painel')) e.disabled = true; });
+  if (tela) bloquearCampos(tela, ro);
   renderSheetMesa();
 };
+// Bloqueia os campos de uma ficha somente leitura e LIBERA de novo ao abrir uma ficha sua
+function bloquearCampos(tela, ro) {
+  tela.querySelectorAll('input, textarea, select').forEach(e => {
+    if (e.closest('.nuvem-painel')) return;
+    if (ro) { if (!e.disabled) { e.disabled = true; e.dataset.nvRo = '1'; } }
+    else if (e.dataset.nvRo) { e.disabled = false; delete e.dataset.nvRo; }
+  });
+}
 // ao trocar de aba numa ficha somente leitura, bloqueia os campos novos
 document.addEventListener('click', e => {
   const tela = el('screenSheet');
   if (tela && tela.classList.contains('nv-somente-leitura') && e.target.closest && e.target.closest('#screenSheet .tab')) {
-    setTimeout(() => tela.querySelectorAll('input, textarea, select').forEach(x => { if (!x.closest('.nuvem-painel')) x.disabled = true; }), 30);
+    setTimeout(() => bloquearCampos(tela, true), 30);
   }
 }, true);
 
 const origGoToMainMenu = window.goToMainMenu;
-window.goToMainMenu = function () { voltarPara = null; criandoNpcPara = null; origGoToMainMenu(); };
+window.goToMainMenu = function () { voltarPara = null; criandoNpcPara = null; const t = el('screenSheet'); if (t) { t.classList.remove('nv-somente-leitura'); bloquearCampos(t, false); } origGoToMainMenu(); };
 
 const origOpenEscudo = window.openEscudoDoMestre;
 window.openEscudoDoMestre = function () {
@@ -1138,7 +1146,7 @@ async function carregarMinhasMesas() {
   const ms = await getDocs(query(collection(db, 'mesas'), where('gm', '==', user.uid)));
   const antigas = new Map(minhasMesas.map(m => [m.id, m]));
   minhasMesas = [];
-  ms.forEach(d => minhasMesas.push({ id: d.id, ...d.data(), _n: antigas.get(d.id)?._n }));
+  ms.forEach(d => minhasMesas.push({ id: d.id, ...d.data(), _n: antigas.get(d.id)?._n, _p: antigas.get(d.id)?._p }));
   minhasMesas.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 }
 async function contarMembros() {
@@ -1226,6 +1234,7 @@ async function cancelarPedido(code) {
   renderCampanhas();
 }
 function marcarRemovida(code) {
+  if (!participacoes.some(p => p.id === code)) return; // já tratado
   participacoes = participacoes.filter(p => p.id !== code);
   salvarParticipacoes().catch(() => { });
   for (const ch of ownChars()) if (ch.mesaCode === code) { delete ch.mesaCode; delete ch.mesaGm; delete ch.mesaNome; delete ch.mesaGmNome; }
