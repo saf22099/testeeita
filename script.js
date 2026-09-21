@@ -1350,6 +1350,16 @@ function recalcAllModifiers(ch) {
 
   if (ch.conditions.ferido.active) { ch.derivedModifiers.testesAcerto -= 2; ch.derivedModifiers.movementFlat -= 4; }
 
+  // Adrenalina: a faixa do teste de Fortitude muda Acerto e Deslocamento
+  if (ch.conditions.adrenalina && ch.conditions.adrenalina.active) {
+    const faixa = ch.conditions.adrenalina.tier;
+    if (faixa === 'baixo') ch.derivedModifiers.testesAcerto -= 1;
+    if (faixa === 'medio') { ch.derivedModifiers.testesAcerto += 2; ch.derivedModifiers.movementFlat += 4; }
+    if (faixa === 'alto') { ch.derivedModifiers.testesAcerto += 4; ch.derivedModifiers.movementFlat += 4; }
+  }
+  // Vulnerável: -4 em Testes de Defesa (esquiva ou bloqueio)
+  if (ch.conditions.vulneravel && ch.conditions.vulneravel.active) ch.derivedModifiers.defesaEsquiva -= 4;
+
   recalculateResources(ch);
   if (ch.shifter && ch.shifter.isShifter && ch.shifter.titanId) recomputeShifterParts(ch);
 }
@@ -4117,6 +4127,7 @@ function resetBladeSets() {
 function toggleCondition(condKey, field, value) {
   const ch = getCurrentChar(); if (!ch) return;
   ch.conditions[condKey][field] = value;
+  if (condKey === 'adrenalina' && field === 'active' && !value) ch.conditions.adrenalina.tier = null;
   ch.updatedAt = new Date().toISOString();
   recalcAllModifiers(ch);
   saveChars();
@@ -4125,11 +4136,13 @@ function toggleCondition(condKey, field, value) {
 
 function setConditionValue(condKey, field, value) {
   const ch = getCurrentChar(); if (!ch) return;
-  ch.conditions[condKey][field] = value;
-  ch.conditions[condKey].active = true;
+  const jaEra = ch.conditions[condKey][field] === value && ch.conditions[condKey].active;
+  ch.conditions[condKey][field] = jaEra ? null : value;
+  ch.conditions[condKey].active = jaEra ? ch.conditions[condKey].active : true;
   ch.updatedAt = new Date().toISOString();
+  recalcAllModifiers(ch);
   saveChars();
-  renderConditions();
+  renderConditions(); updateAttrUI(); updateResourceUI(); renderSkills(); renderModifierStats();
 }
 
 function updateConditionText(condKey, field, value) {
@@ -4178,42 +4191,72 @@ const FADIGA_EFFECTS = [
   [8, 'O personagem está desacordado'],
 ];
 
+const CONDICOES_CARTOES = [
+  { card: 'condCardAdrenalina', nome: 'Adrenalina', ativo: c => c.adrenalina.active,
+    extra: c => ({ baixo: 'faixa 1 a 9', medio: 'faixa 10 a 15', alto: 'faixa 16+' })[c.adrenalina.tier] || 'sem faixa' },
+  { card: 'condCardSangramento', nome: 'Sangramento', ativo: c => c.sangramento.active },
+  { card: 'condCardMorrendo', nome: 'Morrendo', ativo: c => c.morrendo.active, grave: true },
+  { card: 'condCardVulneravel', nome: 'Vulnerável', ativo: c => c.vulneravel.active },
+  { card: 'condCardEnlouquecendo', nome: 'Enlouquecendo', ativo: c => c.enlouquecendo.active, grave: true },
+  { card: 'condCardFerido', nome: 'Ferido', ativo: c => c.ferido.active },
+  { card: 'condCardTraumatizado', nome: 'Traumatizado', ativo: c => c.traumatizado.active },
+  { card: 'condCardMembros', nome: 'Perda de membros', ativo: c => c.perdaMembros.perna || c.perdaMembros.braco,
+    extra: c => [c.perdaMembros.perna ? 'perna' : '', c.perdaMembros.braco ? 'braço' : ''].filter(Boolean).join(' e ') },
+  { card: 'condCardFadiga', nome: 'Fadiga', ativo: c => (c.fadiga.points || 0) > 0, extra: c => `${c.fadiga.points} de 8` }
+];
+
 function renderConditions() {
   const ch = getCurrentChar(); if (!ch) return;
   const c = ch.conditions;
+  const marcar = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
 
-  document.getElementById('condAdrenalinaActive').checked = c.adrenalina.active;
+  marcar('condAdrenalinaActive', c.adrenalina.active);
   ['baixo', 'medio', 'alto'].forEach(t => {
     const btn = document.getElementById('btnAdren' + (t === 'baixo' ? 'Baixo' : t === 'medio' ? 'Medio' : 'Alto'));
-    if (btn) btn.classList.toggle('primary', c.adrenalina.tier === t);
+    if (!btn) return;
+    const escolhida = c.adrenalina.active && c.adrenalina.tier === t;
+    btn.classList.toggle('ativa', escolhida);
+    btn.classList.remove('primary');
+    btn.setAttribute('aria-pressed', escolhida ? 'true' : 'false');
   });
 
-  document.getElementById('condSangramentoActive').checked = c.sangramento.active;
-
-  document.getElementById('condMorrendoActive').checked = c.morrendo.active;
+  marcar('condSangramentoActive', c.sangramento.active);
+  marcar('condMorrendoActive', c.morrendo.active);
   document.getElementById('condMorrendoDano').value = c.morrendo.danoAdicional || 0;
   document.getElementById('condMorrendoDificuldade').textContent = 18 + Math.floor((c.morrendo.danoAdicional || 0) / 5);
-
-  document.getElementById('condVulneravelActive').checked = c.vulneravel.active;
-  document.getElementById('condEnlouquecendoActive').checked = c.enlouquecendo.active;
-
-  document.getElementById('condFadigaPoints').textContent = c.fadiga.points || 0;
-  const effContainer = document.getElementById('condFadigaEffects'); effContainer.innerHTML = '';
-  const active = FADIGA_EFFECTS.filter(([pts]) => (c.fadiga.points || 0) >= pts);
-  if (active.length === 0) effContainer.innerHTML = '<p style="color:var(--text-dim);font-size:0.82rem;font-style:italic;">Nenhum efeito ativo.</p>';
-  else active.forEach(([pts, text]) => {
-    const div = document.createElement('div'); div.className = 'derived-stat';
-    div.innerHTML = `<span>${pts}+ pontos</span><span>${text}</span>`;
-    effContainer.appendChild(div);
-  });
-
-  document.getElementById('condTraumatizadoActive').checked = c.traumatizado.active;
+  marcar('condVulneravelActive', c.vulneravel.active);
+  marcar('condEnlouquecendoActive', c.enlouquecendo.active);
+  marcar('condTraumatizadoActive', c.traumatizado.active);
   document.getElementById('condTraumaDesc').value = c.traumatizado.desc || '';
+  marcar('condPernaActive', c.perdaMembros.perna);
+  marcar('condBracoActive', c.perdaMembros.braco);
+  const perna = document.getElementById('condMembroPerna'); if (perna) perna.classList.toggle('ativa', !!c.perdaMembros.perna);
+  const braco = document.getElementById('condMembroBraco'); if (braco) braco.classList.toggle('ativa', !!c.perdaMembros.braco);
+  marcar('condFeridoActive', c.ferido.active);
 
-  document.getElementById('condPernaActive').checked = c.perdaMembros.perna;
-  document.getElementById('condBracoActive').checked = c.perdaMembros.braco;
+  // fadiga: marcadores e a lista completa, com os efeitos já valendo acesos
+  const pontos = c.fadiga.points || 0;
+  document.getElementById('condFadigaPoints').textContent = pontos;
+  const pips = document.getElementById('condFadigaPips');
+  if (pips) pips.innerHTML = Array.from({ length: 8 }, (_, i) => `<span class="${i < pontos ? 'cheio' : ''}"></span>`).join('');
+  const lista = document.getElementById('condFadigaEffects');
+  lista.innerHTML = FADIGA_EFFECTS.map(([pts, text]) =>
+    `<div class="cond-fadiga-item ${pontos >= pts ? 'ativo' : ''}"><span>${pts}</span><p>${text}</p></div>`).join('');
 
-  document.getElementById('condFeridoActive').checked = c.ferido.active;
+  // cada cartão mostra se está valendo, e o resumo do topo lista o que está ativo
+  const ativos = [];
+  CONDICOES_CARTOES.forEach(def => {
+    const card = document.getElementById(def.card); if (!card) return;
+    const on = !!def.ativo(c);
+    card.classList.toggle('ativa', on);
+    if (on) ativos.push({ ...def, detalhe: def.extra ? def.extra(c) : '' });
+  });
+  const resumo = document.getElementById('condResumo');
+  const n = document.getElementById('condResumoN');
+  if (n) n.textContent = ativos.length ? `${ativos.length} ativa${ativos.length > 1 ? 's' : ''}` : '';
+  if (resumo) resumo.innerHTML = ativos.length
+    ? ativos.map(a => `<button type="button" class="cond-chip ${a.grave ? 'grave' : ''}" onclick="document.getElementById('${a.card}').scrollIntoView({behavior:'smooth',block:'center'})">${a.nome}${a.detalhe ? `<small>${a.detalhe}</small>` : ''}</button>`).join('')
+    : '<p class="cond-nada">Nenhuma condição ativa. O personagem está bem.</p>';
 }
 
 /* ============================================================

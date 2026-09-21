@@ -51,6 +51,17 @@ service cloud.firestore {
         allow delete: if logado() && (request.auth.uid == uid || ehMestre(mesaId));
       }
 
+      // Histórico de rolagens da campanha
+      match /rolagens/{rolagemId} {
+        allow read: if logado() && (ehMestre(mesaId) || ehMembro(mesaId));
+        allow create: if logado()
+                      && request.resource.data.uid == request.auth.uid
+                      && (ehMestre(mesaId) || ehMembro(mesaId))
+                      && request.resource.data.titulo.size() <= 120
+                      && request.resource.data.total is number;
+        allow delete: if logado() && (ehMestre(mesaId) || resource.data.uid == request.auth.uid);
+      }
+
       // Pedidos para entrar (campanhas com aprovação)
       match /pedidos/{uid} {
         allow read: if logado() && (request.auth.uid == uid || ehMestre(mesaId));

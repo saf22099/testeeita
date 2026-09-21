@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>Coordenada — Ficha de Personagem</title>
 <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/emojis/1380503367180353650.webp?size=2048" />
+<meta name="theme-color" content="#121822">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +19,9 @@
       <h1>Coordenada<small>Ficha de Personagem</small></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button type="button" class="btn-config" onclick="abrirConfiguracoes()" title="Configurações" aria-label="Configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.3 14.1a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1A1.8 1.8 0 1 1 7.5 3.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
       <div id="nuvemConta" class="nuvem-conta"></div>
       <button class="ghost btn-hub" onclick="goToMainMenu()">&larr; Hub</button>
       <div id="appHeaderActions" class="hidden">
@@ -39,7 +43,7 @@
       </div>
       <div class="hero-mapa" aria-hidden="true">
 <svg viewBox="0 0 600 400" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mapa ilustrado das três muralhas">
-<defs><radialGradient id="mapaLuz" cx="53%" cy="50%" r="60%"><stop offset="0" stop-color="#2a3953" stop-opacity="0.9"/><stop offset="1" stop-color="#161d29" stop-opacity="0"/></radialGradient></defs>
+<defs><radialGradient id="mapaLuz" cx="53%" cy="50%" r="60%"><stop offset="0" class="mapa-luz-a"/><stop offset="1" class="mapa-luz-b"/></radialGradient></defs>
 <rect width="600" height="400" fill="url(#mapaLuz)"/>
 <line class="grade" x1="60" y1="0" x2="60" y2="400"/>
 <line class="grade" x1="120" y1="0" x2="120" y2="400"/>
@@ -992,80 +996,109 @@
 
 
     <div id="tabConditions" class="section">
-      <div class="card">
-        <h2>Adrenalina</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Ativada por pedido do mestre ou ao chegar a menos de 50% da vida. Ao entrar, realize um teste de Fortitude e marque a faixa correspondente.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condAdrenalinaActive" style="width:auto;" onchange="toggleCondition('adrenalina','active',this.checked)" /> Condição ativa</label>
-        <div class="grid grid-3" style="margin-top:12px;">
-          <button class="small" onclick="setConditionValue('adrenalina','tier','baixo')" id="btnAdrenBaixo">1-9: -1 Testes de Acerto</button>
-          <button class="small" onclick="setConditionValue('adrenalina','tier','medio')" id="btnAdrenMedio">10-15: +2 Acerto, +4m</button>
-          <button class="small" onclick="setConditionValue('adrenalina','tier','alto')" id="btnAdrenAlto">16+: +4 Acerto, +4m</button>
-        </div>
-        <p style="color:var(--text-dim);font-size:0.78rem;margin-top:10px;">Após 2 rodadas em combate (ou 5 min fora dele), a condição termina e o personagem recebe 2 pontos de Fadiga.</p>
+      <div class="card cond-resumo-card">
+        <div class="nv-titulo-linha"><h2>Condições</h2><span id="condResumoN" class="nv-contador"></span></div>
+        <div id="condResumo" class="cond-resumo"></div>
       </div>
 
-      <div class="card" style="margin-top:18px;">
-        <h2>Sangramento</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Perde 1d8 de PDV a cada rodada (ou minuto fora de combate) até que um reparo médico obtenha 14+ em Medicina.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condSangramentoActive" style="width:auto;" onchange="toggleCondition('sangramento','active',this.checked)" /> Condição ativa</label>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Morrendo</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Ao chegar a 0 ou menos PDV. Teste de Fortitude (ou Medicina de um aliado) ≥ dificuldade para estabilizar com 1 PDV. Sem sucesso em 5 minutos, ou com um golpe de mais de 6 de dano nesta condição, o personagem morre.</p>
-        <div class="grid grid-2" style="margin-top:10px;">
-          <div><label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="condMorrendoActive" style="width:auto;" onchange="toggleCondition('morrendo','active',this.checked)" /> Condição ativa</label></div>
-          <div><label>Dano adicional após 0 PDV</label><input id="condMorrendoDano" type="number" min="0" value="0" onchange="updateMorrendoDificuldade()" /></div>
-        </div>
-        <p style="margin-top:10px;">Dificuldade do teste de morte: <strong id="condMorrendoDificuldade" style="color:var(--accent);font-family:var(--mono);">18</strong></p>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Vulnerável</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">-4 em Testes de Defesa (esquiva ou bloqueio); atacantes reduzem a margem de crítico contra o personagem em -2.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condVulneravelActive" style="width:auto;" onchange="toggleCondition('vulneravel','active',this.checked)" /> Condição ativa</label>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Enlouquecendo</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Ao chegar a 0 de SAN. Teste de Vontade (ou Carisma de um aliado) ≥ 18 para se recuperar com 1 SAN. Sem sucesso em 5 minutos (ou 2 rodadas), o mestre assume o controle do personagem.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condEnlouquecendoActive" style="width:auto;" onchange="toggleCondition('enlouquecendo','active',this.checked)" /> Condição ativa</label>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Fadiga</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Os debuffs são cumulativos — cada ponto adicional soma os efeitos dos pontos anteriores. Zera após um descanso curto.</p>
-        <div style="display:flex;align-items:center;gap:14px;margin-top:12px;">
-          <div style="font-family:var(--mono);font-size:1.4rem;color:var(--accent);"><span id="condFadigaPoints">0</span> / 8</div>
-          <div class="resource-controls" style="margin-top:0;">
-            <button onclick="modFadiga(-1)">-1</button>
-            <button onclick="modFadiga(1)">+1</button>
-            <button class="small" onclick="restCurtoFadiga()">Descanso Curto (zera)</button>
+      <h3 class="cond-secao">Em jogo</h3>
+      <div class="cond-grid cond-grid-3">
+        <article class="cond-card" id="condCardAdrenalina">
+          <header class="cond-cab">
+            <div><h3>Adrenalina</h3><p class="cond-quando">Pedido do mestre, ou abaixo de 50% da vida</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condAdrenalinaActive" onchange="toggleCondition('adrenalina','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">Ao entrar, faça um teste de Fortitude e marque a faixa do resultado.</p>
+          <div class="cond-faixas">
+            <button type="button" id="btnAdrenBaixo" onclick="setConditionValue('adrenalina','tier','baixo')"><strong>1 a 9</strong><span>−1 nos Testes de Acerto</span></button>
+            <button type="button" id="btnAdrenMedio" onclick="setConditionValue('adrenalina','tier','medio')"><strong>10 a 15</strong><span>+2 no Acerto, +4m</span></button>
+            <button type="button" id="btnAdrenAlto" onclick="setConditionValue('adrenalina','tier','alto')"><strong>16 ou mais</strong><span>+4 no Acerto, +4m</span></button>
           </div>
-        </div>
-        <div id="condFadigaEffects" style="margin-top:12px;"></div>
+          <p class="cond-nota">Termina após 2 rodadas em combate (ou 5 minutos fora dele), e o personagem recebe 2 pontos de Fadiga.</p>
+        </article>
+        <article class="cond-card cond-grave" id="condCardMorrendo">
+          <header class="cond-cab">
+            <div><h3>Morrendo</h3><p class="cond-quando">PDV em 0 ou menos</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condMorrendoActive" onchange="toggleCondition('morrendo','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">Teste de Fortitude (ou Medicina de um aliado) igual ou acima da dificuldade para estabilizar com 1 PDV. Sem sucesso em 5 minutos, ou recebendo um golpe de mais de 6 de dano nessa condição, o personagem morre.</p>
+          <div class="cond-morte">
+            <div><label for="condMorrendoDano">Dano recebido após 0 PDV</label><input id="condMorrendoDano" type="number" min="0" value="0" onchange="updateMorrendoDificuldade()" /></div>
+            <div class="cond-dificuldade"><span>Dificuldade</span><strong id="condMorrendoDificuldade">18</strong></div>
+          </div>
+        </article>
+        <article class="cond-card" id="condCardTraumatizado">
+          <header class="cond-cab">
+            <div><h3>Traumatizado</h3><p class="cond-quando">Situações que lembram o trauma</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condTraumatizadoActive" onchange="toggleCondition('traumatizado','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">Antes de qualquer teste numa situação que lembre o trauma, faça um teste de Vontade. Com menos de 16, o teste pretendido é feito com desvantagem.</p>
+          <label for="condTraumaDesc">Qual é o trauma</label>
+          <textarea id="condTraumaDesc" rows="2" placeholder="Ex.: ver um titã devorando alguém" onchange="updateConditionText('traumatizado','desc',this.value)"></textarea>
+        </article>
       </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Traumatizado</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Antes de qualquer teste em uma situação que lembre o trauma, faça um teste de Vontade. Com menos de 16, o teste pretendido é feito com desvantagem.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condTraumatizadoActive" style="width:auto;" onchange="toggleCondition('traumatizado','active',this.checked)" /> Condição ativa</label>
-        <div style="margin-top:10px;"><label>Descrição do trauma</label><textarea id="condTraumaDesc" style="min-height:60px;" onchange="updateConditionText('traumatizado','desc',this.value)"></textarea></div>
+      <h3 class="cond-secao">Estados</h3>
+      <div class="cond-grid cond-grid-4">
+        <article class="cond-card" id="condCardSangramento">
+          <header class="cond-cab">
+            <div><h3>Sangramento</h3><p class="cond-quando">−1d8 de PDV por rodada</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condSangramentoActive" onchange="toggleCondition('sangramento','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">Perde 1d8 de PDV a cada rodada (ou minuto fora de combate) até que um reparo médico obtenha 14 ou mais em Medicina.</p>
+          <div class="cond-acoes"><button type="button" class="dado-chip" onclick="rolarExpressao('1d8','Sangramento')">Rolar 1d8</button></div>
+        </article>
+        <article class="cond-card" id="condCardVulneravel">
+          <header class="cond-cab">
+            <div><h3>Vulnerável</h3><p class="cond-quando">Defesa enfraquecida</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condVulneravelActive" onchange="toggleCondition('vulneravel','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">−4 em Testes de Defesa (esquiva ou bloqueio). Quem ataca o personagem reduz a margem de crítico em 2.</p>
+        </article>
+        <article class="cond-card cond-grave" id="condCardEnlouquecendo">
+          <header class="cond-cab">
+            <div><h3>Enlouquecendo</h3><p class="cond-quando">SAN em 0</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condEnlouquecendoActive" onchange="toggleCondition('enlouquecendo','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">Teste de Vontade (ou Carisma de um aliado) de 18 ou mais para se recuperar com 1 SAN. Sem sucesso em 5 minutos (ou 2 rodadas), o mestre assume o controle do personagem.</p>
+        </article>
+        <article class="cond-card" id="condCardFerido">
+          <header class="cond-cab">
+            <div><h3>Ferido</h3><p class="cond-quando">Golpe maior que metade do PDV</p></div>
+            <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condFeridoActive" onchange="toggleCondition('ferido','active',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Ativa</span></label>
+          </header>
+          <p class="cond-desc">−2 nos Testes de Acerto e −4m de Deslocamento até receber tratamento.</p>
+        </article>
       </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Perda de Membros</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">A critério do mestre, dano igual ou superior a 2/3 do PDV máximo em um único golpe pode causar perda de membro.</p>
-        <div class="grid grid-2" style="margin-top:10px;">
-          <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="condPernaActive" style="width:auto;" onchange="toggleCondition('perdaMembros','perna',this.checked)" /> Perda de Perna — metade do deslocamento; sem auxílio, só se arrasta (deslocamento = Força)</label>
-          <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="condBracoActive" style="width:auto;" onchange="toggleCondition('perdaMembros','braco',this.checked)" /> Perda de Braço — desvantagem em Testes de Acerto (pode virar -3 com adaptação)</label>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h2>Ferido</h2>
-        <p style="color:var(--text-muted);font-size:0.85rem;">Dano único que ultrapasse metade do PDV total: -2 em Testes de Acerto e -4m de Deslocamento até tratamento.</p>
-        <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;margin-top:10px;"><input type="checkbox" id="condFeridoActive" style="width:auto;" onchange="toggleCondition('ferido','active',this.checked)" /> Condição ativa</label>
+      <h3 class="cond-secao">Corpo e cansaço</h3>
+      <div class="cond-grid cond-grid-2">
+        <article class="cond-card" id="condCardMembros">
+          <header class="cond-cab">
+            <div><h3>Perda de membros</h3><p class="cond-quando">Golpe de 2/3 do PDV máximo, a critério do mestre</p></div>
+          </header>
+          <div class="cond-membros">
+            <div class="cond-membro" id="condMembroPerna">
+              <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condPernaActive" onchange="toggleCondition('perdaMembros','perna',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Perna</span></label>
+              <p>Metade do deslocamento. Sem auxílio, só se arrasta (deslocamento igual à Força).</p>
+            </div>
+            <div class="cond-membro" id="condMembroBraco">
+              <label class="cond-switch" title="Ligar ou desligar"><input type="checkbox" id="condBracoActive" onchange="toggleCondition('perdaMembros','braco',this.checked)" /><span class="cond-switch-trilho" aria-hidden="true"></span><span class="cond-switch-txt">Braço</span></label>
+              <p>Desvantagem nos Testes de Acerto (com adaptação, pode virar −3).</p>
+            </div>
+          </div>
+        </article>
+        <article class="cond-card" id="condCardFadiga">
+          <header class="cond-cab">
+            <div><h3>Fadiga</h3><p class="cond-quando">Efeitos cumulativos · zera num descanso curto</p></div>
+            <div class="cond-fadiga-num"><span id="condFadigaPoints">0</span><small>/ 8</small></div>
+          </header>
+          <div class="cond-fadiga-controle">
+            <button type="button" class="small" onclick="modFadiga(-1)" aria-label="Tirar 1 de Fadiga">−1</button>
+            <div id="condFadigaPips" class="cond-pips" aria-hidden="true"></div>
+            <button type="button" class="small" onclick="modFadiga(1)" aria-label="Somar 1 de Fadiga">+1</button>
+            <button type="button" class="small ghost" onclick="restCurtoFadiga()">Descanso curto</button>
+          </div>
+          <div id="condFadigaEffects" class="cond-fadiga-lista"></div>
+        </article>
       </div>
     </div>
   </div>
@@ -1082,6 +1115,62 @@
       </a>
     </div>
   </footer>
+</div>
+
+<div id="rolagensModal" class="modal-overlay hidden">
+  <div class="modal nv-modal-rolagens">
+    <button class="modal-close" onclick="nuvem.fecharRolagens()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+    <h2>Rolagens da mesa</h2>
+    <p class="nv-nota nv-nota-topo">Tudo que o mestre e os jogadores desta campanha rolaram, em tempo real.</p>
+    <div id="rolagensLista" class="rolagens-lista"></div>
+    <div class="modal-actions">
+      <button id="rolagensLimpar" class="small danger hidden" onclick="nuvem.limparRolagens()">Limpar histórico</button>
+      <button class="primary" onclick="nuvem.fecharRolagens()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="configModal" class="modal-overlay hidden">
+  <div class="modal nv-modal-config">
+    <button class="modal-close" onclick="fecharConfiguracoes()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+    <h2>Configurações</h2>
+    <div id="configCorpo"></div>
+  </div>
+</div>
+
+<div id="oficiaisOverlay" class="overlay-modal hidden">
+  <div class="big-modal">
+    <button class="modal-close" onclick="fecharFichasOficiais()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+    <div class="lib-header">
+      <h2 style="margin:0;padding:0;border:none;">Fichas oficiais do livro</h2>
+      <div style="color:var(--text-muted);font-size:0.85rem;">Personagens prontos, do jeito que aparecem no livro. Adicionar cria uma cópia sua, que você pode editar à vontade.</div>
+    </div>
+    <div id="oficiaisGrid" class="lib-grid"></div>
+  </div>
+</div>
+
+<div id="dmtCustomModal" class="modal-overlay hidden">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('dmtCustomModal').classList.add('hidden')"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+    <h2>Novo aprimoramento do DMT</h2>
+    <label for="dmtCustomNome">Nome</label>
+    <input id="dmtCustomNome" maxlength="60" placeholder="Ex.: Ganchos reforçados" />
+    <label for="dmtCustomDesc">Descrição</label>
+    <textarea id="dmtCustomDesc" rows="3" maxlength="400" placeholder="O que ele faz na mesa"></textarea>
+    <p class="nv-nota nv-nota-topo" style="margin-top:14px;">Efeitos (opcionais). Deixe em branco o que não se aplica.</p>
+    <div class="grid grid-2">
+      <div><label for="dmtCustomGas">Gás por cilindro</label><input id="dmtCustomGas" type="number" placeholder="20" /></div>
+      <div><label for="dmtCustomLaminas">Ataques por conjunto de lâminas</label><input id="dmtCustomLaminas" type="number" placeholder="3" /></div>
+      <div><label for="dmtCustomDesloc">Deslocamento extra (m)</label><input id="dmtCustomDesloc" type="number" placeholder="0" /></div>
+      <div><label for="dmtCustomDefesa">Bônus em Testes de Defesa</label><input id="dmtCustomDefesa" type="number" placeholder="0" /></div>
+      <div><label for="dmtCustomCanhao">Dano extra do canhão</label><input id="dmtCustomCanhao" placeholder="1d10" /></div>
+    </div>
+    <label class="nv-opcao" style="margin-top:12px;"><input type="checkbox" id="dmtCustomReducao" /><span><strong>Reduz o dano recebido no valor da Vitalidade</strong></span></label>
+    <div class="modal-actions">
+      <button onclick="document.getElementById('dmtCustomModal').classList.add('hidden')">Cancelar</button>
+      <button class="primary" onclick="dmtSalvarCustom()">Salvar</button>
+    </div>
+  </div>
 </div>
 
 <div id="skillLibraryOverlay" class="overlay-modal hidden">
@@ -1634,6 +1723,7 @@
 <div id="skillPopover" class="popover hidden"></div>
 
 <script src="script.js" defer></script>
+<script src="extras.js" defer></script>
 <script>
 // Esconde o botão "Hub" quando você já está no Hub
 (function () {

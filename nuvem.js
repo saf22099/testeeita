@@ -11,7 +11,7 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where,
-  onSnapshot, writeBatch, FieldPath, deleteField
+  onSnapshot, writeBatch, FieldPath, deleteField, orderBy, limit
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // ------------------------------------------------------------
@@ -64,6 +64,8 @@ const unsubPendentes = new Map();
 let pedidos = new Map();       // pedidos para entrar na campanha aberta (visão do mestre)
 let unsubPedidos = null, unsubMesaDoc = null, unsubCompartilhadas = null;
 let conviteCodigo = normCodigo(new URLSearchParams(location.search).get('convite') || '');
+let rolagensMesa = [];          // histórico de rolagens da campanha aberta
+let unsubRolagens = null;
 let saindo = false;
 
 // ------------------------------------------------------------
@@ -795,7 +797,9 @@ function sincronizarPool() {
 function pararCampanha() {
   unsubChars && unsubChars(); unsubMembros && unsubMembros();
   unsubPedidos && unsubPedidos(); unsubMesaDoc && unsubMesaDoc(); unsubCompartilhadas && unsubCompartilhadas();
-  unsubChars = unsubMembros = unsubPedidos = unsubMesaDoc = unsubCompartilhadas = null;
+  unsubRolagens && unsubRolagens();
+  unsubChars = unsubMembros = unsubPedidos = unsubMesaDoc = unsubCompartilhadas = unsubRolagens = null;
+  rolagensMesa = [];
   pedidos = new Map();
   for (const id of pool.keys()) { base.delete(id); baseMeta.delete(id); legacy.delete(id); }
   pool.clear(); membros = new Map();
@@ -804,6 +808,7 @@ function pararCampanha() {
 
 function ouvirCampanhaGM(code) {
   pararCampanha();
+  ouvirRolagens(code);
   unsubMembros = onSnapshot(collection(db, 'mesas', code, 'membros'), snap => {
     membros = new Map(); snap.forEach(d => membros.set(d.id, d.data()));
     const m = minhasMesas.find(x => x.id === code); if (m) m._n = membros.size;
@@ -848,6 +853,7 @@ function ouvirCampanhaGM(code) {
 
 function ouvirCampanhaJogador(code) {
   pararCampanha();
+  ouvirRolagens(code);
   unsubMesaDoc = onSnapshot(doc(db, 'mesas', code), s => {
     const p = participacoes.find(x => x.id === code);
     if (!s.exists()) { marcarRemovida(code); return; }
@@ -895,7 +901,7 @@ async function sincronizarLeitores() {
   const ids = [...membros.keys()].sort();
   for (const [id, obj] of pool) {
     if (obj._ro) continue;
-    const desejado = m.fichasVisiveis && membros.has(obj._owner) ? ids : [];
+    const desejado = m.fichasVisiveis && membros.has(obj._owner) && (!obj.config || obj.config.compartilhar !== false) ? ids : [];
     const bm = baseMeta.get(id) || {};
     if (listaIgual(bm.leitores, desejado)) continue;
     try { await updateDoc(doc(db, 'chars', id), { leitores: desejado }); baseMeta.set(id, { ...bm, leitores: desejado }); }
@@ -907,13 +913,109 @@ async function sincronizarLeitoresProprios(code) {
   if (!user || !ready) return;
   const p = participacoes.find(x => x.id === code); if (!p) return;
   if (!membros.has(user.uid)) return;
-  const desejado = p.fichasVisiveis ? [...membros.keys()].sort() : [];
+  const todos = p.fichasVisiveis ? [...membros.keys()].sort() : [];
   for (const ch of ownChars().filter(c => c.mesaCode === code)) {
+    const desejado = ch.config && ch.config.compartilhar === false ? [] : todos;
     const id = docIdDe(ch); const bm = baseMeta.get(id);
     if (!bm || listaIgual(bm.leitores, desejado)) continue;
     try { await updateDoc(doc(db, 'chars', id), { leitores: desejado }); baseMeta.set(id, { ...bm, leitores: desejado }); }
     catch (e) { console.error(e); }
   }
+}
+
+// ------------------------------------------------------------
+// Histórico de rolagens da campanha
+// ------------------------------------------------------------
+function campanhaDasRolagens() {
+  if (campanhaAberta) return campanhaAberta.id;
+  const ch = typeof getCurrentChar === 'function' ? getCurrentChar() : null;
+  if (ch && ch.mesaCode && participacoes.some(p => p.id === ch.mesaCode)) return ch.mesaCode;
+  if (ch && ch._remote && ch.mesaCode) return ch.mesaCode;
+  return null;
+}
+async function enviarRolagem(r) {
+  if (!user || !ready || !r) return;
+  const code = campanhaDasRolagens();
+  if (!code || !idSeguro(code)) return;
+  const ch = typeof getCurrentChar === 'function' ? getCurrentChar() : null;
+  const dados = (r.detalhes || []).filter(d => d.valores)
+    .map(d => `${d.rotulo}: ${d.valores.join(' ')}${(d.descartados || []).length ? ` (descartado ${d.descartados.join(' ')})` : ''}`)
+    .join(' · ').slice(0, 200);
+  const id = 'rol_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  try {
+    await setDoc(doc(db, 'mesas', code, 'rolagens', id), {
+      uid: user.uid,
+      nome: (perfil && perfil.nome) || '',
+      ficha: ch && !ch._ro ? String(ch.name || '').slice(0, 40) : '',
+      titulo: String(r.titulo || '').slice(0, 80),
+      expressao: String(r.expressao || '').slice(0, 80),
+      total: Number(r.total) || 0,
+      dados, modo: r.modo || '',
+      critico: !!r.natural20, falha: !!r.natural1,
+      em: Date.now()
+    });
+  } catch (e) { console.error(e); }
+}
+function ouvirRolagens(code) {
+  unsubRolagens && unsubRolagens(); unsubRolagens = null;
+  rolagensMesa = [];
+  if (!code) { renderRolagens(); return; }
+  unsubRolagens = onSnapshot(query(collection(db, 'mesas', code, 'rolagens'), orderBy('em', 'desc'), limit(120)), snap => {
+    const lista = [];
+    snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+    lista.reverse();                       // mais recentes embaixo
+    const novas = lista.length > rolagensMesa.length;
+    rolagensMesa = lista;
+    renderRolagens(novas);
+  }, e => console.error(e));
+}
+function abrirRolagensMesa() {
+  if (!campanhaAberta) { avisar('Abra uma campanha', 'O histórico é por campanha.', true); return; }
+  el('rolagensModal').classList.remove('hidden');
+  renderRolagens(true);
+}
+function fecharRolagensMesa() { el('rolagensModal').classList.add('hidden'); }
+function renderRolagens(irAoFim) {
+  const box = el('rolagensLista'); if (!box) return;
+  const ehMestre = !!(campanhaAberta && campanhaAberta.papel === 'gm');
+  const limpar = el('rolagensLimpar'); if (limpar) limpar.classList.toggle('hidden', !ehMestre || !rolagensMesa.length);
+  if (!rolagensMesa.length) {
+    box.innerHTML = `<p class="dados-vazio">Ninguém rolou nada ainda. As rolagens de todo mundo da campanha aparecem aqui, na hora.</p>`;
+    return;
+  }
+  box.innerHTML = rolagensMesa.map(r => `
+    <article class="rolagem-item ${r.uid === user.uid ? 'minha' : ''}">
+      <div class="rolagem-topo">
+        <strong>${esc(limparValor(r.nome) || 'Jogador')}</strong>
+        ${r.ficha ? `<span class="rolagem-ficha">${esc(limparValor(r.ficha))}</span>` : ''}
+        <span class="dados-hora">${new Date(r.em || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+      <div class="rolagem-linha">
+        <span class="dados-total">${Number(r.total) || 0}</span>
+        <div class="rolagem-info">
+          <span>${esc(limparValor(r.titulo))}</span>
+          <small>${esc(limparValor(r.dados || r.expressao || ''))}</small>
+        </div>
+        ${r.modo ? `<span class="dados-selo modo">${r.modo === 'vantagem' ? 'Vantagem' : 'Desvantagem'}</span>` : ''}
+        ${r.critico ? '<span class="dados-selo crit">Crítico</span>' : r.falha ? '<span class="dados-selo falha">Falha</span>' : ''}
+      </div>
+    </article>`).join('');
+  if (irAoFim) box.scrollTop = box.scrollHeight;
+}
+async function limparRolagens() {
+  if (!campanhaAberta || campanhaAberta.papel !== 'gm') return;
+  showConfirm('Apagar o histórico de rolagens desta campanha para todo mundo?', async () => {
+    try {
+      const snap = await getDocs(collection(db, 'mesas', campanhaAberta.id, 'rolagens'));
+      const docs = snap.docs || [];
+      for (let i = 0; i < docs.length; i += 400) {
+        const b = writeBatch(db);
+        docs.slice(i, i + 400).forEach(d => b.delete(doc(db, 'mesas', campanhaAberta.id, 'rolagens', d.id)));
+        await b.commit();
+      }
+      avisar('Histórico limpo', '');
+    } catch (e) { avisar('Erro ao limpar', erroTexto(e), true); }
+  });
 }
 
 function depoisDeMudancaRemota(tocados) {
@@ -1767,6 +1869,7 @@ function renderCabecalhoEscudo() {
       <button class="small" onclick="nuvem.copiarCodigo('${esc(m.id)}')">Copiar</button>
       <button class="small" onclick="nuvem.copiarLink('${esc(m.id)}')" title="Link que abre uma página de convite">Link</button></div>
     <div class="nv-cab-acoes">
+      <button class="small" onclick="nuvem.abrirRolagens()">Rolagens da mesa</button>
       <button class="small primary" onclick="nuvem.configurarCampanha()">Configurar</button>
       <button class="small danger" onclick="nuvem.apagarCampanha()">Apagar</button>
     </div>
@@ -1874,7 +1977,8 @@ function renderCampanhaJogador() {
         <button class="ghost small" onclick="nuvem.abrirCampanhas()">&larr; Campanhas</button>
         <div class="nv-cab-titulo"><span class="nv-cab-rotulo">Campanha</span><h3>${esc(p.name || p.id)}</h3>
           <p class="nv-camp-mestre">Mestre: ${avatarHtml({ nome: p.gmName, foto: p.gmFoto }, 'nv-avatar-sm')} ${esc(p.gmName || '—')}</p></div>
-        <div class="nv-cab-acoes"><button class="small danger" onclick="nuvem.sairDaCampanha('${esc(p.id)}')">Sair da campanha</button></div>
+        <div class="nv-cab-acoes"><button class="small" onclick="nuvem.abrirRolagens()">Rolagens da mesa</button>
+          <button class="small danger" onclick="nuvem.sairDaCampanha('${esc(p.id)}')">Sair da campanha</button></div>
       </div>
       ${p.descricao ? `<p class="nv-descricao">${esc(p.descricao)}</p>` : ''}
     </div>
@@ -2056,7 +2160,17 @@ window.nuvem = {
   configurarCampanha: abrirConfigCampanha, salvarConfig: salvarConfigCampanha,
   escolherCapa, removerCapa: () => { fotoCampanha = ''; previewFotoCampanha(); },
   copiarLink, aceitarConvite, fecharConvite,
-  criarNpc, trazerFichaComoNpc, devolverNpc, excluirNpc, npcNoEncontro
+  criarNpc, trazerFichaComoNpc, devolverNpc, excluirNpc, npcNoEncontro,
+  podeCriarFicha, enviarRolagem,
+  nomeDaCampanha: code => { const m = minhasMesas.find(x => x.id === code); return m ? m.name : ''; },
+  nomeDaCampanhaAberta: () => {
+    if (!campanhaAberta) return '';
+    const lista = campanhaAberta.papel === 'gm' ? minhasMesas : participacoes;
+    const m = lista.find(x => x.id === campanhaAberta.id);
+    return m ? (m.name || m.id) : '';
+  },
+  abrirRolagens: abrirRolagensMesa, fecharRolagens: fecharRolagensMesa, limparRolagens,
+  atualizarLeitores: () => { agendarLeitores(); if (campanhaAberta && campanhaAberta.papel === 'jogador') agendarLeitoresProprios(campanhaAberta.id); }
 };
 
 if (CONFIGURADO) {
