@@ -134,10 +134,19 @@ function exMontarPainelDados() {
     <section id="dadosPainel" class="hidden" aria-label="Histórico de rolagens">
       <header class="dados-cab">
         <strong>Rolagens</strong>
-        <button type="button" class="nv-link" onclick="dadosLimpar()">Limpar</button>
         <button type="button" class="dados-fechar" onclick="dadosFechar()" aria-label="Fechar">&times;</button>
       </header>
+      <div class="tabs dados-abas">
+        <button type="button" class="tab active" data-aba="minhas" onclick="dadosAba('minhas')">Minhas</button>
+        <button type="button" class="tab hidden" data-aba="mesa" onclick="dadosAba('mesa')">Da mesa</button>
+      </div>
       <div id="dadosHistorico" class="dados-historico"></div>
+      <div id="dadosMesa" class="dados-historico hidden">
+        <div id="rolagensLista" class="rolagens-lista"></div>
+      </div>
+      <div class="dados-rodape">
+        <button type="button" class="nv-link" id="dadosLimparBtn" onclick="dadosLimparAtual()">Limpar</button>
+      </div>
       <form class="dados-form" onsubmit="dadosManual(event)">
         <input id="dadosEntrada" placeholder="2d6+3, 1d20+Força…" autocomplete="off" aria-label="Rolagem manual" />
         <button type="submit" class="primary small">Rolar</button>
@@ -199,17 +208,45 @@ function exMostrarUltima(r) {
   el.classList.remove('novo'); void el.offsetWidth; el.classList.add('novo');
 }
 function dadosFecharUltima() { const el = document.getElementById('dadosUltima'); if (el) el.classList.add('hidden'); }
-function exAbrirPainel() {
+function exAbrirPainel(aba) {
   const p = document.getElementById('dadosPainel'); if (!p) return;
   p.classList.remove('hidden');
+  exAtualizarAbasDados();
+  if (aba) dadosAba(aba); else dadosAba(dadosAbaAtual);
   dadosFecharUltima();
   const box = document.getElementById('dadosHistorico'); if (box) box.scrollTop = box.scrollHeight;
+}
+let dadosAbaAtual = 'minhas';
+function dadosAba(aba) {
+  dadosAbaAtual = aba;
+  document.querySelectorAll('#dadosPainel .dados-abas .tab').forEach(t => t.classList.toggle('active', t.dataset.aba === aba));
+  document.getElementById('dadosHistorico').classList.toggle('hidden', aba !== 'minhas');
+  document.getElementById('dadosMesa').classList.toggle('hidden', aba !== 'mesa');
+  const limpar = document.getElementById('dadosLimparBtn');
+  if (limpar) limpar.textContent = aba === 'mesa' ? 'Limpar o histórico da mesa' : 'Limpar as minhas';
+  if (aba === 'mesa' && window.nuvem && nuvem.renderRolagens) nuvem.renderRolagens(true);
+  else { const b = document.getElementById('dadosHistorico'); if (b) b.scrollTop = b.scrollHeight; }
+}
+function dadosLimparAtual() {
+  if (dadosAbaAtual === 'mesa') { if (window.nuvem && nuvem.limparRolagens) nuvem.limparRolagens(); return; }
+  dadosLimpar();
+}
+// a aba "Da mesa" só existe quando há campanha aberta; limpar o histórico dela é coisa de mestre
+function exAtualizarAbasDados() {
+  const tab = document.querySelector('#dadosPainel .dados-abas .tab[data-aba="mesa"]');
+  if (!tab) return;
+  const tem = !!(window.nuvem && nuvem.temCampanha && nuvem.temCampanha());
+  tab.classList.toggle('hidden', !tem);
+  if (!tem && dadosAbaAtual === 'mesa') dadosAba('minhas');
+  const limpar = document.getElementById('dadosLimparBtn');
+  if (limpar) limpar.classList.toggle('hidden', dadosAbaAtual === 'mesa' && !(window.nuvem && nuvem.ehMestreDaCampanha && nuvem.ehMestreDaCampanha()));
 }
 function dadosAlternar() {
   const p = document.getElementById('dadosPainel');
   if (!p) return;
   if (p.classList.contains('hidden')) exAbrirPainel(); else dadosFechar();
 }
+window.abrirRolagensDaMesa = function () { exAbrirPainel('mesa'); };
 function dadosFechar() { const p = document.getElementById('dadosPainel'); if (p) p.classList.add('hidden'); }
 function dadosLimpar() { dadosHistorico = []; exRenderHistorico(); }
 function dadosManual(ev) {
@@ -892,39 +929,77 @@ function exPrefs() {
   return p;
 }
 function exSalvarPrefs(p) { try { localStorage.setItem(PREFS_CHAVE, JSON.stringify(p)); } catch (e) { } }
-// Cada cor muda o site inteiro: fundo, cartões, bordas, textos e destaque.
-// O matiz (h) define a cor; a saturação é baixa de propósito, para não ficar berrante.
+// ------------------------------------------------------------
+// TABELA DE CORES
+// Regra: cada paleta é só um matiz (h). Todo o resto sai de uma
+// escala fixa, igual para todas, então nenhuma cor fica mais
+// clara, mais escura ou mais berrante que a outra.
+//   · fundos e superfícies: saturação baixa (sempre o mesmo passo)
+//   · texto: claro no tema escuro, escuro no claro, com contraste
+//   · destaque: um tom acima das superfícies, legível sobre elas
+//   · avisos (erro, acerto, atenção) têm matiz próprio, mas usam
+//     a mesma saturação e luminosidade da escala, para combinar
+// ------------------------------------------------------------
 const CORES_TEMA = {
-  aco: { nome: 'Aço', h: 216, sat: 1 },
-  sangue: { nome: 'Sangue', h: 6, sat: 1.05 },
-  musgo: { nome: 'Musgo', h: 112, sat: 0.8 },
-  ambar: { nome: 'Âmbar', h: 40, sat: 1.1 },
-  violeta: { nome: 'Violeta', h: 265, sat: 0.95 },
-  turquesa: { nome: 'Turquesa', h: 176, sat: 0.85 }
+  aco: { nome: 'Aço', h: 216 },
+  sangue: { nome: 'Sangue', h: 6 },
+  musgo: { nome: 'Musgo', h: 112 },
+  ambar: { nome: 'Âmbar', h: 40 },
+  violeta: { nome: 'Violeta', h: 265 },
+  turquesa: { nome: 'Turquesa', h: 176 }
 };
-function exHsl(h, s, l) { return `hsl(${h} ${Math.round(s)}% ${l}%)`; }
+// escala: [saturação, luminosidade] no escuro e no claro
+const ESCALA = {
+  escuro: {
+    bg: [26, 10], 'bg-2': [24, 12], surface: [22, 15], 'surface-2': [20, 19], 'surface-3': [18, 24],
+    border: [17, 25], 'border-light': [15, 35], text: [24, 93], 'text-muted': [12, 70], 'text-dim': [9, 50],
+    accent: [40, 72], 'accent-2': [46, 81], 'accent-dim': [30, 35], hover: [18, 28], ink: [30, 9],
+    aviso: [46, 66], aviso2: [40, 40]
+  },
+  claro: {
+    bg: [22, 92], 'bg-2': [20, 88], surface: [26, 97], 'surface-2': [22, 93], 'surface-3': [20, 88],
+    border: [18, 81], 'border-light': [16, 71], text: [28, 14], 'text-muted': [14, 35], 'text-dim': [10, 52],
+    accent: [42, 35], 'accent-2': [48, 27], 'accent-dim': [28, 80], hover: [22, 85], ink: [26, 98],
+    aviso: [50, 34], aviso2: [46, 26]
+  }
+};
+// matiz de cada aviso; se a paleta tiver quase o mesmo matiz, o aviso é empurrado
+// para o lado, senão "erro" sumiria dentro de um tema vermelho, por exemplo.
+const AVISOS = { danger: 10, success: 135, warning: 42, info: 205 };
+function exAfasta(hAviso, hTema) {
+  // menor distância entre dois matizes na roda de cores (0 a 180)
+  const d = Math.abs((((hAviso - hTema + 180) % 360) + 360) % 360 - 180);
+  if (d >= 28) return hAviso;
+  const sentido = ((hAviso - hTema + 360) % 360) < 180 ? 1 : -1;
+  return (hTema + sentido * 26 + 360) % 360;
+}
+function exHsl(h, s, l) { return `hsl(${Math.round(h)} ${Math.round(s)}% ${Math.round(l)}%)`; }
 function exPaleta(corId, claro) {
   const c = CORES_TEMA[corId] || CORES_TEMA.aco;
-  const h = c.h, k = c.sat;
-  if (!claro) return {
-    bg: exHsl(h, 30 * k, 10), 'bg-2': exHsl(h, 27 * k, 12), surface: exHsl(h, 26 * k, 15),
-    'surface-2': exHsl(h, 23 * k, 18), 'surface-3': exHsl(h, 21 * k, 23),
-    border: exHsl(h, 20 * k, 24), 'border-light': exHsl(h, 17 * k, 34),
-    text: exHsl(h, 30 * k, 92), 'text-muted': exHsl(h, 13 * k, 69), 'text-dim': exHsl(h, 9 * k, 49),
-    accent: exHsl(h, 42 * k, 72), 'accent-2': exHsl(h, 48 * k, 81), 'accent-dim': exHsl(h, 32 * k, 34),
-    hover: exHsl(h, 21 * k, 27), ink: exHsl(h, 35 * k, 9),
-    suave: `hsl(${h} ${Math.round(42 * k)}% 72% / 0.12)`, fraco: `hsl(${h} ${Math.round(42 * k)}% 72% / 0.08)`, forte: `hsl(${h} ${Math.round(42 * k)}% 72% / 0.3)`
-  };
-  return {
-    bg: exHsl(h, 24 * k, 91), 'bg-2': exHsl(h, 22 * k, 88), surface: exHsl(h, 30 * k, 96),
-    'surface-2': exHsl(h, 25 * k, 92), 'surface-3': exHsl(h, 22 * k, 87),
-    border: exHsl(h, 20 * k, 80), 'border-light': exHsl(h, 17 * k, 70),
-    text: exHsl(h, 32 * k, 14), 'text-muted': exHsl(h, 15 * k, 34), 'text-dim': exHsl(h, 10 * k, 51),
-    accent: exHsl(h, 40 * k, 36), 'accent-2': exHsl(h, 44 * k, 28), 'accent-dim': exHsl(h, 32 * k, 80),
-    hover: exHsl(h, 25 * k, 84), ink: exHsl(h, 30 * k, 97),
-    suave: `hsl(${h} ${Math.round(40 * k)}% 36% / 0.12)`, fraco: `hsl(${h} ${Math.round(40 * k)}% 36% / 0.07)`, forte: `hsl(${h} ${Math.round(40 * k)}% 36% / 0.25)`
-  };
+  const h = c.h;
+  const e = claro ? ESCALA.claro : ESCALA.escuro;
+  const pal = {};
+  for (const [nome, [sat, luz]] of Object.entries(e)) {
+    if (nome === 'aviso' || nome === 'aviso2') continue;
+    pal[nome] = exHsl(h, sat, luz);
+  }
+  const [sA, lA] = e.accent;
+  pal.suave = `hsl(${h} ${sA}% ${lA}% / 0.12)`;
+  pal.fraco = `hsl(${h} ${sA}% ${lA}% / 0.08)`;
+  pal.forte = `hsl(${h} ${sA}% ${lA}% / 0.3)`;
+  // avisos na mesma escala
+  const [sAv, lAv] = e.aviso, [sAv2, lAv2] = e.aviso2;
+  for (const [nome, matiz] of Object.entries(AVISOS)) {
+    const hh = exAfasta(matiz, h);
+    pal[nome] = exHsl(hh, sAv, lAv);
+    if (nome === 'danger' || nome === 'success') pal[nome + '-2'] = exHsl(hh, sAv2, lAv2);
+  }
+  return pal;
 }
+const TOKENS_COR = ['bg', 'bg-2', 'surface', 'surface-2', 'surface-3', 'border', 'border-light',
+  'text', 'text-muted', 'text-dim', 'accent', 'accent-2', 'accent-dim', 'hover', 'ink',
+  'danger', 'danger-2', 'success', 'success-2', 'warning', 'info'];
+
 // cor conforme a classe do personagem
 const COR_POR_CLASSE = {
   'linha de frente': 'sangue',
@@ -953,9 +1028,7 @@ function exAplicarTema() {
   else document.documentElement.removeAttribute('data-theme');
   const pal = exPaleta(exCorAtual(), claro);
   const raiz = document.documentElement.style;
-  for (const k of ['bg', 'bg-2', 'surface', 'surface-2', 'surface-3', 'border', 'border-light', 'text', 'text-muted', 'text-dim', 'accent', 'accent-2', 'accent-dim', 'hover', 'ink']) {
-    raiz.setProperty('--' + k, pal[k]);
-  }
+  TOKENS_COR.forEach(k => raiz.setProperty('--' + k, pal[k]));
   raiz.setProperty('--accent-suave', pal.suave);
   raiz.setProperty('--accent-fraco', pal.fraco);
   raiz.setProperty('--accent-forte', pal.forte);
@@ -984,12 +1057,15 @@ function abrirConfiguracoes() {
       <button type="button" class="${p.tema !== 'claro' ? 'primary' : ''}" onclick="definirTema('escuro')">Escuro</button>
       <button type="button" class="${p.tema === 'claro' ? 'primary' : ''}" onclick="definirTema('claro')">Claro</button>
     </div>
-    <label class="config-rotulo">Cor</label>
+    <label class="config-rotulo">Cor <span class="wizard-dica">o site inteiro segue a cor escolhida</span></label>
     <div class="config-cores">
       ${Object.entries(CORES_TEMA).map(([id, c]) => {
-        const amostra = exPaleta(id, p.tema === 'claro').accent;
+        const pal = exPaleta(id, p.tema === 'claro');
         const ativa = !p.corClasse && exCorAtual() === id;
-        return `<button type="button" class="config-cor ${ativa ? 'ativa' : ''}" style="--amostra:${amostra}" onclick="definirCor('${id}')" title="${c.nome}"><span></span>${c.nome}</button>`;
+        return `<button type="button" class="config-cor ${ativa ? 'ativa' : ''}" onclick="definirCor('${id}')" title="${c.nome}"
+          style="--p-bg:${pal.bg};--p-surface:${pal['surface-2']};--p-accent:${pal.accent};--p-text:${pal.text};--p-borda:${pal['border-light']}">
+          <span class="config-cor-amostra" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></span>
+          <span class="config-cor-nome">${c.nome}</span>${ativa ? '<span class="config-cor-ok" aria-hidden="true">✓</span>' : ''}</button>`;
       }).join('')}
     </div>
     <label class="nv-opcao"><input type="checkbox" ${p.corClasse ? 'checked' : ''} onchange="definirCor(this.checked ? 'classe' : '${p.cor || 'aco'}')" />

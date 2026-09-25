@@ -1,5 +1,25 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 13
+- **Tabela de cores com regras**: cada paleta é só um matiz; fundos, bordas, textos e destaque saem de uma escala fixa, igual para todas. Nenhuma cor fica mais clara, mais escura ou mais berrante que a outra, e o contraste texto/fundo é garantido nos dois temas.
+- **Cores de aviso harmonizadas**: erro, acerto, atenção e informação passaram a usar a mesma escala da paleta. Se o matiz do aviso for parecido demais com o da paleta (erro vermelho num tema vermelho, por exemplo), ele é afastado automaticamente para continuar distinguível.
+- **Escolher a cor ficou visual**: cada opção mostra uma amostra da paleta de verdade (fundo, destaque e texto), com marca na que está em uso.
+- **Harmonia geral do CSS**: uma escala só de espaçamento, cantos e tamanhos de texto; botões em duas alturas; campos na mesma altura dos botões; etiquetas, selos e contadores no mesmo molde; foco visível igual em tudo.
+- **Correção**: tons fixos que não acompanhavam a paleta (condições graves, selos de crítico e falha, rio do mapa, botões de excluir).
+
+## Novidades da versão 12
+- **Correção**: na criação de ficha, os botões "+" das perícias travavam no 6º ponto, mesmo quando o Intelecto dava mais pontos, e o botão de finalizar nunca liberava.
+- **Histórico de rolagens unificado**: o painel do canto agora tem duas abas, **Minhas** e **Da mesa**. O mestre acompanha as rolagens de todo mundo com o painel aberto do lado, sem janela por cima da tela e sem ficar abrindo e fechando. O botão "Rolagens da mesa" abre o painel já na aba certa. O botão de limpar aparece só para o mestre, e a aba "Da mesa" só quando há campanha aberta.
+
+## Novidades da versão 11
+- **Criação de ficha mais clara**: o passo dos atributos explica em três linhas o que fazer, mostra avisos ("clique num dos números", "clique no atributo que recebe o 4"), destaca o número escolhido e acende os atributos que podem recebê-lo.
+- **Pontos de perícia com o Intelecto**: o passo das perícias já soma os pontos que o Intelecto dá (ex.: Intelecto 4 → 6 + 4 = 10 pontos), com a conta escrita na tela. Se você voltar e mudar o Intelecto, a distribuição é recalculada.
+- **Correções**:
+  - As rolagens pessoais do mestre não vão mais para o histórico da campanha; só as feitas no escudo, na tela da campanha ou em fichas da campanha.
+  - O "Exportar JSON" não leva mais campos internos de sincronização.
+  - Estilo do topo do site não vaza mais para cabeçalhos internos (afetava o painel de rolagens e os cartões de condição).
+- **CSS**: instruções do assistente, destaque dos valores e atributos, contador de pontos, e refinos gerais.
+
 ## Novidades da versão 10
 - **Aba Condições refeita**: cada condição é um cartão com interruptor; o cartão ativo fica destacado (as graves, Morrendo e Enlouquecendo, em vermelho). No topo, um resumo com todas as condições ativas. A Fadiga ganhou uma barra de 8 marcadores e a lista completa de efeitos, com os que já valem acesos.
 - **Bug da adrenalina corrigido**: desligar a condição limpava o estado, mas a faixa escolhida continuava acesa. Agora desligar limpa a faixa, e clicar de novo na faixa escolhida a desmarca.

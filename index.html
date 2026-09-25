@@ -459,10 +459,14 @@
 
       <div class="wizard-step" data-step="3">
         <h3>Passo 3: Distribua seus Atributos</h3>
-        <p style="color:var(--text-muted);margin-bottom:10px;">Distribua os valores: <strong style="color:var(--accent);">4, 3, 2, 2, 1</strong> entre os atributos.</p>
-        <h4>Valores disponíveis</h4>
+        <ol class="wizard-passos">
+          <li><strong>Clique num número</strong> da lista de valores.</li>
+          <li><strong>Clique no atributo</strong> que vai receber esse número.</li>
+          <li>Repita até os cinco atributos estarem preenchidos.</li>
+        </ol>
+        <h4 class="wizard-rotulo">1. Escolha um valor <span id="wizardValorAviso" class="wizard-dica">clique num dos números abaixo</span></h4>
         <div class="attribute-values" id="attributeValues"></div>
-        <h4 style="margin-top:18px;">Atributos</h4>
+        <h4 class="wizard-rotulo" style="margin-top:18px;">2. Escolha o atributo <span id="wizardAtributoAviso" class="wizard-dica"></span></h4>
         <div class="attribute-distribution" id="attributeDistribution"></div>
         <button class="btn-redistribute" onclick="resetAttributeDistribution()">Redistribuir atributos</button>
 
@@ -487,8 +491,11 @@
 
       <div class="wizard-step" data-step="4">
         <h3>Passo 4: Distribua seus Pontos de Perícia</h3>
-        <p style="color:var(--text-muted);margin-bottom:10px;">Você tem <strong style="color:var(--success);">6 pontos</strong> para distribuir. Máximo de <strong>3 pontos</strong> por perícia.</p>
-        <p style="color:var(--accent);margin-bottom:14px;">Pontos disponíveis: <span id="wizardSkillPoints">6</span>/6</p>
+        <p style="color:var(--text-muted);margin-bottom:10px;">Use os botões <strong>+</strong> e <strong>−</strong> de cada perícia. Máximo de <strong>3 pontos</strong> por perícia.</p>
+        <div class="wizard-pontos">
+          <div><span id="wizardSkillPoints">6</span><small>pontos a distribuir</small></div>
+          <p id="wizardSkillFonte" class="wizard-dica"></p>
+        </div>
         <div id="wizardSkillList"></div>
         <div class="wizard-nav">
           <button onclick="prevWizardStep()">Anterior</button>
@@ -1115,19 +1122,6 @@
       </a>
     </div>
   </footer>
-</div>
-
-<div id="rolagensModal" class="modal-overlay hidden">
-  <div class="modal nv-modal-rolagens">
-    <button class="modal-close" onclick="nuvem.fecharRolagens()"><svg viewBox="0 0 24 24" width="14" height="14" style="display:block;"><line x1="4" y1="4" x2="20" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="4" x2="4" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
-    <h2>Rolagens da mesa</h2>
-    <p class="nv-nota nv-nota-topo">Tudo que o mestre e os jogadores desta campanha rolaram, em tempo real.</p>
-    <div id="rolagensLista" class="rolagens-lista"></div>
-    <div class="modal-actions">
-      <button id="rolagensLimpar" class="small danger hidden" onclick="nuvem.limparRolagens()">Limpar histórico</button>
-      <button class="primary" onclick="nuvem.fecharRolagens()">Fechar</button>
-    </div>
-  </div>
 </div>
 
 <div id="configModal" class="modal-overlay hidden">

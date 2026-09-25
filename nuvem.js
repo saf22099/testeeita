@@ -787,6 +787,8 @@ function ouvirMinhasFichas() {
   }, e => { console.error(e); setStatus('error'); });
 }
 
+function avisarAbasDados() { if (typeof exAtualizarAbasDados === 'function') exAtualizarAbasDados(); }
+
 function sincronizarPool() {
   let desejados = [];
   if (campanhaAberta && campanhaAberta.papel === 'gm') desejados = [...pool.values()].filter(o => !o._ro && membros.has(o._owner));
@@ -804,6 +806,8 @@ function pararCampanha() {
   for (const id of pool.keys()) { base.delete(id); baseMeta.delete(id); legacy.delete(id); }
   pool.clear(); membros = new Map();
   characters = characters.filter(c => !c._remote);
+  renderRolagens();
+  avisarAbasDados();
 }
 
 function ouvirCampanhaGM(code) {
@@ -926,11 +930,17 @@ async function sincronizarLeitoresProprios(code) {
 // ------------------------------------------------------------
 // Histórico de rolagens da campanha
 // ------------------------------------------------------------
+// A rolagem vai para a campanha quando ela tem a ver com a campanha:
+// a ficha aberta está nela, é ficha de jogador/NPC dela, ou você está no escudo/na tela da campanha.
 function campanhaDasRolagens() {
-  if (campanhaAberta) return campanhaAberta.id;
   const ch = typeof getCurrentChar === 'function' ? getCurrentChar() : null;
-  if (ch && ch.mesaCode && participacoes.some(p => p.id === ch.mesaCode)) return ch.mesaCode;
-  if (ch && ch._remote && ch.mesaCode) return ch.mesaCode;
+  if (ch && ch.mesaCode && (participacoes.some(p => p.id === ch.mesaCode) || ch.mesaGm === user.uid)) return ch.mesaCode;
+  if (campanhaAberta) {
+    const fichaAberta = ch && isVisible('screenSheet');
+    if (!fichaAberta) return campanhaAberta.id;                                   // rolando no escudo ou na tela da campanha
+    if (ch._remote || ch.npcCampanha === campanhaAberta.id) return campanhaAberta.id;  // ficha de jogador ou NPC da campanha
+    return null;                                                                   // ficha pessoal: rolagem fica só sua
+  }
   return null;
 }
 async function enviarRolagem(r) {
@@ -959,6 +969,7 @@ async function enviarRolagem(r) {
 function ouvirRolagens(code) {
   unsubRolagens && unsubRolagens(); unsubRolagens = null;
   rolagensMesa = [];
+  avisarAbasDados();
   if (!code) { renderRolagens(); return; }
   unsubRolagens = onSnapshot(query(collection(db, 'mesas', code, 'rolagens'), orderBy('em', 'desc'), limit(120)), snap => {
     const lista = [];
@@ -971,14 +982,13 @@ function ouvirRolagens(code) {
 }
 function abrirRolagensMesa() {
   if (!campanhaAberta) { avisar('Abra uma campanha', 'O histórico é por campanha.', true); return; }
-  el('rolagensModal').classList.remove('hidden');
   renderRolagens(true);
+  if (typeof abrirRolagensDaMesa === 'function') abrirRolagensDaMesa();
 }
-function fecharRolagensMesa() { el('rolagensModal').classList.add('hidden'); }
+function fecharRolagensMesa() { if (typeof dadosFechar === 'function') dadosFechar(); }
 function renderRolagens(irAoFim) {
   const box = el('rolagensLista'); if (!box) return;
-  const ehMestre = !!(campanhaAberta && campanhaAberta.papel === 'gm');
-  const limpar = el('rolagensLimpar'); if (limpar) limpar.classList.toggle('hidden', !ehMestre || !rolagensMesa.length);
+  if (typeof exAtualizarAbasDados === 'function') exAtualizarAbasDados();
   if (!rolagensMesa.length) {
     box.innerHTML = `<p class="dados-vazio">Ninguém rolou nada ainda. As rolagens de todo mundo da campanha aparecem aqui, na hora.</p>`;
     return;
@@ -2162,6 +2172,9 @@ window.nuvem = {
   copiarLink, aceitarConvite, fecharConvite,
   criarNpc, trazerFichaComoNpc, devolverNpc, excluirNpc, npcNoEncontro,
   podeCriarFicha, enviarRolagem,
+  renderRolagens: fim => renderRolagens(fim),
+  temCampanha: () => !!campanhaAberta,
+  ehMestreDaCampanha: () => !!(campanhaAberta && campanhaAberta.papel === 'gm'),
   nomeDaCampanha: code => { const m = minhasMesas.find(x => x.id === code); return m ? m.name : ''; },
   nomeDaCampanhaAberta: () => {
     if (!campanhaAberta) return '';

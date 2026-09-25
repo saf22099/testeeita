@@ -1394,7 +1394,7 @@ function saveWizardCharacter() {
     originId: creationState.originId, originData: originData, class: '', subclass: null,
     attributes: { ...creationState.attributes }, attributeBonuses: { agi: 0, sta: 0, str: 0, int: 0, vit: 0 },
     skills: SKILL_LIST.map(s => ({ name: s.name, base: creationState.skills[s.name] || 0, bonus: 0, modifiers: [], selectedAttribute: SKILLS_DATA[s.name]?.attributes[0] || 'int' })),
-    skillPointsGained: 6,
+    skillPointsGained: 6 + (creationState.attributes.int || 0),
     resources: {
       hp: { cur: originData.initialStats.pdv, max: originData.initialStats.pdv },
       sta: { cur: originData.initialStats.pde, max: originData.initialStats.pde },
@@ -1440,7 +1440,10 @@ function deleteChar(id) {
 function exportChar(id) {
   const ch = characters.find(c => c.id === id);
   if (!ch) return;
-  const blob = new Blob([JSON.stringify(ch, null, 2)], { type: 'application/json' });
+  // não leva junto os dados internos de sincronização (_remote, _docId...)
+  const limpo = {};
+  Object.keys(ch).forEach(k => { if (!k.startsWith('_')) limpo[k] = ch[k]; });
+  const blob = new Blob([JSON.stringify(limpo, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = `${ch.name.replace(/\s+/g, '_')}.json`; a.click();
@@ -1616,7 +1619,15 @@ function showWizardStep(step) {
   }
   if (step === 2) renderOriginSelection();
   if (step === 3) renderAttributeDistribution();
-  if (step === 4) renderWizardSkills();
+  if (step === 4) {
+    // se a pessoa voltou e mexeu no Intelecto, os pontos já gastos podem passar do novo total
+    const gastos = Object.values(creationState.skills).reduce((x, y) => x + y, 0);
+    if (gastos > wizardSkillTotal()) {
+      creationState.skills = {};
+      showNotification('Pontos de perícia recalculados', 'Seu Intelecto mudou, então a distribuição foi zerada.');
+    }
+    renderWizardSkills();
+  }
 }
 
 function nextWizardStep(step) {
@@ -1701,10 +1712,20 @@ function renderAttributeDistribution() {
     const div = document.createElement('div');
     div.className = 'attribute-dist-item';
     const val = creationState.attributes[attr.key];
-    div.innerHTML = `<h4>${attr.name}</h4><div class="value">${val}</div>${val > 0 ? `<div style="font-size:0.72rem;color:var(--accent);margin-bottom:8px;">${attr.hint(val)}</div>` : ''}<button onclick="assignValueToAttribute('${attr.key}')" ${creationState.selectedValue === null || val > 0 ? 'disabled' : ''}>Atribuir</button>`;
+    if (val === 0) div.classList.add('vazio');
+    if (val === 0 && creationState.selectedValue !== null) div.classList.add('pode-receber');
+    div.innerHTML = `<h4>${attr.name}</h4><div class="value">${val || '—'}</div>${val > 0 ? `<div style="font-size:0.72rem;color:var(--accent);margin-bottom:8px;">${attr.hint(val)}</div>` : `<div class="attr-dica">${creationState.selectedValue !== null ? 'clique para receber o valor' : 'sem valor'}</div>`}<button onclick="assignValueToAttribute('${attr.key}')" ${creationState.selectedValue === null || val > 0 ? 'disabled' : ''}>Atribuir</button>`;
     distContainer.appendChild(div);
   });
   const allAssigned = Object.values(creationState.attributes).every(v => v > 0);
+  const faltam = Object.values(creationState.attributes).filter(v => v === 0).length;
+  const escolhido = creationState.selectedValue !== null ? creationState.availableValues[creationState.selectedValue] : null;
+  const avisoValor = document.getElementById('wizardValorAviso');
+  const avisoAttr = document.getElementById('wizardAtributoAviso');
+  const caixaAttr = document.getElementById('attributeDistribution');
+  if (avisoValor) avisoValor.textContent = allAssigned ? 'tudo distribuído' : escolhido !== null ? `valor ${escolhido} escolhido` : 'clique num dos números abaixo';
+  if (avisoAttr) avisoAttr.textContent = allAssigned ? '' : escolhido !== null ? `clique no atributo que recebe o ${escolhido}` : `escolha um número primeiro · faltam ${faltam}`;
+  if (caixaAttr) caixaAttr.classList.toggle('aguardando', escolhido === null && !allAssigned);
   document.getElementById('btnStep3Next').disabled = !allAssigned;
   if (allAssigned && !creationState.transferConfirmed) { document.getElementById('transferSection').classList.remove('hidden'); setupTransferSelects(); }
   else if (creationState.transferConfirmed) { document.getElementById('transferSection').classList.add('hidden'); }
@@ -1758,23 +1779,30 @@ function skipTransfer() {
   document.getElementById('transferSection').classList.add('hidden');
 }
 
+function wizardSkillTotal() { return 6 + (creationState.attributes.int || 0); }
 function renderWizardSkills() {
   const container = document.getElementById('wizardSkillList'); container.innerHTML = '';
   const totalPoints = Object.values(creationState.skills).reduce((a, b) => a + b, 0);
-  document.getElementById('wizardSkillPoints').textContent = 6 - totalPoints;
+  const total = wizardSkillTotal();
+  const intelecto = creationState.attributes.int || 0;
+  document.getElementById('wizardSkillPoints').textContent = total - totalPoints;
+  const fonte = document.getElementById('wizardSkillFonte');
+  if (fonte) fonte.innerHTML = intelecto > 0
+    ? `<strong>6</strong> iniciais + <strong>${intelecto}</strong> do seu Intelecto = <strong>${total}</strong> no total`
+    : `<strong>6</strong> iniciais (seu Intelecto não soma pontos)`;
   SKILL_LIST.forEach((skill) => {
     const currentPoints = creationState.skills[skill.name] || 0;
     const div = document.createElement('div'); div.className = 'skill-input-row';
-    div.innerHTML = `<div style="flex:1;"><strong>${skill.name}</strong> <span style="color:var(--text-dim);">(${skill.attr.toUpperCase()})</span></div><button onclick="modWizardSkill('${skill.name}', -1)" ${currentPoints === 0 ? 'disabled' : ''}>-</button><span style="font-family:var(--mono);font-weight:700;font-size:1.05rem;min-width:26px;text-align:center;">${currentPoints}</span><button onclick="modWizardSkill('${skill.name}', 1)" ${currentPoints >= 3 || totalPoints >= 6 ? 'disabled' : ''}>+</button>`;
+    div.innerHTML = `<div style="flex:1;"><strong>${skill.name}</strong> <span style="color:var(--text-dim);">(${skill.attr.toUpperCase()})</span></div><button onclick="modWizardSkill('${skill.name}', -1)" ${currentPoints === 0 ? 'disabled' : ''}>-</button><span style="font-family:var(--mono);font-weight:700;font-size:1.05rem;min-width:26px;text-align:center;">${currentPoints}</span><button onclick="modWizardSkill('${skill.name}', 1)" ${currentPoints >= 3 || totalPoints >= total ? 'disabled' : ''}>+</button>`;
     container.appendChild(div);
   });
-  document.getElementById('btnStep4Next').disabled = totalPoints !== 6;
+  document.getElementById('btnStep4Next').disabled = totalPoints !== total;
 }
 
 function modWizardSkill(name, delta) {
   const currentPoints = Object.values(creationState.skills).reduce((a, b) => a + b, 0);
   const current = creationState.skills[name] || 0;
-  if (delta > 0 && (current >= 3 || currentPoints >= 6)) return;
+  if (delta > 0 && (current >= 3 || currentPoints >= wizardSkillTotal())) return;
   if (delta < 0 && current <= 0) return;
   creationState.skills[name] = (creationState.skills[name] || 0) + delta;
   if (creationState.skills[name] === 0) delete creationState.skills[name];
