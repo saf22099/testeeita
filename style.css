@@ -1397,7 +1397,10 @@ button:focus-visible,a:focus-visible,select:focus-visible,[tabindex]:focus-visib
 h1,h2,h3,h4,h5,td,th,li,p,strong,.skill-name,.item-header strong,
 .char-list-avatar + div h3,.nv-ficha-info h4,.cond-cab h3,.mini-card h4,
 .ability-item h5,.episodio-info h3,.nv-camp-card h4,.dados-ultima-texto strong{overflow-wrap:anywhere;}
-.container,.top-screen,.card,.modal,.big-modal{max-width:100%;min-width:0;}
+/* Só impedir que o conteúdo estique a caixa. As larguras máximas de cada uma
+   (container 1180px, modal 640px, big-modal 980px) continuam valendo. */
+.container,.top-screen,.card,.modal,.big-modal{min-width:0;}
+.top-screen,.card{max-width:100%;}
 .grid > *,.cond-grid > *,.nv-camp-grid > *,.nv-fichas-grid > *{min-width:0;}
 
 /* ============================================================
@@ -1508,6 +1511,11 @@ html{scroll-behavior:smooth;}
 ::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:999px;
   border:2px solid var(--bg);}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent-dim);}
+
+/* cartões de atributo: os botões ficam na mesma altura mesmo quando a
+   legenda ("Deslocamento, Iniciativa") ocupa duas linhas */
+.attr-card{display:flex;flex-direction:column;}
+.attr-card .attr-controls{margin-top:auto;padding-top:10px;}
 
 /* linhas de valores derivados: o rótulo e o número ficam na mesma base */
 .derived-stat{align-items:baseline;transition:border-color .15s ease;}
