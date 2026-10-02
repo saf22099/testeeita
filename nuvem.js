@@ -178,9 +178,12 @@ function sameKeys(a, b) {
 // de aparecer na tela, para ninguém conseguir injetar código.
 // Troca < > " ' ` por caracteres parecidos (‹ › ” ’ ‘).
 // ------------------------------------------------------------
-const TROCAS = { '<': '‹', '>': '›', '"': '”', "'": '’', '`': '‘' };
+// Só os sinais que abrem uma tag em HTML precisam virar outro caractere.
+// Aspas e apóstrofos passam intactos: o escape na hora de desenhar já cuida deles,
+// e assim "Levi's" aparece exatamente como a pessoa escreveu.
+const TROCAS = { '<': '‹', '>': '›', '`': '‘' };
 function limparValor(v, d = 0) {
-  if (typeof v === 'string') return v.startsWith('data:image/') ? v.replace(/[<>"'`\s]/g, '') : v.replace(/[<>"'`]/g, c => TROCAS[c]);
+  if (typeof v === 'string') return v.startsWith('data:image/') ? v.replace(/[<>`\s]/g, '') : v.replace(/[<>`]/g, c => TROCAS[c]);
   if (d > 30) return null;
   if (Array.isArray(v)) return v.map(x => limparValor(x, d + 1));
   if (v && typeof v === 'object') {
@@ -1218,11 +1221,12 @@ function renderConta() {
   if (!CONFIGURADO) { box.innerHTML = ''; return; }
   if (!user) { box.innerHTML = `<button class="ghost nv-btn-entrar" onclick="nuvem.abrirLogin()">Entrar</button>`; return; }
   const txt = { ok: 'Salvo na nuvem', saving: 'Salvando…', error: 'Erro ao salvar', loading: 'Carregando…', offline: 'Sem internet', off: '' }[status] || '';
-  const nome = esc(perfil ? perfil.nome : (user.displayName || user.email || '').split(/[ @]/)[0]);
+  const nomeBruto = perfil ? perfil.nome : (user.displayName || user.email || '').split(/[ @]/)[0];
+  const nome = esc(nomeBruto);
   box.innerHTML = `
     <div class="nv-conta-wrap">
       <button class="nv-conta-btn" onclick="nuvem.menuConta(event)" title="Sua conta">
-        ${avatarHtml(perfil || { nome })}
+        ${avatarHtml(perfil || { nome: nomeBruto })}
         <span class="nv-conta-txt"><strong>${nome}</strong><small class="nv-status nv-status-${status}"><i></i>${txt}</small></span>
       </button>
       <div id="nvMenuConta" class="nv-menu hidden">

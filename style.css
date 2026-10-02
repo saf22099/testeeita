@@ -1393,3 +1393,159 @@ label{font-size:var(--txt-peq);}
 /* foco visível igual em tudo que é clicável */
 button:focus-visible,a:focus-visible,select:focus-visible,[tabindex]:focus-visible,.cond-switch:focus-within .cond-switch-trilho{
   outline:2px solid var(--accent);outline-offset:2px;}
+/* nomes muito longos quebram em vez de esticar a página */
+h1,h2,h3,h4,h5,td,th,li,p,strong,.skill-name,.item-header strong,
+.char-list-avatar + div h3,.nv-ficha-info h4,.cond-cab h3,.mini-card h4,
+.ability-item h5,.episodio-info h3,.nv-camp-card h4,.dados-ultima-texto strong{overflow-wrap:anywhere;}
+.container,.top-screen,.card,.modal,.big-modal{max-width:100%;min-width:0;}
+.grid > *,.cond-grid > *,.nv-camp-grid > *,.nv-fichas-grid > *{min-width:0;}
+
+/* ============================================================
+   DETALHES
+   ============================================================ */
+/* barras de recurso com cor própria, iguais às dos cartões de campanha */
+.resource-bar{height:9px;background:var(--bg-2);border-radius:999px;overflow:hidden;border:none;margin-top:8px;}
+.resource-fill{border-radius:999px;transition:width .3s cubic-bezier(.4,0,.2,1),background .2s ease;}
+.resource-fill.res-hp{background:linear-gradient(90deg,var(--danger-2),var(--danger));}
+.resource-fill.res-sta{background:linear-gradient(90deg,var(--success-2),var(--success));}
+.resource-fill.res-san{background:linear-gradient(90deg,var(--accent-dim),var(--info));}
+/* as faixas de aviso valem para qualquer barra, inclusive a de espaços do inventário */
+.resource-fill.low{background:linear-gradient(90deg,var(--warning),var(--danger-2));}
+.resource-fill.crit{background:linear-gradient(90deg,var(--danger-2),var(--danger));animation:pulsoCritico 1.6s ease-in-out infinite;}
+@keyframes pulsoCritico{50%{opacity:0.55;}}
+@media (prefers-reduced-motion:reduce){.resource-fill.crit{animation:none;}}
+
+/* números dos recursos com mais presença */
+.resource-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+.resource-head h3{margin:0;}
+
+/* botão de dado das perícias com rótulo, igual ao dos atributos */
+.skill-row-controls .dado-btn{margin-right:8px;}
+.dado-btn span{font-family:var(--sans);letter-spacing:0.02em;}
+
+/* o dado flutuante não fica mais por cima do conteúdo do fim da página.
+   Nas telas sem rolagem (menu, catálogos, Liandry, contatos) ele some e o espaço volta. */
+body{padding-bottom:84px;}
+@media (max-width:600px){body{padding-bottom:76px;}}
+body.sem-dado{padding-bottom:24px;}
+body.sem-dado .footer-inner{padding-right:0;}
+@media (max-width:600px){body.sem-dado .footer-discord{margin-bottom:0;}}
+
+/* linhas de perícia: alvo maior e realce mais suave */
+.skill-row{border-radius:var(--radius-sm);padding-left:10px;padding-right:10px;}
+.skill-row:hover{background:var(--accent-fraco);}
+.skill-name{text-decoration:none;border-bottom:1px dotted var(--border-light);transition:color .15s ease,border-color .15s ease;}
+.skill-name:hover{color:var(--accent);border-bottom-color:var(--accent);}
+.skill-row-total{transition:color .2s ease;}
+
+/* cartões do encontro e listas: hover discreto */
+.mini-card{transition:border-color .18s ease,background .18s ease;}
+.item-card{transition:border-color .18s ease;}
+.item-header{transition:background .15s ease;}
+.item-header:hover{background:var(--surface-3);}
+
+/* campos vazios ficam menos "buraco" */
+input:placeholder-shown,textarea:placeholder-shown{background:var(--bg-2);}
+input:not(:placeholder-shown),textarea:not(:placeholder-shown){background:var(--surface-2);}
+select{background-color:var(--surface-2);}
+
+/* etiqueta de bônus nas perícias */
+.bonus-badge{background:var(--accent-fraco);border:1px solid var(--accent-dim);color:var(--accent);
+  border-radius:999px;padding:1px 9px;font-size:var(--txt-mini);font-weight:500;margin-left:8px;}
+
+/* cabeçalho fixo? não — mas o topo ganha um respiro melhor */
+header{padding-top:10px;}
+h1{letter-spacing:-0.01em;}
+
+/* estados vazios mais convidativos */
+.empty-note,#charList > p{color:var(--text-muted);font-style:normal;text-align:center;padding:22px 16px;
+  border:1px dashed var(--border);border-radius:var(--radius-sm);background:var(--bg-2);}
+.ability-category .empty-note{padding:12px;}
+
+/* modais entram mais suave */
+.modal,.big-modal{animation:modalPopIn .2s cubic-bezier(.16,1,.3,1);}
+.modal-overlay,.overlay-modal{backdrop-filter:blur(2px);}
+@media (prefers-reduced-motion:reduce){.modal,.big-modal{animation:none;}}
+
+/* notificação alinhada com o dado flutuante */
+.notification{bottom:84px;}
+@media (max-width:600px){.notification{bottom:74px;}}
+
+/* o dado flutuante não fica mais em cima do botão do Discord no rodapé */
+.footer-inner{padding-right:64px;}
+@media (max-width:600px){.footer-inner{padding-right:0;}
+  .footer-discord{margin-bottom:56px;}}
+
+/* cartões da lista de fichas: botões sempre alinhados, sem sobrar um sozinho */
+.char-card-acoes{margin-top:14px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.char-card-acoes button{width:100%;padding:8px 10px;font-size:var(--txt-peq);}
+.char-list-avatar,.char-list-avatar-empty{flex-shrink:0;}
+
+/* ------------------------------------------------------------
+   ACABAMENTO
+   Detalhes pequenos que aparecem no site inteiro.
+   ------------------------------------------------------------ */
+/* texto selecionado segue a cor do tema */
+::selection{background:var(--accent-forte);color:var(--text);}
+
+/* quem navega pelo teclado enxerga onde está */
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;border-radius:var(--radius-sm);}
+button:focus:not(:focus-visible){outline:none;}
+
+/* rolagem suave ao pular para uma seção, respeitando quem prefere sem animação */
+html{scroll-behavior:smooth;}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
+
+/* cartões respondem de leve ao passar o mouse */
+.card{transition:border-color .2s ease,box-shadow .2s ease;}
+.mini-card:hover,.oficial-card:hover{border-color:var(--accent-dim);}
+
+/* barras de rolagem no tom do site */
+*{scrollbar-color:var(--border-light) transparent;scrollbar-width:thin;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-light);border-radius:999px;
+  border:2px solid var(--bg);}
+::-webkit-scrollbar-thumb:hover{background:var(--accent-dim);}
+
+/* linhas de valores derivados: o rótulo e o número ficam na mesma base */
+.derived-stat{align-items:baseline;transition:border-color .15s ease;}
+.derived-stat:hover{border-bottom-color:var(--accent-dim);}
+
+/* o botão de dado flutuante ganha um leve destaque ao passar o mouse */
+#dadosBtn{transition:transform .18s cubic-bezier(.16,1,.3,1),background .18s ease,border-color .18s ease;}
+#dadosBtn:hover{transform:translateY(-2px);}
+@media (prefers-reduced-motion:reduce){#dadosBtn:hover{transform:none;}}
+
+/* ------------------------------------------------------------
+   CONTATOS
+   ------------------------------------------------------------ */
+.contatos-grid{margin-top:18px;align-items:start;}
+.contato-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;display:flex;flex-direction:column;gap:14px;transition:border-color .18s ease;}
+.contato-card:hover{border-color:var(--border-light);}
+.contato-largo{margin-top:16px;}
+.contato-cab{display:flex;align-items:center;gap:12px;}
+.contato-cab h3{margin:0;font-size:1.05rem;}
+.contato-cab p{margin:2px 0 0;color:var(--text-muted);font-size:var(--txt-peq);}
+.contato-inicial{flex-shrink:0;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent-suave);border:1px solid var(--accent-dim);color:var(--accent);
+  font-family:var(--serif);font-size:1.15rem;font-weight:600;}
+.redes{display:flex;flex-direction:column;gap:8px;}
+.redes-linha{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}
+.rede{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 12px;color:var(--text);text-decoration:none;cursor:pointer;
+  transition:border-color .16s ease,background .16s ease,color .16s ease;}
+.rede:hover{border-color:var(--accent-dim);background:var(--hover);color:var(--text);}
+.rede svg{width:20px;height:20px;flex-shrink:0;color:var(--text-muted);transition:color .16s ease;}
+.rede:hover svg{color:var(--accent);}
+.rede-txt{display:flex;flex-direction:column;min-width:0;flex:1;}
+.rede-txt small{color:var(--text-dim);font-size:var(--txt-mini);line-height:1.3;}
+.rede-txt strong{font-weight:600;font-size:var(--txt-peq);overflow-wrap:anywhere;}
+.rede-acao{flex-shrink:0;color:var(--text-dim);font-size:var(--txt-mini);
+  border:1px solid var(--border);border-radius:999px;padding:2px 10px;transition:color .16s ease,border-color .16s ease;}
+.rede:hover .rede-acao{color:var(--accent);border-color:var(--accent-dim);}
+.rede.copiado .rede-acao{color:var(--success);border-color:var(--success);}
+@media (max-width:600px){.contatos-grid{grid-template-columns:1fr;}}

@@ -1018,7 +1018,7 @@ function renderShifterTab() {
 
   const select = document.getElementById('shifterTitanSelect');
   const allTitans = getAllTitans();
-  select.innerHTML = '<option value="">Selecione um Titã...</option>' + Object.values(allTitans).map(t => `<option value="${t.id}" ${ch.shifter.titanId === t.id ? 'selected' : ''}>${t.name}${t.custom ? ' (Custom)' : ''}</option>`).join('');
+  select.innerHTML = '<option value="">Selecione um Titã...</option>' + Object.values(allTitans).map(t => `<option value="${t.id}" ${ch.shifter.titanId === t.id ? 'selected' : ''}>${esc(t.name)}${t.custom ? ' (Custom)' : ''}</option>`).join('');
   document.getElementById('shifterControlLevel').value = ch.shifter.controlLevel;
 
   const controlInfo = TITAN_CONTROL_LEVELS.find(c => c.level === ch.shifter.controlLevel);
@@ -1033,14 +1033,14 @@ function renderShifterTab() {
   const esquivaTitan = 11 + attrs.agi;
   const bloqueioTitan = 11 + attrs.str;
   const deslocamentoTitan = titan.deslocamentoBase + attrs.agi;
-  const abilitiesHtml = (titan.abilities || []).map(a => `<div class="ability-item"><h5>${a.name}</h5><p>${a.description}</p></div>`).join('');
-  const customAbilitiesHtml = (ch.shifter.customAbilities || []).map((a, idx) => `<div class="ability-item"><h5>${a.name} <span class="tag class">Custom</span></h5><p>${a.description}</p><button class="small danger" style="margin-top:8px;" onclick="removeShifterCustomAbility(${idx})">Remover</button></div>`).join('');
+  const abilitiesHtml = (titan.abilities || []).map(a => `<div class="ability-item"><h5>${esc(a.name)}</h5><p>${esc(a.description)}</p></div>`).join('');
+  const customAbilitiesHtml = (ch.shifter.customAbilities || []).map((a, idx) => `<div class="ability-item"><h5>${esc(a.name)} <span class="tag class">Custom</span></h5><p>${esc(a.description)}</p><button class="small danger" style="margin-top:8px;" onclick="removeShifterCustomAbility(${idx})">Remover</button></div>`).join('');
 
   statsBlock.innerHTML = `
     <div class="card" style="background:var(--surface-2);">
       <div style="display:flex;gap:14px;align-items:flex-start;">
         <div class="char-thumbnail" onclick="document.getElementById('shifterImageInput').click()" title="Clique para definir a imagem do Titã">
-          ${ch.shifter.imageUrl ? `<img src="${ch.shifter.imageUrl}" alt="" />` : '<span>Foto</span>'}
+          ${ch.shifter.imageUrl ? `<img src="${esc(imagemSegura(ch.shifter.imageUrl))}" alt="" />` : '<span>Foto</span>'}
         </div>
         <div style="flex:1;">
           <h3>${titan.name} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(${titan.height})</span></h3>
@@ -1239,6 +1239,17 @@ function saveCustomTitan() {
 
 function genId() { return 'mod_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
 
+/* Texto que a pessoa digitou (nome de ficha, item, ataque...) precisa ser
+   escapado antes de entrar no HTML, senão um "<" ou um apóstrofo quebra a tela. */
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* Só aceita endereço de imagem que o navegador pode desenhar com segurança. */
+function imagemSegura(u) {
+  return typeof u === 'string' && /^(data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,|https:\/\/)/i.test(u) ? u : '';
+}
+
 function ensureCharDefaults(ch) {
   if (!ch.talentsDefects) ch.talentsDefects = [];
   if (!ch.sessionState) ch.sessionState = { pressentimentoUsed: 0, azaradoUsed: false, vicioUnsatisfiedSessions: 0 };
@@ -1263,6 +1274,20 @@ function ensureCharDefaults(ch) {
     ch.resourceModifiers[k].forEach(m => { if (!m.id) m.id = genId(); });
   });
   if (!ch.resources) ch.resources = {};
+  // ficha antiga ou importada pode vir sem alguma dessas caixas
+  ['hp', 'sta', 'san'].forEach(k => { if (!ch.resources[k] || typeof ch.resources[k] !== 'object') ch.resources[k] = { cur: 0, max: 0 }; });
+  if (!Array.isArray(ch.skills)) ch.skills = [];
+  // perícia que falta (ficha antiga) entra zerada, para a lista nunca vir incompleta
+  if (typeof SKILL_LIST !== 'undefined') SKILL_LIST.forEach(def => {
+    if (!ch.skills.some(x => x && x.name === def.name)) {
+      ch.skills.push({ name: def.name, base: 0, bonus: 0, modifiers: [], selectedAttribute: (SKILLS_DATA[def.name] && SKILLS_DATA[def.name].attributes[0]) || 'int' });
+    }
+  });
+  if (!ch.attributes) ch.attributes = { agi: 0, sta: 0, str: 0, int: 0, vit: 0 };
+  if (!ch.attributeBonuses) ch.attributeBonuses = { agi: 0, sta: 0, str: 0, int: 0, vit: 0 };
+  if (!Array.isArray(ch.quickAttacks)) ch.quickAttacks = [];
+  if (typeof ch.level !== 'number' || !isFinite(ch.level)) ch.level = 0;
+  ch.level = Math.max(0, Math.min(20, Math.round(ch.level)));
   if (!ch.dmt) ch.dmt = { type: 'Tradicional', cylinderCapacity: 20, cylinder1: 20, cylinder2: 20 };
   if (ch.dmt.cylinderCapacity === undefined) ch.dmt.cylinderCapacity = 20;
   if (ch.dmt.cylinder1 === undefined) ch.dmt.cylinder1 = ch.dmt.cylinderCapacity;
@@ -1315,7 +1340,7 @@ function recalcAllModifiers(ch) {
         ch.attributeBonuses[eff.target] = (ch.attributeBonuses[eff.target] || 0) + eff.value;
       } else if (eff.type === 'skill') {
         const skill = ch.skills.find(s => s.name === eff.target);
-        if (skill) skill.modifiers.push({ id: genId(), source: `${def.category === 'talent' ? 'Talento' : 'Defeito'}: ${def.name}`, sourceType: def.category, value: eff.value, ignoresCap: false });
+        if (skill) skill.modifiers.push({ id: genId(), source: `${def.category === 'talent' ? 'Talento' : 'Defeito'}: ${esc(def.name)}`, sourceType: def.category, value: eff.value, ignoresCap: false });
       } else if (eff.type === 'derived') {
         ch.derivedModifiers[eff.target] = (ch.derivedModifiers[eff.target] || 0) + eff.value;
       } else if (eff.type === 'flag') {
@@ -1325,7 +1350,7 @@ function recalcAllModifiers(ch) {
     if (def.choiceEffect && td.choiceValue) {
       if (def.choiceEffect.type === 'skill') {
         const skill = ch.skills.find(s => s.name === td.choiceValue);
-        if (skill) skill.modifiers.push({ id: genId(), source: `Talento: ${def.name}`, sourceType: def.category, value: def.choiceEffect.value, ignoresCap: !!def.choiceEffect.ignoresCap });
+        if (skill) skill.modifiers.push({ id: genId(), source: `Talento: ${esc(def.name)}`, sourceType: def.category, value: def.choiceEffect.value, ignoresCap: !!def.choiceEffect.ignoresCap });
       }
     }
   });
@@ -1486,6 +1511,7 @@ function sumResourceModifiers(ch, key) {
 function recalculateResources(ch) {
   if (!ch.originId) return;
   ensureCharDefaults(ch);
+  if (!getOriginById(ch.originId)) return;   // origem apagada: não dá para recalcular
   const originData = getOriginById(ch.originId);
   const vitality = ch.attributes.vit + (ch.attributeBonuses.vit || 0);
   const stamina = ch.attributes.sta + (ch.attributeBonuses.sta || 0);
@@ -1526,7 +1552,7 @@ function getSkillModifiers(ch, skillName) {
   if (ch.subclass && SUBCLASS_BONUSES[ch.subclass]) {
     const bonuses = SUBCLASS_BONUSES[ch.subclass];
     if (bonuses.skills && bonuses.skills[skillName]) {
-      modifiers.push({ source: `Subclasse: ${ch.subclass}`, value: bonuses.skills[skillName], ignoresCap: bonuses.ignoreLimit && bonuses.ignoreLimit.includes(skillName) });
+      modifiers.push({ source: `Subclasse: ${esc(ch.subclass)}`, value: bonuses.skills[skillName], ignoresCap: bonuses.ignoreLimit && bonuses.ignoreLimit.includes(skillName) });
     }
   }
   ch.abilities.forEach(ability => {
@@ -1676,7 +1702,7 @@ function renderOriginSelection() {
     }
     div.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <h4>${origin.name}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4>
+        <h4>${esc(origin.name)}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4>
         <button class="small" onclick="toggleOriginExpand('${origin.id}', event)">${expandedOriginId === origin.id ? 'Ocultar' : 'Detalhes'}</button>
       </div>
       <p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p>
@@ -1936,7 +1962,7 @@ function buildTDCard(td) {
   div.className = 'talent-defect-card' + (def.category === 'defect' ? ' defect' : '');
   let choiceNote = '';
   if (def.requiresChoice && td.choiceValue) choiceNote = `<div class="choice-note"><strong>${def.requiresChoice.label}:</strong> ${td.choiceValue}</div>`;
-  div.innerHTML = `<h5><span>${def.name}</span><span class="cost ${def.category}" style="font-family:var(--mono);border:1px solid var(--border);padding:2px 7px;border-radius:2px;">${def.cost > 0 ? '+' : ''}${def.cost} pontos</span></h5><p>${def.description}</p>${choiceNote}<div style="margin-top:10px;"><button class="small danger" onclick="removeTalentDefect('${td.uid}')">Remover</button></div>`;
+  div.innerHTML = `<h5><span>${esc(def.name)}</span><span class="cost ${def.category}" style="font-family:var(--mono);border:1px solid var(--border);padding:2px 7px;border-radius:2px;">${def.cost > 0 ? '+' : ''}${def.cost} pontos</span></h5><p>${def.description}</p>${choiceNote}<div style="margin-top:10px;"><button class="small danger" onclick="removeTalentDefect('${td.uid}')">Remover</button></div>`;
   return div;
 }
 
@@ -2019,7 +2045,7 @@ function renderTalentDefectLibrary() {
     const already = (ch.talentsDefects || []).some(td => td.itemId === def.id);
     const wouldBreakBalance = def.category === 'talent' && (b.balance + def.cost) < 0;
     const card = document.createElement('div'); card.className = 'mini-card';
-    card.innerHTML = `<h4>${def.name}</h4><p class="cost ${def.category}">${def.category === 'talent' ? 'Talento' : 'Defeito'} — ${def.cost > 0 ? '+' : ''}${def.cost} pontos</p><p class="desc">${def.description}</p><button ${already ? 'disabled' : (wouldBreakBalance ? 'disabled' : '')} onclick="handleSelectTalentDefect('${def.id}')" style="margin-top:10px;width:100%;">${already ? 'Selecionado' : (wouldBreakBalance ? 'Saldo insuficiente' : 'Adicionar')}</button>`;
+    card.innerHTML = `<h4>${esc(def.name)}</h4><p class="cost ${def.category}">${def.category === 'talent' ? 'Talento' : 'Defeito'} — ${def.cost > 0 ? '+' : ''}${def.cost} pontos</p><p class="desc">${def.description}</p><button ${already ? 'disabled' : (wouldBreakBalance ? 'disabled' : '')} onclick="handleSelectTalentDefect('${def.id}')" style="margin-top:10px;width:100%;">${already ? 'Selecionado' : (wouldBreakBalance ? 'Saldo insuficiente' : 'Adicionar')}</button>`;
     container.appendChild(card);
   });
 }
@@ -2118,9 +2144,9 @@ function renderCharList() {
     const originData = getOriginById(ch.originId);
     const card = document.createElement('div'); card.className = 'card';
     const avatar = ch.imageUrl
-      ? `<img src="${ch.imageUrl}" alt="" class="char-list-avatar" />`
+      ? `<img src="${esc(imagemSegura(ch.imageUrl))}" alt="" class="char-list-avatar" />`
       : `<div class="char-list-avatar char-list-avatar-empty">Sem foto</div>`;
-    card.innerHTML = `<div style="display:flex;gap:14px;align-items:flex-start;">${avatar}<div style="flex:1;min-width:0;"><h3 style="overflow-wrap:break-word;">${ch.name}</h3><p style="color:var(--text-muted);font-size:0.85rem;">Nível ${ch.level} — ${originData ? originData.name : 'Sem origem'}</p></div></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;"><button onclick="openChar('${ch.id}')">Abrir</button><button onclick="duplicateChar('${ch.id}')">Duplicar</button><button onclick="exportChar('${ch.id}')">Exportar</button><button class="danger" onclick="deleteChar('${ch.id}')">Excluir</button></div>`;
+    card.innerHTML = `<div style="display:flex;gap:14px;align-items:flex-start;">${avatar}<div style="flex:1;min-width:0;"><h3 style="overflow-wrap:break-word;">${esc(ch.name)}</h3><p style="color:var(--text-muted);font-size:0.85rem;">Nível ${ch.level} — ${originData ? originData.name : 'Sem origem'}</p></div></div><div class="char-card-acoes"><button class="primary" onclick="openChar('${ch.id}')">Abrir</button><button onclick="duplicateChar('${ch.id}')">Duplicar</button><button onclick="exportChar('${ch.id}')">Exportar</button><button class="danger" onclick="deleteChar('${ch.id}')">Excluir</button></div>`;
     list.appendChild(card);
   });
 }
@@ -2470,22 +2496,22 @@ function buildGMTitanCard(t) {
       </div>
     </div>`;
   }).join('');
-  const avatar = t.imageUrl ? `<img src="${t.imageUrl}" alt="" class="initiative-avatar" style="width:64px;height:64px;" />` : '';
+  const avatar = t.imageUrl ? `<img src="${esc(imagemSegura(t.imageUrl))}" alt="" class="initiative-avatar" style="width:64px;height:64px;" />` : '';
   const statsHtml = cat ? `<div class="derived-stat" style="margin-top:10px;"><span><strong>Ataque:</strong></span><span>1d20${cat.testeAcerto} — ${cat.dano}</span></div><div class="derived-stat"><span><strong>Deslocamento:</strong></span><span>${cat.deslocamento}m</span></div><div class="derived-stat"><span><strong>Bloqueio:</strong></span><span>${cat.bloqueio} (${cat.bloqueioNuca} na nuca)</span></div>` : '';
   div.innerHTML = `
     <div style="display:flex;gap:12px;align-items:flex-start;">
       ${avatar}
       <div style="flex:1;min-width:0;">
-        <h4>${t.name}</h4>
+        <h4>${esc(t.name)}</h4>
         <p style="font-size:0.78rem;color:var(--text-dim);">${cat ? cat.label : 'Custom'}${variation && variation.id !== 'nenhuma' ? ` — ${variation.label}` : ''}</p>
       </div>
     </div>
-    ${t.description ? `<p class="desc" style="margin-top:8px;">${t.description}</p>` : ''}
+    ${t.description ? `<p class="desc" style="margin-top:8px;">${esc(t.description)}</p>` : ''}
     <div style="font-family:var(--mono);margin-top:8px;">${totals.cur} / ${totals.max} PV total</div>
     ${statsHtml}
     ${partsHtml}
     ${effects.length ? `<div style="margin-top:10px;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--danger);font-size:0.78rem;color:var(--text-muted);">${effects.join('<br>')}</div>` : ''}
-    ${t.customNotes ? `<div style="margin-top:10px;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--accent);font-size:0.78rem;color:var(--text-muted);"><strong style="color:var(--accent);">Notas:</strong> ${t.customNotes}</div>` : ''}
+    ${t.customNotes ? `<div style="margin-top:10px;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--accent);font-size:0.78rem;color:var(--text-muted);"><strong style="color:var(--accent);">Notas:</strong> ${esc(t.customNotes)}</div>` : ''}
     <div class="grid grid-2" style="margin-top:12px;gap:8px;">
       <input type="number" id="healAmount_${t.id}" min="0" value="5" placeholder="Quantidade" />
       <button onclick="healAllGMTitanPartsBy('${t.id}')">Curar em Todas as Partes</button>
@@ -2542,7 +2568,7 @@ function openGMTitanModal(editId) {
     document.getElementById('gmTitanCustomPernaD').value = t.parts.pernaD.max;
     document.getElementById('gmTitanCustomPernaE').value = t.parts.pernaE.max;
     document.getElementById('gmTitanCustomNotes').value = t.customNotes || '';
-    if (t.imageUrl) { thumbImg.src = t.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingGMTitanImage = t.imageUrl; }
+    if (t.imageUrl) { thumbImg.src = imagemSegura(t.imageUrl); thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingGMTitanImage = t.imageUrl; }
     else { thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden'); }
   } else {
     document.getElementById('gmTitanModalTitle').textContent = 'Criar Titã';
@@ -2760,7 +2786,7 @@ function openGMPrimordialModal(editId) {
   const thumbPlaceholder = document.getElementById('gmPrimordialThumbnailPlaceholder');
   const select = document.getElementById('gmPrimordialTemplate');
   const allTitans = getAllTitans();
-  select.innerHTML = '<option value="">Personalizado (em branco)</option>' + Object.values(allTitans).map(t => `<option value="${t.id}">${t.name}${t.custom ? ' (Custom)' : ''}</option>`).join('');
+  select.innerHTML = '<option value="">Personalizado (em branco)</option>' + Object.values(allTitans).map(t => `<option value="${t.id}">${esc(t.name)}${t.custom ? ' (Custom)' : ''}</option>`).join('');
   select.value = '';
   if (editId) {
     const t = gmPrimordialTitans.find(x => x.id === editId);
@@ -2782,7 +2808,7 @@ function openGMPrimordialModal(editId) {
     document.getElementById('gmPrimordialRegen').value = t.regen || '';
     document.getElementById('gmPrimordialPdeTransform').value = t.pdeTransform || 0;
     document.getElementById('gmPrimordialPdeMaintain').value = t.pdeMaintain || 0;
-    if (t.imageUrl) { thumbImg.src = t.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingGMPrimordialImage = t.imageUrl; }
+    if (t.imageUrl) { thumbImg.src = imagemSegura(t.imageUrl); thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingGMPrimordialImage = t.imageUrl; }
     else { thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden'); }
   } else {
     document.getElementById('gmPrimordialModalTitle').textContent = 'Criar Titã Shifter';
@@ -2857,7 +2883,7 @@ function buildGMPrimordialCard(t) {
   const esquiva = 11 + t.attrs.agi;
   const bloqueio = 11 + t.attrs.str;
   const div = document.createElement('div'); div.className = 'mini-card'; div.style.marginBottom = '12px';
-  const avatar = t.imageUrl ? `<img src="${t.imageUrl}" alt="" class="initiative-avatar" style="width:64px;height:64px;" />` : '';
+  const avatar = t.imageUrl ? `<img src="${esc(imagemSegura(t.imageUrl))}" alt="" class="initiative-avatar" style="width:64px;height:64px;" />` : '';
   const partsHtml = Object.keys(TITAN_PART_LABELS).map(partKey => {
     const p = t.parts[partKey];
     const pct = p.max > 0 ? Math.min(100, (p.cur / p.max) * 100) : 0;
@@ -2878,9 +2904,9 @@ function buildGMPrimordialCard(t) {
   div.innerHTML = `
     <div style="display:flex;gap:12px;align-items:flex-start;">
       ${avatar}
-      <div style="flex:1;min-width:0;"><h4>${t.name} <span class="tag origin">Shifter</span></h4></div>
+      <div style="flex:1;min-width:0;"><h4>${esc(t.name)} <span class="tag origin">Shifter</span></h4></div>
     </div>
-    ${t.description ? `<p class="desc" style="margin-top:8px;">${t.description}</p>` : ''}
+    ${t.description ? `<p class="desc" style="margin-top:8px;">${esc(t.description)}</p>` : ''}
     <div class="grid grid-4" style="margin-top:10px;">
       <div class="attr-card"><div>Agilidade</div><div class="attr-value">${t.attrs.agi}</div></div>
       <div class="attr-card"><div>Estâmina</div><div class="attr-value">${t.attrs.sta}</div></div>
@@ -3028,7 +3054,7 @@ function renderInitiative() {
     const pvPct = p.pvMax > 0 ? Math.min(100, (p.pvCur / p.pvMax) * 100) : 0;
     const pePct = p.peMax > 0 ? Math.min(100, (p.peCur / p.peMax) * 100) : 0;
     const pvLabel = p.isNucaOnly ? 'PDV (Nuca)' : 'PDV';
-    const avatar = p.imageUrl ? `<img src="${p.imageUrl}" alt="" class="initiative-avatar" />` : `<div class="initiative-avatar initiative-avatar-empty">${(idx + 1)}</div>`;
+    const avatar = p.imageUrl ? `<img src="${esc(imagemSegura(p.imageUrl))}" alt="" class="initiative-avatar" />` : `<div class="initiative-avatar initiative-avatar-empty">${(idx + 1)}</div>`;
     div.innerHTML = `
       <div class="initiative-drag-handle" title="Arraste para reordenar">
         <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="8" cy="6" r="1.6" fill="currentColor"/><circle cx="16" cy="6" r="1.6" fill="currentColor"/><circle cx="8" cy="12" r="1.6" fill="currentColor"/><circle cx="16" cy="12" r="1.6" fill="currentColor"/><circle cx="8" cy="18" r="1.6" fill="currentColor"/><circle cx="16" cy="18" r="1.6" fill="currentColor"/></svg>
@@ -3079,7 +3105,7 @@ function openInitiativeModal(editId) {
     document.getElementById('initiativePvMax').value = p.pvMax;
     document.getElementById('initiativePeCur').value = p.peCur;
     document.getElementById('initiativePeMax').value = p.peMax;
-    if (p.imageUrl) { thumbImg.src = p.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingInitiativeImage = p.imageUrl; }
+    if (p.imageUrl) { thumbImg.src = imagemSegura(p.imageUrl); thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingInitiativeImage = p.imageUrl; }
     else { thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden'); }
   } else {
     document.getElementById('initiativeModalTitle').textContent = 'Adicionar Participante';
@@ -3242,7 +3268,7 @@ function openChar(id) {
   renderShifterTab();
   renderCharImage();
   renderQuickAttacks();
-  document.title = `Coordenada — ${ch.name}`;
+  document.title = `Coordenada — ${esc(ch.name)}`;
 }
 
 function getCurrentChar() { return characters.find(c => c.id === currentCharId); }
@@ -3325,8 +3351,8 @@ function renderResourceBar(key, curId, maxId, barId) {
   document.getElementById(curId).textContent = r.cur; document.getElementById(maxId).textContent = r.max;
   const pct = r.max > 0 ? (r.cur / r.max) * 100 : 0;
   const bar = document.getElementById(barId);
-  bar.style.width = Math.min(100, pct) + '%';
-  bar.className = 'resource-fill' + (pct <= 25 ? ' crit' : pct <= 50 ? ' low' : '');
+  bar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  bar.className = 'resource-fill res-' + key + (pct <= 25 ? ' crit' : pct <= 50 ? ' low' : '');
 }
 
 function renderResourceModList(key, containerId) {
@@ -3336,7 +3362,7 @@ function renderResourceModList(key, containerId) {
   const mods = (ch.resourceModifiers && ch.resourceModifiers[key]) || [];
   mods.forEach(m => {
     const div = document.createElement('div'); div.className = 'modifier-row';
-    div.innerHTML = `<span>${m.name}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${m.value >= 0 ? '+' : ''}${m.value}</span><button class="small danger" style="margin-left:10px;" onclick="removeResourceModifier('${key}', '${m.id}')">Remover</button></span>`;
+    div.innerHTML = `<span>${esc(m.name)}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${m.value >= 0 ? '+' : ''}${m.value}</span><button class="small danger" style="margin-left:10px;" onclick="removeResourceModifier('${key}', '${m.id}')">Remover</button></span>`;
     container.appendChild(div);
   });
 }
@@ -3423,7 +3449,7 @@ function renderSkills() {
     const result = calculateSkill(SKILLS_DATA[skill.name]?.id || skill.name.toLowerCase(), ch);
     if (!result) return;
     let bonusText = '';
-    if (result.modifiers.length > 0) bonusText = result.modifiers.map(m => `${m.value > 0 ? '+' : ''}${m.value} ${m.source}`).join(', ');
+    if (result.modifiers.length > 0) bonusText = result.modifiers.map(m => `${m.value > 0 ? '+' : ''}${m.value} ${esc(m.source)}`).join(', ');
     const flag = (ch.skillFlags || {})[skill.name];
     const row = document.createElement('div'); row.className = 'skill-row';
     row.innerHTML = `<div><span class="skill-name" onclick="openSkillDetailModal('${skill.name}')">${skill.name}</span>${bonusText ? `<span class="bonus-badge">${bonusText}</span>` : ''}${flag === 'disadvantage' ? '<span class="flag-badge">Desvantagem</span>' : ''}</div><div class="skill-row-info">${ATTRIBUTES[result.selectedAttribute].name} ${result.attributeValue} (metade +${result.attributeBonus})<br>Investido +${result.investedPoints}</div><div class="skill-row-total">${result.total}</div><div class="skill-row-controls"><button onclick="modSkill('${skill.name}', -1)" ${skill.base <= 0 ? 'disabled' : ''}>-</button><button onclick="modSkill('${skill.name}', 1)" ${!canAddSkillPoint(ch, skill.name) ? 'disabled' : ''}>+</button></div>`;
@@ -3591,7 +3617,7 @@ function renderInventory() {
   const capModContainer = document.getElementById('personalCapacityModList'); capModContainer.innerHTML = '';
   ((ch.inventory.personal.capacityModifiers) || []).forEach(m => {
     const div = document.createElement('div'); div.className = 'modifier-row';
-    div.innerHTML = `<span>${m.name}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${m.value >= 0 ? '+' : ''}${m.value}</span><button class="small danger" style="margin-left:10px;" onclick="removePersonalCapacityModifier('${m.id}')">Remover</button></span>`;
+    div.innerHTML = `<span>${esc(m.name)}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${m.value >= 0 ? '+' : ''}${m.value}</span><button class="small danger" style="margin-left:10px;" onclick="removePersonalCapacityModifier('${m.id}')">Remover</button></span>`;
     capModContainer.appendChild(div);
   });
   if (ch.inventory.personal.items.length === 0) personalList.innerHTML = '<p style="color:var(--text-dim);text-align:center;padding:18px;">Inventário pessoal vazio.</p>';
@@ -3625,19 +3651,19 @@ function createItemCard(item, idx, type) {
   const otherLabel = type === 'personal' ? 'Mover para Montaria' : 'Mover para Pessoal';
   div.innerHTML = `
     <div class="item-header" onclick="toggleItem('${type}', ${idx})">
-      <div><strong>${item.name}</strong> <span style="color:var(--text-muted);">x${item.quantity}</span></div>
+      <div><strong>${esc(item.name)}</strong> <span style="color:var(--text-muted);">x${item.quantity}</span></div>
       <div style="color:var(--text-muted);font-size:0.82rem;">${item.weight} peso</div>
     </div>
     <div class="item-content" id="${type}-item-${idx}">
       <div class="item-detail"><strong>Categoria:</strong> ${item.category}</div>
       <div class="item-detail"><strong>Peso Total:</strong> ${(item.weight * item.quantity).toFixed(1)}</div>
-      ${item.dice ? `<div class="item-detail"><strong>Dado/Dano:</strong> ${item.dice}</div>` : ''}
-      ${item.range ? `<div class="item-detail"><strong>Alcance:</strong> ${item.range}</div>` : ''}
-      ${item.description ? `<div class="item-detail"><strong>Descrição:</strong><br>${item.description}</div>` : ''}
-      ${item.properties ? `<div class="item-detail"><strong>Propriedades:</strong> ${item.properties}</div>` : ''}
-      ${item.requirements ? `<div class="item-detail"><strong>Requisitos:</strong> ${item.requirements}</div>` : ''}
-      ${item.bonuses ? `<div class="item-detail"><strong>Bônus:</strong> ${item.bonuses}</div>` : ''}
-      ${item.notes ? `<div class="item-detail"><strong>Observações:</strong><br>${item.notes}</div>` : ''}
+      ${item.dice ? `<div class="item-detail"><strong>Dado/Dano:</strong> ${esc(item.dice)}</div>` : ''}
+      ${item.range ? `<div class="item-detail"><strong>Alcance:</strong> ${esc(item.range)}</div>` : ''}
+      ${item.description ? `<div class="item-detail"><strong>Descrição:</strong><br>${esc(item.description)}</div>` : ''}
+      ${item.properties ? `<div class="item-detail"><strong>Propriedades:</strong> ${esc(item.properties)}</div>` : ''}
+      ${item.requirements ? `<div class="item-detail"><strong>Requisitos:</strong> ${esc(item.requirements)}</div>` : ''}
+      ${item.bonuses ? `<div class="item-detail"><strong>Bônus:</strong> ${esc(item.bonuses)}</div>` : ''}
+      ${item.notes ? `<div class="item-detail"><strong>Observações:</strong><br>${esc(item.notes)}</div>` : ''}
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
         <button onclick="editItem('${type}', ${idx})">Editar</button>
         <button onclick="moveItem('${type}', ${idx})">${otherLabel}</button>
@@ -3680,7 +3706,7 @@ function renderEquipmentPicker() {
     if (currentEquipmentFilter !== 'all' && eq.category !== currentEquipmentFilter) return;
     if (term && !eq.name.toLowerCase().includes(term) && !eq.description.toLowerCase().includes(term)) return;
     const card = document.createElement('div'); card.className = 'mini-card';
-    card.innerHTML = `<h4>${eq.name}</h4><p class="cost talent">${categoryLabels[eq.category] || eq.category} — ${eq.weight} espaço${eq.weight === 1 ? '' : 's'}</p><p class="desc">${eq.description}</p>${eq.dice ? `<p style="font-size:0.78rem;color:var(--text-dim);">Dano/Dado: ${eq.dice}</p>` : ''}${eq.bonuses ? `<p style="font-size:0.78rem;color:var(--text-dim);">Bônus: ${eq.bonuses}</p>` : ''}<button onclick="addEquipmentToInventory('${eq.id}')" style="margin-top:12px;width:100%;">Adicionar</button>`;
+    card.innerHTML = `<h4>${esc(eq.name)}</h4><p class="cost talent">${categoryLabels[eq.category] || eq.category} — ${eq.weight} espaço${eq.weight === 1 ? '' : 's'}</p><p class="desc">${esc(eq.description)}</p>${eq.dice ? `<p style="font-size:0.78rem;color:var(--text-dim);">Dano/Dado: ${esc(eq.dice)}</p>` : ''}${eq.bonuses ? `<p style="font-size:0.78rem;color:var(--text-dim);">Bônus: ${esc(eq.bonuses)}</p>` : ''}<button onclick="addEquipmentToInventory('${eq.id}')" style="margin-top:12px;width:100%;">Adicionar</button>`;
     container.appendChild(card);
   });
   if (!EQUIPMENT_DB.some(eq => (currentEquipmentFilter === 'all' || eq.category === currentEquipmentFilter) && (!term || eq.name.toLowerCase().includes(term) || eq.description.toLowerCase().includes(term)))) {
@@ -3881,9 +3907,10 @@ function renderCharImage() {
   const thumbPlaceholder = document.getElementById('charThumbnailPlaceholder');
   const portraitImg = document.getElementById('charPortraitImg');
   const portraitPlaceholder = document.getElementById('charPortraitPlaceholder');
-  if (ch.imageUrl) {
-    thumbImg.src = ch.imageUrl; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden');
-    portraitImg.src = ch.imageUrl; portraitImg.classList.remove('hidden'); portraitPlaceholder.classList.add('hidden');
+  const foto = imagemSegura(ch.imageUrl);
+  if (foto) {
+    thumbImg.src = foto; thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden');
+    portraitImg.src = foto; portraitImg.classList.remove('hidden'); portraitPlaceholder.classList.add('hidden');
   } else {
     thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden');
     portraitImg.classList.add('hidden'); portraitPlaceholder.classList.remove('hidden');
@@ -3903,16 +3930,16 @@ function renderQuickAttacks() {
     const div = document.createElement('div'); div.className = 'item-card';
     div.innerHTML = `
       <div class="item-header" onclick="toggleQuickAttack('${atk.id}')">
-        <div><strong>${atk.name}</strong></div>
+        <div><strong>${esc(atk.name)}</strong></div>
         <div style="display:flex;gap:14px;color:var(--text-muted);font-size:0.82rem;">
-          <span>Acerto: ${atk.acerto || '—'}</span>
-          <span>Dano: ${atk.dano || '—'}</span>
+          <span>Acerto: ${esc(atk.acerto || '—')}</span>
+          <span>Dano: ${esc(atk.dano || '—')}</span>
         </div>
       </div>
       <div class="item-content${expanded ? ' expanded' : ''}">
-        ${atk.bonus ? `<div class="item-detail"><strong>Bônus Adicional:</strong> ${atk.bonus}</div>` : ''}
-        ${atk.desc ? `<div class="item-detail"><strong>Descrição:</strong><br>${atk.desc}</div>` : ''}
-        ${atk.properties ? `<div class="item-detail"><strong>Propriedades:</strong><br>${atk.properties}</div>` : ''}
+        ${atk.bonus ? `<div class="item-detail"><strong>Bônus Adicional:</strong> ${esc(atk.bonus)}</div>` : ''}
+        ${atk.desc ? `<div class="item-detail"><strong>Descrição:</strong><br>${esc(atk.desc)}</div>` : ''}
+        ${atk.properties ? `<div class="item-detail"><strong>Propriedades:</strong><br>${esc(atk.properties)}</div>` : ''}
         <div style="margin-top:14px;display:flex;gap:8px;">
           <button onclick="openQuickAttackModal('${atk.id}')">Editar</button>
           <button class="danger" onclick="removeQuickAttack('${atk.id}')">Excluir</button>
@@ -4303,7 +4330,7 @@ function renderAbilities() {
   const classPassiveContainer = document.getElementById('classPassiveDisplay');
   if (ch.class && CLASS_PASSIVES[ch.class]) {
     const tier = getClassPassiveTier(ch.class, ch.level);
-    classPassiveContainer.innerHTML = `<div class="ability-item"><h5>Passiva de Classe <span class="tag class" style="margin-left:8px;">${ch.class}</span></h5><p>${tier ? tier.text : 'Sem efeito neste nível.'}</p></div>`;
+    classPassiveContainer.innerHTML = `<div class="ability-item"><h5>Passiva de Classe <span class="tag class" style="margin-left:8px;">${esc(ch.class)}</span></h5><p>${tier ? tier.text : 'Sem efeito neste nível.'}</p></div>`;
   } else {
     classPassiveContainer.innerHTML = '<p class="empty-note">Nenhuma classe selecionada.</p>';
   }
@@ -4399,7 +4426,7 @@ function addRepeatableAbilityChoice(abilityId) {
 
 function buildCustomAbilityCard(sk) {
   const div = document.createElement('div'); div.className = 'ability-item';
-  div.innerHTML = `<h5>${sk.name} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(Nível ${sk.level})</span></h5><p>${sk.desc}</p><div class="ability-meta">${sk.category ? `Categoria: ${sk.category}` : ''}${sk.cost ? ` — Custo: ${sk.cost}` : ''}</div><div style="margin-top:10px;display:flex;gap:8px;"><button class="small" onclick="openCustomSkillModal('${sk.id}')">Editar</button><button class="danger small" onclick="removeSkill('${sk.id}')">Remover</button></div>`;
+  div.innerHTML = `<h5>${esc(sk.name)} <span style="font-size:0.78rem;color:var(--text-dim);font-weight:400;">(Nível ${sk.level})</span></h5><p>${esc(sk.desc)}</p><div class="ability-meta">${sk.category ? `Categoria: ${sk.category}` : ''}${sk.cost ? ` — Custo: ${esc(sk.cost)}` : ''}</div><div style="margin-top:10px;display:flex;gap:8px;"><button class="small" onclick="openCustomSkillModal('${sk.id}')">Editar</button><button class="danger small" onclick="removeSkill('${sk.id}')">Remover</button></div>`;
   return div;
 }
 
@@ -4490,7 +4517,7 @@ function renderOriginSelectorList() {
   Object.values(getAllOrigins()).forEach(origin => {
     const div = document.createElement('div'); div.className = 'origin-option' + (ch.originId === origin.id ? ' selected' : '');
     div.onclick = () => changeOrigin(origin.id);
-    div.innerHTML = `<h4>${origin.name}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4><p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p><p>${origin.description.substring(0, 100)}...</p><div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv} PDV</span><span class="origin-stat san">${origin.initialStats.san} SAN</span><span class="origin-stat pde">${origin.initialStats.pde} PDE</span></div>${origin.custom ? `<button class="small danger" style="margin-top:10px;" onclick="deleteCustomFamily('${origin.id}', event)">Excluir Família</button>` : ''}`;
+    div.innerHTML = `<h4>${esc(origin.name)}${origin.custom ? ' <span class="tag class">Custom</span>' : ''}</h4><p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p><p>${origin.description.substring(0, 100)}...</p><div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv} PDV</span><span class="origin-stat san">${origin.initialStats.san} SAN</span><span class="origin-stat pde">${origin.initialStats.pde} PDE</span></div>${origin.custom ? `<button class="small danger" style="margin-top:10px;" onclick="deleteCustomFamily('${origin.id}', event)">Excluir Família</button>` : ''}`;
     container.appendChild(div);
   });
 }
@@ -4512,8 +4539,9 @@ function changeOrigin(newOriginId) {
   saveChars();
   updateAttrUI(); updateResourceUI(); renderSkills(); renderAbilities();
   closeOriginSelector();
-  document.getElementById('charOrigin').value = getOriginById(newOriginId).name;
-  showNotification('Origem alterada.', `De ${getOriginById(oldOriginId).name} para ${getOriginById(newOriginId).name}`);
+  const origemNova = getOriginById(newOriginId), origemVelha = getOriginById(oldOriginId);
+  document.getElementById('charOrigin').value = origemNova ? origemNova.name : '';
+  showNotification('Origem alterada.', `De ${esc(origemVelha ? origemVelha.name : '—')} para ${esc(origemNova ? origemNova.name : '—')}`);
 }
 
 /* ============================================================
@@ -4550,6 +4578,6 @@ document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click',
 document.getElementById('charClass').addEventListener('change', () => { const ch = getCurrentChar(); if (!ch) return; ch.class = document.getElementById('charClass').value; updateClassSubclassOptions(); });
 document.getElementById('charSubclass').addEventListener('change', () => { const ch = getCurrentChar(); if (!ch) return; ch.subclass = document.getElementById('charSubclass').value; ch.updatedAt = new Date().toISOString(); saveChars(); renderSkills(); });
 document.getElementById('charLevel').addEventListener('change', () => { const ch = getCurrentChar(); if (!ch) return; ch.level = parseInt(document.getElementById('charLevel').value) || 0; recalculateResources(ch); renderSkills(); renderProgression(); renderAvailableBenefits(); updateResourceUI(); renderAbilities(); ch.updatedAt = new Date().toISOString(); saveChars(); });
-document.getElementById('charName').addEventListener('input', () => { const ch = getCurrentChar(); if (!ch) return; ch.name = document.getElementById('charName').value.trim(); document.title = `Coordenada — ${ch.name}`; });
+document.getElementById('charName').addEventListener('input', () => { const ch = getCurrentChar(); if (!ch) return; ch.name = document.getElementById('charName').value.trim(); document.title = `Coordenada — ${esc(ch.name)}`; });
 
 renderCharList();

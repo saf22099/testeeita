@@ -1,5 +1,39 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 20
+
+- **Contatos refeito com as redes de cada um:**
+  - **Passoka** — Discord `passoka` (botão que copia o usuário), YouTube `@passoka`, Instagram `@pedro.passoka`.
+  - **Safizitos** — Discord `safizitos` (botão que copia), X (Twitter) `@safizitos`.
+  - **Comunidade** — servidor oficial do Discord e a playlist da campanha Liandry no YouTube.
+  - Cada rede tem ícone próprio, e o Discord copia o usuário com um clique (o botão confirma "Copiado").
+- **Rolagem só onde faz sentido:** o dado flutuante e o painel de rolagens aparecem apenas **na ficha**, **no escudo do mestre** e **na página da campanha do jogador**. No menu inicial, na lista de fichas, em Liandry e em Contatos o botão some, o painel não abre e o cartão de resultado não aparece. Sair da ficha fecha tudo, e o espaço que o botão ocupava no fim da página volta para o conteúdo.
+
+## Novidades da versão 19
+
+### Bugs corrigidos
+- **Dado dentro de um cartão abria o cartão junto.** Clicar no dado de uma arma do inventário (ou de qualquer bloco que abre e fecha) rolava o dado *e* abria/fechava o cartão. Agora o clique no dado vale só para o dado.
+- **Dado do Ataque Desarmado ficava numa linha solta** embaixo da linha do valor. Agora fica ao lado do `1d4`, na mesma linha.
+- **Ficha antiga sem DMT quebrava** ao registrar um ataque de lâmina. O DMT passa a ser criado na hora, com os valores padrão.
+- **Barra de PDV/PDE/SAN com valor negativo** deixava de ser desenhada (a largura ficava negativa e o navegador ignorava). Agora trava em 0.
+- **Barra de espaços do inventário perdeu as cores de aviso** quando as barras ganharam cor própria. Voltou: amarelo perto do limite, vermelho na sobrecarga.
+- **"Ativar o DMT Aprimorado completo" enchia os cilindros com 40 fixo**, mesmo quando os aprimoramentos davam outro valor. Agora usa o valor que os aprimoramentos realmente dão.
+- **Trocar de origem com um id inválido quebrava a ficha.** Agora só avisa.
+- **Nome de origem personalizada, descrição de equipamento e apelido de perfil** podiam entrar como HTML no aviso e no topo do site. Passam por escape.
+- **Os quatro botões do cartão da ficha** (Abrir, Duplicar, Exportar, Excluir) quebravam a linha e deixavam "Excluir" sozinho embaixo. Viraram uma grade 2×2 alinhada.
+- **O botão de dado flutuante cobria o botão do Discord** no rodapé.
+
+### CSS
+- **Barras de recurso com cor própria:** PDV em vermelho, PDE em verde, SAN em azul. Abaixo de 25% a barra pulsa devagar (desligado para quem pede menos animação no sistema).
+- **Botão de dado das perícias com o rótulo `d20`**, igual ao dos atributos.
+- **Barras de rolagem** no tom do tema, finas e arredondadas.
+- **Foco visível pelo teclado** em tudo (botão, link, campo), sem aparecer no clique do mouse.
+- **Texto selecionado** segue a cor do tema.
+- **Linhas de valores derivados** acendem de leve ao passar o mouse; linhas de perícia também.
+- **Estados vazios** ("inventário vazio", "nenhum aprimoramento") viraram caixas pontilhadas em vez de texto solto.
+- **Modais** com desfoque leve no fundo, e o botão de dado flutuante sobe um pouco ao passar o mouse.
+- **Espaço no fim da página** para o dado flutuante não ficar por cima do conteúdo.
+
 ## Novidades da versão 13
 - **Tabela de cores com regras**: cada paleta é só um matiz; fundos, bordas, textos e destaque saem de uma escala fixa, igual para todas. Nenhuma cor fica mais clara, mais escura ou mais berrante que a outra, e o contraste texto/fundo é garantido nos dois temas.
 - **Cores de aviso harmonizadas**: erro, acerto, atenção e informação passaram a usar a mesma escala da paleta. Se o matiz do aviso for parecido demais com o da paleta (erro vermelho num tema vermelho, por exemplo), ele é afastado automaticamente para continuar distinguível.

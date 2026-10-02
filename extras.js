@@ -154,6 +154,7 @@ function exMontarPainelDados() {
     </section>`;
   while (wrap.firstElementChild) document.body.appendChild(wrap.firstElementChild);
   exRenderHistorico();
+  exAtualizarDado();
 }
 function exPartesHtml(r) {
   return r.detalhes.map(d => d.valores
@@ -188,6 +189,7 @@ function exRenderHistorico() {
 // ao rolar aparece só o resultado; a lista abre no botão
 function exMostrarUltima(r) {
   const el = document.getElementById('dadosUltima'); if (!el) return;
+  if (!exPodeRolar()) return;   // fora da ficha e das campanhas o cartão não aparece
   const painel = document.getElementById('dadosPainel');
   if (painel && !painel.classList.contains('hidden')) return;   // histórico aberto: a rolagem já aparece nele
   el.innerHTML = `
@@ -208,7 +210,23 @@ function exMostrarUltima(r) {
   el.classList.remove('novo'); void el.offsetWidth; el.classList.add('novo');
 }
 function dadosFecharUltima() { const el = document.getElementById('dadosUltima'); if (el) el.classList.add('hidden'); }
+// as rolagens só valem na ficha e nas páginas de campanha; no resto do site o dado some
+const TELAS_COM_DADO = ['screenSheet', 'screenEscudo', 'screenCampanhaJogador'];
+function exPodeRolar() {
+  return TELAS_COM_DADO.some(id => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  });
+}
+function exAtualizarDado() {
+  const pode = exPodeRolar();
+  const btn = document.getElementById('dadosBtn');
+  if (btn) btn.classList.toggle('hidden', !pode);
+  if (!pode) { dadosFechar(); dadosFecharUltima(); }
+  document.body.classList.toggle('sem-dado', !pode);
+}
 function exAbrirPainel(aba) {
+  if (!exPodeRolar()) return;
   const p = document.getElementById('dadosPainel'); if (!p) return;
   p.classList.remove('hidden');
   exAtualizarAbasDados();
@@ -270,7 +288,9 @@ function exInjetarAtributos() {
     const m = (card.getAttribute('onclick') || '').match(/showAttrPopover\('(\w+)'/);
     if (!m) return;
     const controles = card.querySelector('.attr-controls') || card;
-    controles.insertAdjacentHTML('beforeend', exBotaoDado(`rolarAtributo('${m[1]}')`, `Rolar 1d20 + ${ATRIB_NOMES[m[1]]}`, 'd20'));
+    controles.insertAdjacentHTML('beforeend',
+      `<button type="button" class="dado-btn" data-atributo="${m[1]}" title="Rolar 1d20 + ${ATRIB_NOMES[m[1]]}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4 3.6 7v10L12 21.6 20.4 17V7L12 2.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>d20</span></button>`);
   });
 }
 function exInjetarPericias() {
@@ -279,7 +299,9 @@ function exInjetarPericias() {
     const nome = row.querySelector('.skill-name');
     if (!nome) return;
     const alvo = row.querySelector('.skill-row-controls') || row;
-    alvo.insertAdjacentHTML('afterbegin', exBotaoDado(`rolarPericia('${exEsc(nome.textContent).replace(/'/g, "\\'")}')`, `Rolar 1d20 + total de ${exEsc(nome.textContent)}`, ''));
+    alvo.insertAdjacentHTML('afterbegin',
+      `<button type="button" class="dado-btn" data-pericia="${exEsc(nome.textContent)}" title="Rolar 1d20 + total de ${exEsc(nome.textContent)}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.4 3.6 7v10L12 21.6 20.4 17V7L12 2.4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>d20</span></button>`);
   });
 }
 // Acha expressões de dado em qualquer texto e oferece um botão para cada uma
@@ -288,7 +310,7 @@ function exChipsDeTexto(elemento, titulo) {
   const texto = elemento.textContent || '';
   const achados = [...new Set((texto.match(/\d*\s*d\s*\d+(\s*[+-]\s*\d+)?/gi) || []).map(x => x.replace(/\s+/g, '')))].slice(0, 4);
   if (!achados.length) return;
-  const html = achados.map(e => `<button type="button" class="dado-chip" onclick="rolarExpressao('${e}', '${exEsc(titulo).replace(/'/g, "\\'")}')">${exEsc(e)}</button>`).join('');
+  const html = achados.map(e => exChipDado(e, titulo, e)).join('');
   elemento.insertAdjacentHTML('beforeend', `<div class="dados-chips"><span>Rolar:</span>${html}</div>`);
 }
 function exInjetarAtaques() {
@@ -300,8 +322,9 @@ function exInjetarAtaques() {
     const conteudo = card.querySelector('.item-content');
     if (!atk || !conteudo || conteudo.querySelector('.dados-chips')) return;
     const botoes = [];
-    if (atk.acerto) botoes.push(`<button type="button" class="dado-chip" onclick="rolarExpressao('1d20+${exEsc(String(atk.acerto).replace(/[^0-9+\-dD ]/g, ''))}','Acerto — ${exEsc(atk.name)}')">Acerto</button>`);
-    if (atk.dano) botoes.push(`<button type="button" class="dado-chip primario" onclick="rolarExpressao('${exEsc(atk.dano).replace(/'/g, "")}','Dano — ${exEsc(atk.name)}')">Dano ${exEsc(atk.dano)}</button>`);
+    const acerto = String(atk.acerto || '').replace(/[^0-9+\-dD ]/g, '').trim();
+    if (acerto) botoes.push(exChipDado(/d\d/i.test(acerto) ? acerto : `1d20+${acerto}`, `Acerto — ${atk.name}`, 'Acerto'));
+    if (atk.dano) botoes.push(exChipDado(atk.dano, `Dano — ${atk.name}`, `Dano ${atk.dano}`, 'primario'));
     if (botoes.length) conteudo.insertAdjacentHTML('afterbegin', `<div class="dados-chips"><span>Rolar:</span>${botoes.join('')}</div>`);
   });
 }
@@ -365,13 +388,14 @@ window.recalcAllModifiers = function (ch) {
 // lâminas quebram conforme o limite dos aprimoramentos
 window.registerBladeAttack = function () {
   const ch = exFicha(); if (!ch) return;
-  if (!ch.dmt.bladesEquipped) { exAviso('Sem lâminas disponíveis', 'Troque o conjunto ou reabasteça antes de atacar.', true); return; }
+  const dmt = exDmt(ch);   // ficha antiga pode não ter DMT ainda
+  if (!dmt.bladesEquipped) { exAviso('Sem lâminas disponíveis', 'Troque o conjunto ou reabasteça antes de atacar.', true); return; }
   const limite = exLimiteLaminas(ch);
-  ch.dmt.bladeAttacksUsed = (ch.dmt.bladeAttacksUsed || 0) + 1;
-  if (ch.dmt.bladeAttacksUsed >= limite) {
-    ch.dmt.bladeAttacksUsed = 0;
-    if (ch.dmt.bladeReserve > 0) { ch.dmt.bladeReserve -= 1; exAviso('Conjunto de lâminas quebrado', 'Um conjunto de reserva foi equipado.'); }
-    else { ch.dmt.bladesEquipped = false; exAviso('Conjunto de lâminas quebrado', 'Sem reservas — reabasteça antes de atacar de novo.', true); }
+  dmt.bladeAttacksUsed = (dmt.bladeAttacksUsed || 0) + 1;
+  if (dmt.bladeAttacksUsed >= limite) {
+    dmt.bladeAttacksUsed = 0;
+    if (dmt.bladeReserve > 0) { dmt.bladeReserve -= 1; exAviso('Conjunto de lâminas quebrado', 'Um conjunto de reserva foi equipado.'); }
+    else { dmt.bladesEquipped = false; exAviso('Conjunto de lâminas quebrado', 'Sem reservas — reabasteça antes de atacar de novo.', true); }
   }
   exSalvar(); renderDMT();
 };
@@ -439,7 +463,8 @@ function dmtAplicarPacote(ativar) {
   const dmt = exDmt(ch);
   dmt.melhorias = ativar ? DMT_MELHORIAS.map(m => m.id) : [];
   dmt.type = ativar ? 'Aprimorado' : 'Tradicional';
-  if (ativar) { dmt.cylinder1 = 40; dmt.cylinder2 = 40; }
+  // enche os cilindros com o que os aprimoramentos escolhidos realmente dão
+  if (ativar) { const g = exEfeitosDmt(ch).gasPorCilindro; dmt.cylinder1 = g; dmt.cylinder2 = g; }
   recalcAllModifiers(ch); exSalvar(); renderDMT();
   exAviso(ativar ? 'DMT Aprimorado ativado' : 'DMT tradicional', ativar ? 'Os seis aprimoramentos do livro foram aplicados.' : 'Os aprimoramentos oficiais foram desligados.');
 }
@@ -821,9 +846,44 @@ function exAtaqueTitaPuro(t) {
   const dano = cat.dano + (v ? ' ' + v.dano : '');
   return { acerto, dano, variacao: v ? v.nome : '' };
 }
+// O texto vai em atributos, nunca dentro do onclick: assim um apóstrofo
+// no nome do ataque ("Golpe d'Asa") não quebra o botão.
 function exChipDado(expr, titulo, rotulo, classe, modo) {
-  return `<button type="button" class="dado-chip ${classe || ''}" onclick="rolarExpressao('${exEsc(expr).replace(/'/g, '')}','${exEsc(titulo).replace(/'/g, '')}'${modo ? `,'${modo}'` : ''})">${exEsc(rotulo)}</button>`;
+  return `<button type="button" class="dado-chip ${classe || ''}" data-rolar="${exEsc(expr)}" data-titulo="${exEsc(titulo)}"${modo ? ` data-modo="${exEsc(modo)}"` : ''}>${exEsc(rotulo)}</button>`;
 }
+// um só ouvinte para todos os botões de dado da página.
+// Na fase de captura: o dado dentro de um cartão que abre/fecha não dispara o cartão junto.
+document.addEventListener('click', ev => {
+  const alvo = ev.target.closest && ev.target.closest('[data-atributo],[data-pericia],[data-rolar]');
+  if (!alvo) return;
+  ev.preventDefault(); ev.stopPropagation();
+  if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+  if (alvo.dataset.atributo) rolarAtributo(alvo.dataset.atributo);
+  else if (alvo.dataset.pericia) rolarPericia(alvo.dataset.pericia);
+  else rolarExpressao(alvo.dataset.rolar, alvo.dataset.titulo || 'Rolagem', alvo.dataset.modo || '');
+}, true);
+// copiar usuário do Discord (e qualquer outro texto marcado com data-copiar)
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('[data-copiar]');
+  if (!b) return;
+  ev.preventDefault();
+  const txt = b.dataset.copiar || '';
+  const marcar = () => {
+    b.classList.add('copiado');
+    const acao = b.querySelector('.rede-acao');
+    if (acao && !acao.dataset.antes) { acao.dataset.antes = acao.textContent; acao.textContent = 'Copiado'; }
+    setTimeout(() => {
+      b.classList.remove('copiado');
+      if (acao && acao.dataset.antes) { acao.textContent = acao.dataset.antes; delete acao.dataset.antes; }
+    }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(marcar, () => exAviso('Copie manualmente', txt));
+  } else {
+    exAviso('Copie manualmente', txt);
+  }
+});
+
 function exChipsAcerto(teste, attrs, nome, desvantagem) {
   const chaves = [...new Set((String(teste || '').match(/Força|Forca|Agilidade|Intelecto|Vitalidade|Estâmina|Estamina/gi) || [])
     .map(p => ATRIB_POR_NOME[exSemAcento(p)]))];
@@ -1142,11 +1202,11 @@ function exObservarTelas() {
   exObservarClasse();
   const alvos = Object.keys(TITULOS_TELA).map(id => document.getElementById(id)).filter(Boolean);
   if (!alvos.length) return;
-  const obs = new MutationObserver(() => { exAtualizarTitulo(); if (exPrefs().corClasse) exAplicarTema(); });
+  const obs = new MutationObserver(() => { exAtualizarTitulo(); exAtualizarDado(); if (exPrefs().corClasse) exAplicarTema(); });
   alvos.forEach(el => obs.observe(el, { attributes: true, attributeFilter: ['class'] }));
   const nome = document.getElementById('charName');
   if (nome) nome.addEventListener('input', exAtualizarTitulo);
-  exAtualizarTitulo();
+  exAtualizarTitulo(); exAtualizarDado();
 }
 
 /* ============================================================
@@ -1163,7 +1223,9 @@ function exInjetarDerivados() {
     const expr = (el.textContent || '').match(/\d*d\d+(\s*[+-]\s*\d+)?/i);
     if (!expr) return;
     el.dataset.nvDado = '1';
-    el.insertAdjacentHTML('afterend', `<button type="button" class="dado-chip" style="margin-left:8px;" onclick="rolarExpressao('${expr[0].replace(/\s+/g, '')}','Ataque desarmado')">Rolar</button>`);
+    const chip = exChipDado(expr[0].replace(/\s+/g, ''), 'Ataque desarmado', 'Rolar', 'primario');
+    // o dado fica na mesma linha do valor, não numa linha solta embaixo
+    (el.lastElementChild || el).insertAdjacentHTML('beforeend', ' ' + chip);
   });
   document.querySelectorAll('#tabInventory .item-detail, #tabInventory .card > p').forEach(el => exChipsDeTexto(el, 'Equipamento'));
 }
@@ -1196,8 +1258,8 @@ function exInjetarDmt() {
   const forca = exValorAtributo(ch, 'str');
   const canhao = `3d6${ef.canhaoExtra ? ` + ${ef.canhaoExtra}` : ''}`;
   alvo.insertAdjacentHTML('afterbegin', `<div class="dados-chips"><span>Rolar:</span>
-    <button type="button" class="dado-chip primario" onclick="rolarExpressao('2d10 + ${forca}', 'Dano das lâminas')">Lâminas 2d10+${forca}</button>
-    <button type="button" class="dado-chip" onclick="rolarExpressao('${canhao}', 'Dano do canhão de mão')">Canhão ${canhao}</button></div>`);
+    ${exChipDado(`2d10 + ${forca}`, 'Dano das lâminas', `Lâminas 2d10+${forca}`, 'primario')}
+    ${exChipDado(canhao, 'Dano do canhão de mão', `Canhão ${canhao}`)}</div>`);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
