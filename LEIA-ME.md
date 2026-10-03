@@ -1,5 +1,10 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 21
+
+- **Correção: o site estava esticado em telas largas.** Numa correção anterior (a de nomes compridos que estouravam a página) entrou uma regra `max-width:100%` que, sem querer, anulou a largura máxima do site e das janelas. O conteúdo passou a ocupar o monitor inteiro de ponta a ponta. Agora volta ao normal: o site fica com no máximo 1180px, centralizado; as janelas voltam aos 640px (as simples) e 980px (o catálogo de fichas e a biblioteca). Nomes compridos continuam quebrando em vez de esticar a página — isso não foi desfeito.
+- **Cartões de atributo alinhados:** quando a legenda ocupa duas linhas ("Deslocamento, Iniciativa" em tela mais estreita), os botões −/+/d20 ficavam mais embaixo que os dos outros atributos. Agora todos ficam na mesma altura.
+
 ## Novidades da versão 20
 
 - **Contatos refeito com as redes de cada um:**
