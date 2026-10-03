@@ -1912,7 +1912,9 @@ function acquireSkillFromLibrary(abilityId, choiceValue) {
   if (!eligible) { showNotification('Sua Subclasse não permite esta habilidade.', '', true); return; }
   ch.abilities.push({ id: abilityId, choiceValue: choiceValue || null, repeatableChoices: [] });
   ch.updatedAt = new Date().toISOString();
+  recalcAllModifiers(ch);
   saveChars(); renderAbilities(); renderSkills(); renderSkillLibrary();
+  updateAttrUI(); updateResourceUI(); renderModifierStats();
   showNotification('Habilidade adicionada.', ability.name);
 }
 
@@ -2123,10 +2125,14 @@ function renderModifierStats() {
   const m = ch.derivedModifiers || {};
   const rows = [];
   if (m.defesaEsquiva) rows.push(['Bônus de Defesa com Esquiva', (m.defesaEsquiva > 0 ? '+' : '') + m.defesaEsquiva]);
-  if (m.critMargin) rows.push(['Margem de Crítico', (m.critMargin > 0 ? '+' : '') + m.critMargin]);
+  if (m.defesaBloqueio) rows.push(['Bônus de Defesa com Bloqueio', (m.defesaBloqueio > 0 ? '+' : '') + m.defesaBloqueio]);
+  if (m.critMargin) rows.push(['Margem de Crítico', (m.critMargin > 0 ? '+' : '') + m.critMargin + ` (crítico a partir de ${Math.max(2, Math.min(20, 20 + m.critMargin))})`]);
   if (m.sanDamageReduction) rows.push(['Redução de Dano de Sanidade', '-' + m.sanDamageReduction]);
   if (m.bodyDamageReduction) rows.push(['Redução de Dano Corporal', m.bodyDamageReduction + 'd4']);
-  if (m.testesAcerto) rows.push(['Testes de Acerto (condições)', (m.testesAcerto > 0 ? '+' : '') + m.testesAcerto]);
+  if (m.reducaoDano) rows.push(['Redução de Dano em PDV', '-' + m.reducaoDano]);
+  if (m.testesAcerto) rows.push(['Testes de Acerto', (m.testesAcerto > 0 ? '+' : '') + m.testesAcerto]);
+  if (m.movimentoDmt) rows.push(['Deslocamento com o DMT', (m.movimentoDmt > 0 ? '+' : '') + m.movimentoDmt + 'm']);
+  if (m.gasMovimento) rows.push(['Gás por ação de movimento', '-' + m.gasMovimento]);
   rows.forEach(([label, val]) => {
     const div = document.createElement('div'); div.className = 'derived-stat';
     div.innerHTML = `<span><strong>${label}:</strong></span><span>${val}</span>`;
@@ -3310,7 +3316,16 @@ function updateAttrUI() {
   const overload = getOverloadPenalty(ch);
   let movement = 5 + agi - overload + (ch.derivedModifiers.movementFlat || 0);
   if ((ch.conditions.fadiga.points || 0) >= 4) movement = Math.floor(movement / 2);
-  document.getElementById('movement').textContent = Math.max(0, movement);
+  movement = Math.max(0, movement);
+  document.getElementById('movement').textContent = movement;
+  // deslocamento extra que só vale com o DMT equipado
+  const extraDmt = ch.derivedModifiers.movimentoDmt || 0;
+  const linhaDmt = document.getElementById('linhaMovDmt');
+  if (linhaDmt) {
+    linhaDmt.classList.toggle('hidden', !extraDmt);
+    const alvo = document.getElementById('movementDmt');
+    if (alvo) alvo.textContent = movement + extraDmt;
+  }
   document.getElementById('staPDEBonus').textContent = sta;
   document.getElementById('strInvBonus').textContent = str;
   document.getElementById('intSkillBonus').textContent = int;
@@ -3385,13 +3400,38 @@ function renderCombatDefenses() {
   const lutaSkill = ch.skills.find(s => s.name === 'Luta');
   const lutaInvested = lutaSkill ? lutaSkill.base : 0;
   const talentBonus = ch.derivedModifiers.defesaEsquiva || 0;
+  const esquivaDmt = ch.derivedModifiers.esquivaDmt || 0;   // parte que só vale usando o DMT
+  const outrosEsquiva = talentBonus - esquivaDmt;
   const vulneravelPenalty = ch.conditions.vulneravel.active ? -4 : 0;
   const esquivaTotal = agi + talentBonus + vulneravelPenalty;
   document.getElementById('esquivaTotal').textContent = (esquivaTotal >= 0 ? '+' : '') + esquivaTotal;
-  document.getElementById('esquivaBreakdown').textContent = `Agilidade (+${agi})${talentBonus ? ` + talentos (${talentBonus >= 0 ? '+' : ''}${talentBonus})` : ''}${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
-  const bloqueioTotal = 8 + str + lutaInvested + vulneravelPenalty;
+  const partesEsq = [`Agilidade (+${agi})`];
+  if (outrosEsquiva) partesEsq.push(`talentos (${outrosEsquiva >= 0 ? '+' : ''}${outrosEsquiva})`);
+  if (esquivaDmt) partesEsq.push(`DMT (+${esquivaDmt})`);
+  if (vulneravelPenalty) partesEsq.push(`Vulnerável (${vulneravelPenalty})`);
+  document.getElementById('esquivaBreakdown').textContent = partesEsq.join(' + ');
+  const blocoBonus = ch.derivedModifiers.defesaBloqueio || 0;
+  const bloqueioTotal = 8 + str + lutaInvested + blocoBonus + vulneravelPenalty;
   document.getElementById('bloqueioTotal').textContent = bloqueioTotal;
-  document.getElementById('bloqueioBreakdown').textContent = `8 + Força (${str}) + Luta investida (${lutaInvested})${vulneravelPenalty ? ` + Vulnerável (${vulneravelPenalty})` : ''}`;
+  const partesBlo = [`8 + Força (${str})`, `Luta investida (${lutaInvested})`];
+  if (blocoBonus) partesBlo.push(`habilidades (${blocoBonus >= 0 ? '+' : ''}${blocoBonus})`);
+  if (vulneravelPenalty) partesBlo.push(`Vulnerável (${vulneravelPenalty})`);
+  document.getElementById('bloqueioBreakdown').textContent = partesBlo.join(' + ');
+  // aviso de que os bônus marcados com DMT só valem com o equipamento em uso
+  const caixa = document.getElementById('esquivaBreakdown').parentElement;
+  let nota = document.getElementById('notaDefesaDmt');
+  if (esquivaDmt || (ch.derivedModifiers.acertoDmt || 0)) {
+    if (!nota) {
+      nota = document.createElement('p');
+      nota.id = 'notaDefesaDmt';
+      nota.className = 'nota-dmt';
+      caixa.appendChild(nota);
+    }
+    const acertoDmt = ch.derivedModifiers.acertoDmt || 0;
+    nota.textContent = `Enquanto usa o DMT: ${esquivaDmt ? `+${esquivaDmt} em Testes de Defesa com esquiva` : ''}${esquivaDmt && acertoDmt ? ' e ' : ''}${acertoDmt ? `+${acertoDmt} em Testes de Acerto` : ''}. Sem o DMT, a esquiva é ${(esquivaTotal - esquivaDmt >= 0 ? '+' : '') + (esquivaTotal - esquivaDmt)}.`;
+  } else if (nota) {
+    nota.remove();
+  }
 }
 
 function openResourceBonusModal(key) {
@@ -4421,6 +4461,7 @@ function addRepeatableAbilityChoice(abilityId) {
   ch.updatedAt = new Date().toISOString();
   recalcAllModifiers(ch);
   saveChars(); renderAbilities(); renderSkills();
+  updateAttrUI(); updateResourceUI(); renderModifierStats();
   showNotification('Perícia escolhida.', skillName + ' +1');
 }
 
@@ -4449,6 +4490,7 @@ function removeSkill(skillId) {
     ch.updatedAt = new Date().toISOString();
     recalcAllModifiers(ch);
     saveChars(); renderAbilities(); renderSkills();
+    updateAttrUI(); updateResourceUI(); renderModifierStats();
     showNotification('Habilidade removida.', '');
     return;
   }

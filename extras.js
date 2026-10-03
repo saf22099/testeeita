@@ -81,8 +81,10 @@ function exRolar(expressao, opcoes = {}) {
       total += sinal * soma;
       if (item.faces === 20) {
         temD20 = true;
+        // margem negativa = crítico mais fácil (−3 faz o crítico sair a partir de 17)
         const margem = (ch && ch.derivedModifiers && ch.derivedModifiers.critMargin) || 0;
-        if (valores.some(v => v >= 20 - margem)) natural20 = true;
+        const limite = Math.max(2, Math.min(20, 20 + margem));
+        if (valores.some(v => v >= limite)) natural20 = true;
         if (valores.some(v => v === 1)) natural1 = true;
       }
       detalhes.push({ rotulo: (item.negativo ? '−' : '') + item.texto, valores, descartados, soma: sinal * soma });
@@ -378,8 +380,10 @@ window.recalcAllModifiers = function (ch) {
   exRecalcOriginal(ch);
   if (!ch || !ch.dmt) return;
   const ef = exEfeitosDmt(ch);
-  ch.derivedModifiers.movementFlat = (ch.derivedModifiers.movementFlat || 0) + ef.deslocamento;
+  // os aprimoramentos do DMT só valem com o DMT em uso, então vão para a linha própria
+  ch.derivedModifiers.movimentoDmt = (ch.derivedModifiers.movimentoDmt || 0) + ef.deslocamento;
   ch.derivedModifiers.defesaEsquiva = (ch.derivedModifiers.defesaEsquiva || 0) + ef.defesa;
+  ch.derivedModifiers.esquivaDmt = (ch.derivedModifiers.esquivaDmt || 0) + ef.defesa;
   ch.dmt.cylinderCapacity = ef.gasPorCilindro;
   ch.dmt.cylinder1 = Math.min(ch.dmt.cylinder1 ?? ef.gasPorCilindro, ef.gasPorCilindro);
   ch.dmt.cylinder2 = Math.min(ch.dmt.cylinder2 ?? ef.gasPorCilindro, ef.gasPorCilindro);
@@ -1271,3 +1275,375 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 exAplicarTema();
 if (document.readyState !== 'loading') { exObservarTelas(); exMontarPainelDados(); exInjetarAtributos(); exBotaoOficiais(); }
+
+/* ============================================================
+   8. HABILIDADES AUTOMATIZADAS
+   Cada habilidade abaixo descreve o que a ficha consegue aplicar
+   sozinha. O resto (narrativa, alvos, efeitos no inimigo) continua
+   sendo coisa de mesa e fica só no texto do cartão.
+
+   Chaves de efeito aceitas em "sempre" e "ativo" (uma por nível):
+     acerto        +N em Testes de Acerto
+     esquiva       +N em Testes de Defesa com esquiva
+     bloqueio      +N em Testes de Defesa com bloqueio
+     critico       −N na margem de crítico
+     reducaoDano   N fixo subtraído do dano em PDV
+     reducaoPor    ['Fortitude','Vitalidade'] — soma essas perícias na redução
+     reducaoSan    N subtraído do dano em Sanidade
+     movDmt        +N metros de deslocamento, só com o DMT
+     gasMov        −N de gás por ação de movimento
+     inventario    +N espaços no inventário
+     pericias      +N em todas as perícias
+     pericia       { nome, valor }
+     esquivaAgi    soma a Agilidade mais uma vez na esquiva
+   Chaves do bloco:
+     permPde   PDE permanente pago no desbloqueio
+     permPorEscolha  PDE permanente por escolha feita (Melhoria Geral)
+     dmt       os bônus só valem usando o DMT
+     dano      dado de dano extra por nível (vira botão de rolagem)
+     pilha     { rotulo, max } — bônus que acumula por acerto
+     nota      aviso curto no cartão
+   ============================================================ */
+const HAB_AUTO = {
+  /* ---- passivas permanentes ---- */
+  proficiencia_dmt: {
+    permPde: 6, dmt: true,
+    sempre: [
+      { esquiva: 2, gasMov: 1 },
+      { esquiva: 2, gasMov: 2, movDmt: 2 },
+      { esquiva: 2, gasMov: 2, movDmt: 4, acerto: 1 },
+      { esquiva: 2, gasMov: 2, movDmt: 4, acerto: 2 }
+    ]
+  },
+  melhoria_geral: { permPorEscolha: 2, nota: 'O +1 de cada perícia escolhida já entra na lista de Perícias.' },
+  aumento_de_carga: {
+    permPde: 4,
+    sempre: [{ inventario: 3 }, { inventario: 4 }, { inventario: 5 }, { inventario: 6 }]
+  },
+  mestre_do_improviso: { permPde: 6 },
+  veterano_de_guerra: {
+    permPde: 6,
+    sempre: [null, null,
+      { reducaoPor: ['Fortitude'], reducaoSan: 1 },
+      { reducaoPor: ['Fortitude', 'Vontade'], reducaoSan: 2 }]
+  },
+
+  /* ---- ativáveis em combate ---- */
+  concentracao_total: { ativo: [{ acerto: 2 }, { acerto: 3 }, { acerto: 3 }, { acerto: 4 }] },
+  golpe_de_sorte: { ativo: [{ critico: 3 }, { critico: 4 }, { critico: 5 }, { critico: 6 }], nota: 'Vale para o próximo teste.' },
+  esquiva_avancada: {
+    ativo: [null, { esquiva: 2 }, { esquiva: 3 }, { esquiva: 3, esquivaAgi: true }],
+    nota: 'A vantagem no teste de esquiva é manual; o bônus numérico entra sozinho.'
+  },
+  casca_grossa: {
+    ativo: [{ reducaoPor: ['Fortitude'], reducaoPorAtributo: ['vit'] },
+      { reducaoPor: ['Fortitude'], reducaoPorAtributo: ['vit'], bloqueio: 2 },
+      { reducaoPor: ['Fortitude'], reducaoPorAtributo: ['vit'], bloqueio: 2 },
+      { reducaoPor: ['Fortitude'], reducaoPorAtributo: ['vit'], bloqueio: 2 }]
+  },
+  provocacao: { ativo: [null, { esquiva: 2, bloqueio: 2 }, null, { esquiva: 2, bloqueio: 2 }] },
+  instinto_sobrevivencia: { ativo: [null, { acerto: 3 }, { acerto: 3 }, { acerto: 3 }], dano: [null, null, '1d10', '1d10'] },
+  sob_pressao: { ativo: [{ critico: 1 }, { critico: 1 }, { critico: 1, acerto: 2 }, { critico: 1, acerto: 2 }], dano: [null, '1d6', '1d6', '1d8'] },
+  sede_de_sangue: {
+    pilha: { rotulo: 'Acertos acumulados', max: 15 },
+    ativo: [{ acertoPorPilha: 1 }, { acertoPorPilha: 1 }, { acertoPorPilha: 1 }, { acertoPorPilha: 1 }],
+    nota: 'Uma rodada inteira sem acertar zera a contagem.'
+  },
+  sacrificio: { ativo: [{ critico: 4 }, { critico: 4 }, { critico: 6 }, { critico: 6 }], dano: ['2d8', '3d8', '3d12', '3d12'] },
+  reviravolta: { dano: ['1d10', '2d6', '3d6', '3d8'] },
+  explorar_ferimento: { ativo: [null, null, null, { acerto: 2 }], dano: [null, '1d10', '2d6', '2d6'] },
+  finta: { ativo: [null, null, null, { critico: 2 }], dano: [null, '1d8', '1d12', '1d12'] },
+  impulso_aprimorado: { dano: ['1d6', '1d8', '1d8', '1d10'] },
+  revigoracao: { cura: ['2d4 + Estâmina', '2d6 + Estâmina', '3d6 + Estâmina', '4d6 + Estâmina'] },
+
+  /* ---- exclusivas ---- */
+  investida_relampago: { ativo: [{ acerto: 5 }, { acerto: 5 }, { acerto: 5 }, { acerto: 5 }] },
+  ataques_em_serie: { ativo: [null, { acerto: -6 }, { acerto: -5 }, { acerto: -4 }] },
+  eficiencia_letal: { ativo: [null, null, { gasMov: 1 }, { gasMov: 1 }], dano: [null, '1d6', '1d6', '1d10'] },
+  forca_bruta: { nota: 'O dano extra é Força ×2 (N3: ×3); role o ataque e some.' },
+  olhos_de_aguia: { dano: ['1d10', '2d8', '2d10', '2d12'] },
+  concentracao_mira: { ativo: [null, { critico: 3 }, { critico: 3, acerto: 3 }, { critico: 5, acerto: 3 }] },
+  tiro_de_raspao: { dano: ['1d8', '1d10', '1d10', '1d12'] },
+  tiro_de_auxilio: { dano: ['1d8', '1d8', '1d8', '1d12'] },
+  tamanho_nao_e_documento: { nota: 'Dano extra pelo tamanho do Titã: role conforme o nível desbloqueado.' },
+  apoio_medicinal: { nota: 'O bônus vai para quem foi curado, não para a sua ficha.' },
+  medicina_avancada: { cura: ['+1d8 PDV', '+1d8 PDV e +1d4 PDE', '+1d10 PDV e +1d6 PDE', '+1d12 PDV e +1d8 PDE'] },
+  auxilio_duplo: { ativo: [null, { acerto: 2 }, null, null], dano: ['1d8', '1d8', '1d8', '2d6'] },
+  ate_o_ultimo_homem: { cura: ['+1d8 na cura de aliado abaixo da metade', '+1d8', '+1d8', '+1d8'] },
+  ultimo_a_cair: { ativo: [null, null, null, { critico: 3 }], dano: [null, null, '1d10', '1d10'] },
+  maos_de_ouro: { dano: ['1d4', '1d4', '1d4', '1d6'], nota: 'Vale por equipamento influenciado; some ao dano daquele item.' },
+  obra_prima: { dano: [null, '1d4', null, '1d4'], nota: 'Bônus da invenção, não da ficha.' },
+  engenharia_especializada: { dano: [null, '1d4', '1d6', '1d6'], nota: 'Bônus do equipamento preparado, não da ficha.' },
+  golpe_baixo: { ativo: [{ acerto: 2 }, { acerto: 3 }, null, { acerto: 2 }], dano: ['1d6', '1d8', '1d10', '1d12'] },
+  coracao_valente: { nota: 'Os bônus vão para os aliados inspirados.' },
+  abrir_brechas: { dano: ['1d12', '2d8', '2d12', '3d10'], nota: 'O dano extra vale para você e para os aliados.' },
+  planejamento: { ativo: [null, { acerto: 1 }, { acerto: 1, critico: 1 }, { acerto: 1, critico: 1 }], dano: ['1d4', '1d4', '1d4', '1d6'], nota: 'Ligue enquanto estiver seguindo o plano.' },
+  ataque_coordenado: { nota: 'No N4, some a sua Tática ao dano de todos do grupo.' },
+  senso_de_batalha: { ativo: [null, { pericias: 1 }, { pericias: 1 }, { pericias: 2 }], nota: 'Vale só no turno extra, antes da iniciativa.' },
+  'instinto_aguçado': { ativo: [null, { pericia: { nome: 'Exploração', valor: 2 } }, { pericia: { nome: 'Exploração', valor: 2 } }, { pericia: { nome: 'Exploração', valor: 2 } }] }
+};
+
+// custo de PDE por uso, lido do próprio texto do livro ("Custo: 6 PDE e ...")
+function habCustoPde(ability) {
+  if (!ability || !ability.levels) return [];
+  let ultimo = 0;
+  return ability.levels.map(l => {
+    if (/Sem altera/i.test(l)) return ultimo;
+    const m = l.match(/Custo:\s*(\d+)\s*PDE/i);
+    ultimo = m ? parseInt(m[1], 10) : 0;
+    return ultimo;
+  });
+}
+// nível desbloqueado de uma habilidade, já contando o bônus Ackerman
+function habNivel(ch, acquired) {
+  if (!ch || !acquired) return 0;
+  let n = typeof getAbilityLevelForCharLevel === 'function' ? getAbilityLevelForCharLevel(ch.level) : 0;
+  if (ch.originId === 'ackerman' && ch.originAbilityChoice === acquired.id) n = Math.min(4, n + 1);
+  return n;
+}
+// o bloco de efeitos de um nível (cai para o nível anterior quando aquele não muda nada)
+function habEfeito(lista, nivel) {
+  if (!Array.isArray(lista) || nivel < 1) return null;
+  return lista[Math.min(nivel, lista.length) - 1] || null;
+}
+function habPericia(ch, nome) {
+  if (typeof calculateSkill !== 'function') return 0;
+  const chave = exSemAcento(nome).replace(/\s+/g, '');
+  const s = (ch.skills || []).find(x => exSemAcento(x.name).replace(/\s+/g, '') === chave);
+  if (!s) return 0;
+  const calc = calculateSkill(typeof SKILLS_DATA === 'object' && SKILLS_DATA[s.name] ? SKILLS_DATA[s.name].id : s.name.toLowerCase(), ch);
+  return calc ? calc.total : 0;
+}
+
+// soma tudo o que as habilidades adquiridas aplicam sozinhas
+function habResumo(ch) {
+  const z = {
+    permPde: 0, inventario: 0, acerto: 0, esquiva: 0, bloqueio: 0, critico: 0,
+    reducaoDano: 0, reducaoSan: 0, movDmt: 0, gasMov: 0, esquivaAgi: false,
+    pericias: 0, periciaExtra: [], dmt: { acerto: 0, esquiva: 0 }, linhas: []
+  };
+  if (!ch || !Array.isArray(ch.abilities)) return z;
+  for (const adq of ch.abilities) {
+    const auto = HAB_AUTO[adq.id]; if (!auto) continue;
+    const ability = typeof findAbility === 'function' ? findAbility(adq.id) : null;
+    const nivel = habNivel(ch, adq);
+    // nível 0 = habilidade ainda não desbloqueada: não cobra nem concede nada
+    if (nivel < 1) continue;
+    if (auto.permPde) z.permPde += auto.permPde;
+    if (auto.permPorEscolha) z.permPde += auto.permPorEscolha * ((adq.repeatableChoices || []).length);
+    const blocos = [];
+    const sempre = habEfeito(auto.sempre, nivel); if (sempre) blocos.push(sempre);
+    if (adq.ativo) { const at = habEfeito(auto.ativo, nivel); if (at) blocos.push(at); }
+    for (const e of blocos) {
+      const pilhas = auto.pilha ? Math.max(0, Math.min(auto.pilha.max, adq.pilhas || 0)) : 0;
+      const acerto = (e.acerto || 0) + (e.acertoPorPilha ? e.acertoPorPilha * pilhas : 0);
+      if (acerto) { z.acerto += acerto; if (auto.dmt) z.dmt.acerto += acerto; }
+      if (e.esquiva) { z.esquiva += e.esquiva; if (auto.dmt) z.dmt.esquiva += e.esquiva; }
+      if (e.bloqueio) z.bloqueio += e.bloqueio;
+      if (e.critico) z.critico += e.critico;
+      if (e.reducaoDano) z.reducaoDano += e.reducaoDano;
+      if (e.reducaoSan) z.reducaoSan += e.reducaoSan;
+      if (e.movDmt) z.movDmt += e.movDmt;
+      if (e.gasMov) z.gasMov += e.gasMov;
+      if (e.inventario) z.inventario += e.inventario;
+      if (e.pericias) z.pericias += e.pericias;
+      if (e.pericia) z.periciaExtra.push({ ...e.pericia, fonte: ability ? ability.name : adq.id });
+      if (e.esquivaAgi) z.esquivaAgi = true;
+      (e.reducaoPor || []).forEach(p => { z.reducaoDano += habPericia(ch, p); });
+      (e.reducaoPorAtributo || []).forEach(a => { z.reducaoDano += exValorAtributo(ch, a); });
+    }
+    if (blocos.length && ability) z.linhas.push({ nome: ability.name, dmt: !!auto.dmt, efeitos: blocos });
+  }
+  if (z.esquivaAgi) z.esquiva += exValorAtributo(ch, 'agi');
+  return z;
+}
+
+/* ---- ligação com o motor da ficha ---- */
+// O PDE permanente sai do máximo; os espaços extras entram na capacidade.
+const exSomaRecOriginal = window.sumResourceModifiers;
+window.sumResourceModifiers = function (ch, key) {
+  let v = exSomaRecOriginal(ch, key);
+  if (key === 'sta') v -= habResumo(ch).permPde;
+  return v;
+};
+const exCapOriginal = window.getPersonalInventoryCapacity;
+window.getPersonalInventoryCapacity = function (ch) {
+  return exCapOriginal(ch) + habResumo(ch).inventario;
+};
+
+// Os bônus de combate entram nos modificadores derivados.
+const exRecalcHab = window.recalcAllModifiers;
+window.recalcAllModifiers = function (ch) {
+  exRecalcHab(ch);
+  if (!ch) return;
+  const h = habResumo(ch);
+  const d = ch.derivedModifiers;
+  d.testesAcerto = (d.testesAcerto || 0) + h.acerto;
+  d.defesaEsquiva = (d.defesaEsquiva || 0) + h.esquiva;
+  d.defesaBloqueio = (d.defesaBloqueio || 0) + h.bloqueio;
+  d.critMargin = (d.critMargin || 0) - h.critico;      // margem menor = crítico mais fácil
+  d.sanDamageReduction = (d.sanDamageReduction || 0) + h.reducaoSan;
+  d.reducaoDano = (d.reducaoDano || 0) + h.reducaoDano;
+  d.movimentoDmt = (d.movimentoDmt || 0) + h.movDmt;
+  d.gasMovimento = (d.gasMovimento || 0) + h.gasMov;
+  d.esquivaDmt = (d.esquivaDmt || 0) + h.dmt.esquiva;
+  d.acertoDmt = (d.acertoDmt || 0) + h.dmt.acerto;
+  if (h.pericias || h.periciaExtra.length) {
+    ch.skills.forEach(s => {
+      if (h.pericias) s.modifiers.push({ id: genId(), source: 'Habilidade ativa', sourceType: 'ability', value: h.pericias, ignoresCap: true });
+    });
+    h.periciaExtra.forEach(p => {
+      const chave = exSemAcento(p.nome).replace(/\s+/g, '');
+      const s = ch.skills.find(x => exSemAcento(x.name).replace(/\s+/g, '') === chave);
+      if (s) s.modifiers.push({ id: genId(), source: `Habilidade: ${p.fonte}`, sourceType: 'ability', value: p.valor, ignoresCap: true });
+    });
+  }
+  // o máximo de PDE depende do custo permanente, então recalcula depois de somar
+  if (typeof recalculateResources === 'function') recalculateResources(ch);
+};
+
+/* ---- painel de automação dentro do cartão da habilidade ---- */
+const HAB_ROTULOS = {
+  acerto: v => `${v >= 0 ? '+' : ''}${v} em Testes de Acerto`,
+  esquiva: v => `+${v} em Testes de Defesa com esquiva`,
+  bloqueio: v => `+${v} em Testes de Defesa com bloqueio`,
+  critico: v => `−${v} na margem de crítico`,
+  reducaoDano: v => `−${v} no dano recebido`,
+  reducaoSan: v => `−${v} no dano de Sanidade`,
+  movDmt: v => `+${v}m de deslocamento com o DMT`,
+  gasMov: v => `−${v} de gás por ação de movimento`,
+  inventario: v => `+${v} espaços no inventário`,
+  pericias: v => `+${v} em todas as perícias`,
+  esquivaAgi: () => 'soma a Agilidade de novo na esquiva',
+  acertoPorPilha: v => `+${v} em Testes de Acerto por acerto acumulado`
+};
+function habTextoEfeito(e) {
+  if (!e) return '';
+  const partes = [];
+  for (const [k, v] of Object.entries(e)) {
+    if (k === 'reducaoPor') { partes.push(`−${v.join(' e ')} no dano recebido`); continue; }
+    if (k === 'reducaoPorAtributo') { partes.push(`−${v.map(a => ATRIB_NOMES[a] || a).join(' e ')} no dano recebido`); continue; }
+    if (k === 'pericia') { partes.push(`+${v.valor} em ${v.nome}`); continue; }
+    const f = HAB_ROTULOS[k];
+    if (f) partes.push(f(v));
+  }
+  return partes.join(' · ');
+}
+function habPainel(acquired) {
+  const ch = exFicha(); if (!ch) return '';
+  // sem entrada na tabela, a habilidade ainda ganha o botão de gastar PDE
+  const auto = HAB_AUTO[acquired.id] || {};
+  const ability = findAbility(acquired.id); if (!ability) return '';
+  const nivel = habNivel(ch, acquired);
+  const custos = habCustoPde(ability);
+  const custo = nivel >= 1 ? (custos[Math.min(nivel, custos.length) - 1] || 0) : 0;
+  const sempre = habEfeito(auto.sempre, nivel);
+  const ativo = habEfeito(auto.ativo, nivel);
+  const dano = habEfeito(auto.dano, nivel);
+  const cura = habEfeito(auto.cura, nivel);
+  const linhas = [];
+  if (nivel < 1) {
+    return `<div class="hab-auto"><ul class="hab-auto-lista"><li>Esta habilidade só passa a valer no <strong>nível 1</strong> do personagem. Suba o nível na ficha para a automação entrar.</li></ul></div>`;
+  }
+  if (auto.permPde) linhas.push(`<li>Custo permanente: <strong>−${auto.permPde} PDE</strong> no máximo, já descontado.</li>`);
+  if (auto.permPorEscolha) {
+    const n = (acquired.repeatableChoices || []).length;
+    linhas.push(`<li>Custo permanente: <strong>−${auto.permPorEscolha * n} PDE</strong> (${auto.permPorEscolha} por perícia escolhida), já descontado.</li>`);
+  }
+  if (sempre) linhas.push(`<li>Sempre ativo: <strong>${exEsc(habTextoEfeito(sempre))}</strong>${auto.dmt ? ' <em>(enquanto usa o DMT)</em>' : ''}.</li>`);
+  if (auto.nota) linhas.push(`<li>${exEsc(auto.nota)}</li>`);
+  let controle = '';
+  if (ativo) {
+    const marcado = acquired.ativo ? 'checked' : '';
+    controle += `<label class="hab-switch"><input type="checkbox" ${marcado} data-hab-ativa="${exEsc(acquired.id)}" />
+      <span>Ativa agora — ${exEsc(habTextoEfeito(ativo))}${auto.dmt ? ' (com o DMT)' : ''}</span></label>`;
+  }
+  if (auto.pilha) {
+    const n = Math.max(0, Math.min(auto.pilha.max, acquired.pilhas || 0));
+    controle += `<div class="hab-pilha"><span>${exEsc(auto.pilha.rotulo)}</span>
+      <button type="button" class="small" data-hab-pilha="${exEsc(acquired.id)}" data-delta="-1">−</button>
+      <strong>${n}</strong>
+      <button type="button" class="small" data-hab-pilha="${exEsc(acquired.id)}" data-delta="1">+</button>
+      <button type="button" class="small" data-hab-pilha="${exEsc(acquired.id)}" data-delta="0">zerar</button></div>`;
+  }
+  const botoes = [];
+  if (custo > 0) botoes.push(`<button type="button" class="small primary" data-hab-pde="${exEsc(acquired.id)}" data-custo="${custo}">Usar (−${custo} PDE)</button>`);
+  if (dano) botoes.push(exChipDado(dano, `Dano extra — ${ability.name}`, `Dano extra ${dano}`, 'primario'));
+  if (cura) linhas.push(`<li>Recupera: <strong>${exEsc(cura)}</strong>.</li>`);
+  if (!linhas.length && !controle && !botoes.length) return '';
+  return `<div class="hab-auto">
+    ${linhas.length ? `<ul class="hab-auto-lista">${linhas.join('')}</ul>` : ''}
+    ${controle}
+    ${botoes.length ? `<div class="hab-auto-botoes">${botoes.join('')}</div>` : ''}
+  </div>`;
+}
+function habSalvarERedesenhar() {
+  const ch = exFicha(); if (!ch) return;
+  recalcAllModifiers(ch);
+  exSalvar();
+  renderAbilities(); updateAttrUI(); updateResourceUI(); renderSkills(); renderModifierStats();
+  if (typeof renderInventory === 'function') renderInventory();
+}
+document.addEventListener('change', ev => {
+  const alvo = ev.target.closest && ev.target.closest('[data-hab-ativa]');
+  if (!alvo) return;
+  const ch = exFicha(); if (!ch) return;
+  const adq = (ch.abilities || []).find(a => a.id === alvo.dataset.habAtiva); if (!adq) return;
+  adq.ativo = alvo.checked;
+  habSalvarERedesenhar();
+});
+document.addEventListener('click', ev => {
+  const pilha = ev.target.closest && ev.target.closest('[data-hab-pilha]');
+  if (pilha) {
+    const ch = exFicha(); if (!ch) return;
+    const adq = (ch.abilities || []).find(a => a.id === pilha.dataset.habPilha); if (!adq) return;
+    const auto = HAB_AUTO[adq.id];
+    const d = parseInt(pilha.dataset.delta, 10);
+    adq.pilhas = d === 0 ? 0 : Math.max(0, Math.min(auto.pilha.max, (adq.pilhas || 0) + d));
+    habSalvarERedesenhar();
+    return;
+  }
+  const pde = ev.target.closest && ev.target.closest('[data-hab-pde]');
+  if (pde) {
+    const ch = exFicha(); if (!ch) return;
+    const custo = parseInt(pde.dataset.custo, 10) || 0;
+    const ability = findAbility(pde.dataset.habPde);
+    if (ch.resources.sta.cur < custo) { exAviso('PDE insuficiente', `Faltam ${custo - ch.resources.sta.cur} PDE para usar ${ability ? ability.name : 'esta habilidade'}.`, true); return; }
+    ch.resources.sta.cur -= custo;
+    const adq = (ch.abilities || []).find(a => a.id === pde.dataset.habPde);
+    if (adq && HAB_AUTO[adq.id] && HAB_AUTO[adq.id].ativo) adq.ativo = true;
+    habSalvarERedesenhar();
+    exAviso(ability ? ability.name : 'Habilidade usada', `−${custo} PDE. Restam ${ch.resources.sta.cur}.`);
+  }
+});
+// cada cartão passa a carregar o id da habilidade, para o painel achar o dono certo
+const exCartaoOriginal = window.buildAbilityCard;
+window.buildAbilityCard = function (acquired) {
+  const card = exCartaoOriginal.call(this, acquired);
+  if (card && acquired && acquired.id) card.dataset.habId = acquired.id;
+  return card;
+};
+// encaixa o painel em cada cartão, sem mexer no renderAbilities original
+function habInjetarCartoes() {
+  const ch = exFicha(); if (!ch) return;
+  document.querySelectorAll('.ability-item[data-hab-id]').forEach(card => {
+    if (card.querySelector('.hab-auto')) return;
+    const adq = (ch.abilities || []).find(a => a.id === card.dataset.habId);
+    if (!adq) return;
+    const html = habPainel(adq);
+    if (!html) return;
+    const botao = card.querySelector('button.danger');
+    if (botao) botao.insertAdjacentHTML('beforebegin', html); else card.insertAdjacentHTML('beforeend', html);
+  });
+}
+exEnvolver('renderAbilities', habInjetarCartoes);
+// avisa quando o custo permanente derruba o PDE a zero, para ninguém achar que é bug
+exEnvolver('acquireSkillFromLibrary', abilityId => {
+  const ch = exFicha(); if (!ch) return;
+  const auto = HAB_AUTO[abilityId]; if (!auto || !auto.permPde) return;
+  if (habNivel(ch, { id: abilityId }) < 1) return;
+  if (ch.resources.sta.max <= 0) {
+    const ability = findAbility(abilityId);
+    exAviso('PDE máximo zerado', `${ability ? ability.name : 'Esta habilidade'} custa ${auto.permPde} PDE permanentes, e o personagem não tinha tanto assim. Suba o nível ou a Estâmina antes de usá-la.`, true);
+  }
+});

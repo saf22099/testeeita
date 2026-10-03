@@ -1557,3 +1557,22 @@ html{scroll-behavior:smooth;}
 .rede:hover .rede-acao{color:var(--accent);border-color:var(--accent-dim);}
 .rede.copiado .rede-acao{color:var(--success);border-color:var(--success);}
 @media (max-width:600px){.contatos-grid{grid-template-columns:1fr;}}
+
+/* ------------------------------------------------------------
+   HABILIDADES AUTOMATIZADAS
+   ------------------------------------------------------------ */
+.hab-auto{margin-top:12px;padding:12px;border:1px solid var(--accent-dim);border-radius:var(--radius-sm);
+  background:var(--accent-fraco);display:flex;flex-direction:column;gap:10px;}
+.hab-auto-lista{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;}
+.hab-auto-lista li{font-size:var(--txt-peq);color:var(--text-muted);line-height:1.5;}
+.hab-auto-lista strong{color:var(--text);}
+.hab-auto-lista em{color:var(--accent);font-style:italic;}
+.hab-switch{display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;
+  font-size:var(--txt-peq);color:var(--text);margin:0;letter-spacing:0;}
+.hab-switch input{width:auto;flex-shrink:0;margin:0;}
+.hab-pilha{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:var(--txt-peq);color:var(--text-muted);}
+.hab-pilha strong{min-width:24px;text-align:center;color:var(--accent);font-family:var(--mono);font-size:1rem;}
+.hab-auto-botoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.nota-dmt{margin-top:12px;padding:8px 10px;border-left:2px solid var(--accent-dim);
+  background:var(--accent-fraco);border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+  color:var(--text-muted);font-size:var(--txt-mini);line-height:1.5;}

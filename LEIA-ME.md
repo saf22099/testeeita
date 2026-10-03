@@ -1,5 +1,44 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 23 — correção da automação das habilidades
+
+A automação da v22 não aparecia no caminho normal de uso. **Fichas criadas pelo assistente nascem no nível 0**, e as habilidades do livro só valem a partir do nível 1 — então quem criava a ficha, escolhia as habilidades e olhava a tela não via interruptor nenhum, nem bônus nenhum. Pior: o **custo permanente de PDE era cobrado mesmo no nível 0**, quando nenhum benefício estava valendo, e isso zerava o PDE máximo de ficha recém-criada.
+
+- No **nível 0** a ficha agora não cobra nem concede nada, e o cartão da habilidade diz em uma linha: *"Esta habilidade só passa a valer no nível 1 do personagem. Suba o nível na ficha para a automação entrar."*
+- A partir do **nível 1** tudo entra normalmente: custo permanente, bônus passivos, interruptor "Ativa agora" e botão "Usar (−X PDE)".
+- Se o custo permanente zerar o PDE máximo (personagem de Estâmina muito baixa pegando uma habilidade de 6 PDE permanentes), agora aparece um aviso explicando o porquê, em vez de o número simplesmente ir a zero.
+
+Os testes anteriores usavam fichas de nível 9 e 15, por isso passaram sem pegar o problema. Agora existe uma suíte que percorre o caminho real: criar ficha pelo assistente, abrir a biblioteca, clicar na habilidade, fechar, conferir o cartão, subir o nível, recarregar a página e conferir de novo.
+
+## Novidades da versão 22 — habilidades automatizadas
+
+A ficha passou a aplicar sozinha o que dá para calcular nas 60 habilidades do livro. O que depende de narrativa, de alvo ou da decisão do mestre continua só no texto do cartão.
+
+### O que entra sozinho
+- **Custo de PDE permanente** sai do máximo na hora: Proficiência com o DMT (−6), Mestre do Improviso (−6), Veterano de Guerra (−6), Aumento de Carga (−4) e Melhoria Geral (−2 por perícia escolhida).
+- **Proficiência com o DMT** dá +2 em Testes de Defesa com esquiva, −1/−2 de gás por ação de movimento, +2/+4m de deslocamento e +1/+2 em Testes de Acerto, conforme o nível. Esses bônus aparecem marcados como **DMT** na seção Esquiva e Bloqueio, com a frase dizendo que só valem enquanto o personagem está usando o equipamento — e quanto fica a esquiva sem ele.
+- **Aumento de Carga** soma +3 a +6 espaços na capacidade do inventário.
+- **Veterano de Guerra** desconta o dano em PDV pela Fortitude (nível 4: Fortitude + Vontade) e reduz o dano de Sanidade em 1 ou 2.
+- **Melhoria Geral** já somava o +1 de cada perícia; agora também cobra os PDE permanentes.
+
+### Habilidades que você liga e desliga
+Cartões como Concentração Total, Golpe de Sorte, Esquiva Avançada, Casca Grossa, Provocação, Instinto de Sobrevivência, Sob Pressão, Concentração de Mira, Investida Relâmpago, Golpe Baixo, Planejamento e Senso de Batalha ganharam um interruptor **"Ativa agora"**. Ligado, o bônus entra nos Testes de Acerto, na esquiva, no bloqueio, na margem de crítico ou nas perícias; desligado, sai. **Sede de Sangue** tem um contador de acertos acumulados com + / − / zerar.
+
+### Botões novos no cartão
+- **Usar (−X PDE)** desconta o custo do nível desbloqueado, lido do próprio texto do livro, e já liga a habilidade quando ela tem interruptor. Se faltar PDE, avisa e não desconta nada.
+- **Dano extra** vira botão de rolagem (Reviravolta 3d8, Olhos de Águia 2d12, Finta 1d12, e assim por diante), com o resultado caindo no histórico como qualquer outra rolagem.
+
+### Onde ver os números
+A lista de valores derivados ganhou linhas para **Bônus de Defesa com Bloqueio**, **Redução de Dano em PDV**, **Deslocamento com o DMT** e **Gás por ação de movimento**, e a **Margem de Crítico** agora diz a partir de quanto o crítico sai (ex.: "−6 (crítico a partir de 14)").
+
+### Correções que vieram junto
+- **A margem de crítico estava invertida.** O talento Sortudo guardava −1, mas o rolador fazia `20 − margem`, ou seja, exigia 21 para crítico — nunca saía. Agora margem negativa deixa o crítico mais fácil, como o livro manda.
+- **Adquirir ou remover habilidade não atualizava a tela.** Os PDE, as defesas e os derivados só mudavam depois de trocar de aba. Agora atualizam na hora.
+- **Os bônus de deslocamento dos aprimoramentos do DMT** estavam somando no deslocamento a pé. Foram para a linha "Deslocamento com o DMT", junto com os da Proficiência.
+
+### O que continua manual
+17 habilidades não têm número para a ficha aplicar — re-rolagens, ações extras para aliados, efeitos no inimigo, revelar atributos, ataques múltiplos. Elas seguem com o texto completo e com o botão de gastar PDE.
+
 ## Novidades da versão 21
 
 - **Correção: o site estava esticado em telas largas.** Numa correção anterior (a de nomes compridos que estouravam a página) entrou uma regra `max-width:100%` que, sem querer, anulou a largura máxima do site e das janelas. O conteúdo passou a ocupar o monitor inteiro de ponta a ponta. Agora volta ao normal: o site fica com no máximo 1180px, centralizado; as janelas voltam aos 640px (as simples) e 980px (o catálogo de fichas e a biblioteca). Nomes compridos continuam quebrando em vez de esticar a página — isso não foi desfeito.
