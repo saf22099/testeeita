@@ -766,12 +766,47 @@ function getPureTitanCategory(id) { return PURE_TITAN_CATEGORIES.find(c => c.id 
 
 const PURE_TITAN_VARIATIONS = [
   { id: 'nenhuma', label: 'Nenhuma', desc: 'Sem alterações.', pvBonusPerPart: 0 },
-  { id: 'gordo', label: 'Titã Gordo', desc: '-2m deslocamento, -2 Teste de Acerto, +1d6 dano, +5 PDV em todas as partes.', pvBonusPerPart: 5 },
-  { id: 'magro', label: 'Titã Magro', desc: '+2m deslocamento, +2 Teste de Acerto, -1d6 dano, -1 no bloqueio.', pvBonusPerPart: 0 },
-  { id: 'atletico', label: 'Titã Atlético', desc: '+1 Teste de Acerto, +1d6 dano, +1m deslocamento.', pvBonusPerPart: 0 },
+  { id: 'gordo', label: 'Titã Gordo', desc: '-2m deslocamento, -2 Teste de Acerto, +1d6 dano, +5 PDV em todas as partes.', pvBonusPerPart: 5, acerto: -2, dano: '+1d6', deslocamento: -2, bloqueio: 0 },
+  { id: 'magro', label: 'Titã Magro', desc: '+2m deslocamento, +2 Teste de Acerto, -1d6 dano, -1 no bloqueio.', pvBonusPerPart: 0, acerto: 2, dano: '-1d6', deslocamento: 2, bloqueio: -1 },
+  { id: 'atletico', label: 'Titã Atlético', desc: '+1 Teste de Acerto, +1d6 dano, +1m deslocamento.', pvBonusPerPart: 0, acerto: 1, dano: '+1d6', deslocamento: 1, bloqueio: 0 },
   { id: 'custom', label: 'Custom (editar manualmente)', desc: 'Personalize o PDV de cada parte e adicione notas ou habilidades próprias.', pvBonusPerPart: 0 }
 ];
 function getPureTitanVariation(id) { return PURE_TITAN_VARIATIONS.find(v => v.id === id) || PURE_TITAN_VARIATIONS[0]; }
+
+const TITAN_ATTR_LABELS = { agi: 'Agilidade', sta: 'Estâmina', str: 'Força', int: 'Intelecto', vit: 'Vitalidade' };
+const TITAN_ATTR_CURTO = { agi: 'AGI', sta: 'EST', str: 'FOR', int: 'INT', vit: 'VIT' };
+
+/* Ficha de combate de um Titã do mestre: parte dos valores da categoria do livro,
+   aplica a variação escolhida e, por cima, o que o mestre editou à mão. */
+function fichaPadraoTita(categoryId, variationId) {
+  const cat = getPureTitanCategory(categoryId);
+  const v = getPureTitanVariation(variationId);
+  if (!cat) return { agi: 0, sta: 0, str: 0, int: 0, vit: 0, acerto: 0, dano: '', deslocamento: 0, bloqueio: 10, bloqueioNuca: 13 };
+  const baseAcerto = parseInt(String(cat.testeAcerto).replace(/[^0-9+-]/g, ''), 10) || 0;
+  const dano = cat.dano + (v.dano ? ' ' + v.dano : '');
+  return {
+    agi: cat.attrs.agi, sta: cat.attrs.sta, str: cat.attrs.str, int: cat.attrs.int, vit: cat.attrs.vit,
+    acerto: baseAcerto + (v.acerto || 0),
+    dano,
+    deslocamento: Math.max(0, cat.deslocamento + (v.deslocamento || 0)),
+    bloqueio: cat.bloqueio + (v.bloqueio || 0),
+    bloqueioNuca: cat.bloqueioNuca + (v.bloqueio || 0)
+  };
+}
+const TITAN_FICHA_CAMPOS = ['agi', 'sta', 'str', 'int', 'vit', 'acerto', 'dano', 'deslocamento', 'bloqueio', 'bloqueioNuca'];
+function getGMTitanFicha(t) {
+  const padrao = fichaPadraoTita(t.categoryId, t.variationId);
+  const salva = t.ficha || {};
+  const out = {};
+  TITAN_FICHA_CAMPOS.forEach(k => { out[k] = (salva[k] === undefined || salva[k] === null || salva[k] === '') ? padrao[k] : salva[k]; });
+  return out;
+}
+// true quando o mestre mexeu em algum valor desta ficha
+function titaFichaEditada(t) {
+  if (!t.ficha) return false;
+  const padrao = fichaPadraoTita(t.categoryId, t.variationId);
+  return TITAN_FICHA_CAMPOS.some(k => t.ficha[k] !== undefined && String(t.ficha[k]) !== String(padrao[k]));
+}
 
 const TITAN_PART_LABELS = { nuca: 'Nuca', bracoD: 'Braço Direito', bracoE: 'Braço Esquerdo', pernaD: 'Perna Direita', pernaE: 'Perna Esquerda' };
 
@@ -2380,7 +2415,9 @@ function renderEscudoPicker(modo, soGrade) {
         const ja = gmInitiative.some(p => p.sourceId === t.id && p.sourceType === 'titan');
         botao = `<button ${ja ? 'disabled' : ''} class="primary" style="margin-top:10px;width:100%;" onclick="pullTitanToInitiative('${t.id}')">${ja ? 'Já na Iniciativa' : 'Puxar para a Iniciativa'}</button>`;
       }
-      div.innerHTML = `<h4>${escapeHtmlBasic(t.name)}</h4><p class="desc">Titã — ${cat ? cat.label : 'Custom'}</p>${botao}`;
+      const fp = getGMTitanFicha(t);
+      const resumo = cat ? `<p class="tita-resumo">${Object.keys(TITAN_ATTR_LABELS).map(k => `${TITAN_ATTR_CURTO[k]} ${escapeHtmlBasic(fp[k])}`).join(' · ')}</p>` : '';
+      div.innerHTML = `<h4>${escapeHtmlBasic(t.name)}</h4><p class="desc">Titã — ${cat ? cat.label : 'Custom'}</p>${resumo}${botao}`;
       grid.appendChild(div);
     });
     return;
@@ -2503,7 +2540,16 @@ function buildGMTitanCard(t) {
     </div>`;
   }).join('');
   const avatar = t.imageUrl ? `<img src="${esc(imagemSegura(t.imageUrl))}" alt="" class="initiative-avatar" style="width:64px;height:64px;" />` : '';
-  const statsHtml = cat ? `<div class="derived-stat" style="margin-top:10px;"><span><strong>Ataque:</strong></span><span>1d20${cat.testeAcerto} — ${cat.dano}</span></div><div class="derived-stat"><span><strong>Deslocamento:</strong></span><span>${cat.deslocamento}m</span></div><div class="derived-stat"><span><strong>Bloqueio:</strong></span><span>${cat.bloqueio} (${cat.bloqueioNuca} na nuca)</span></div>` : '';
+  const f = getGMTitanFicha(t);
+  const editada = titaFichaEditada(t);
+  const atributosHtml = cat ? `<div class="tita-atributos">
+      ${Object.keys(TITAN_ATTR_LABELS).map(k => `<div class="tita-atributo" title="${TITAN_ATTR_LABELS[k]}"><span>${TITAN_ATTR_CURTO[k]}</span><strong>${esc(f[k])}</strong></div>`).join('')}
+    </div>${editada ? '<p class="tita-editada">Valores ajustados pelo mestre.</p>' : ''}` : '';
+  const sinal = Number(f.acerto) >= 0 ? '+' : '';
+  const statsHtml = cat ? `${atributosHtml}
+    <div class="derived-stat" style="margin-top:10px;"><span><strong>Ataque:</strong></span><span>1d20${sinal}${esc(f.acerto)} — ${esc(f.dano)}</span></div>
+    <div class="derived-stat"><span><strong>Deslocamento:</strong></span><span>${esc(f.deslocamento)}m</span></div>
+    <div class="derived-stat"><span><strong>Bloqueio:</strong></span><span>${esc(f.bloqueio)} (${esc(f.bloqueioNuca)} na nuca)</span></div>` : '';
   div.innerHTML = `
     <div style="display:flex;gap:12px;align-items:flex-start;">
       ${avatar}
@@ -2574,6 +2620,7 @@ function openGMTitanModal(editId) {
     document.getElementById('gmTitanCustomPernaD').value = t.parts.pernaD.max;
     document.getElementById('gmTitanCustomPernaE').value = t.parts.pernaE.max;
     document.getElementById('gmTitanCustomNotes').value = t.customNotes || '';
+    preencherFichaTita(getGMTitanFicha(t));
     if (t.imageUrl) { thumbImg.src = imagemSegura(t.imageUrl); thumbImg.classList.remove('hidden'); thumbPlaceholder.classList.add('hidden'); pendingGMTitanImage = t.imageUrl; }
     else { thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden'); }
   } else {
@@ -2588,6 +2635,7 @@ function openGMTitanModal(editId) {
     document.getElementById('gmTitanCustomPernaD').value = 25;
     document.getElementById('gmTitanCustomPernaE').value = 25;
     document.getElementById('gmTitanCustomNotes').value = '';
+    preencherFichaTita(fichaPadraoTita('6-9', 'nenhuma'));
     thumbImg.classList.add('hidden'); thumbPlaceholder.classList.remove('hidden');
   }
   toggleGMTitanCustomFields();
@@ -2595,6 +2643,37 @@ function openGMTitanModal(editId) {
   document.getElementById('gmTitanModal').classList.remove('hidden');
 }
 function closeGMTitanModal() { document.getElementById('gmTitanModal').classList.add('hidden'); }
+
+/* --- campos de atributos e combate do modal do Titã --- */
+const TITAN_FICHA_INPUTS = {
+  agi: 'gmTitanAgi', sta: 'gmTitanSta', str: 'gmTitanStr', int: 'gmTitanInt', vit: 'gmTitanVit',
+  acerto: 'gmTitanAcerto', dano: 'gmTitanDano', deslocamento: 'gmTitanDeslocamento',
+  bloqueio: 'gmTitanBloqueio', bloqueioNuca: 'gmTitanBloqueioNuca'
+};
+function preencherFichaTita(ficha) {
+  Object.keys(TITAN_FICHA_INPUTS).forEach(k => {
+    const el = document.getElementById(TITAN_FICHA_INPUTS[k]);
+    if (el) el.value = ficha[k];
+  });
+}
+function lerFichaTita() {
+  const out = {};
+  Object.keys(TITAN_FICHA_INPUTS).forEach(k => {
+    const el = document.getElementById(TITAN_FICHA_INPUTS[k]);
+    if (!el) return;
+    if (k === 'dano') out[k] = el.value.trim();
+    else { const n = parseInt(el.value, 10); out[k] = Number.isFinite(n) ? n : 0; }
+  });
+  return out;
+}
+// devolve os campos aos valores do livro para a categoria e variação escolhidas
+function restaurarFichaTita() {
+  const catId = document.getElementById('gmTitanCategory').value;
+  const varId = document.getElementById('gmTitanVariation').value;
+  preencherFichaTita(fichaPadraoTita(catId, varId));
+  updateGMTitanPreview();
+  showNotification('Valores restaurados.', 'Atributos e combate voltaram ao padrão do livro.');
+}
 
 function resizeImageToDataUrl(file, maxDim, quality, callback) {
   if (!file.type.startsWith('image/')) { showNotification('Arquivo inválido.', 'Selecione uma imagem.', true); return; }
@@ -2639,14 +2718,34 @@ function updateGMTitanPreview() {
     preview.innerHTML = `<p><strong>PV Total:</strong> ${nuca + bD + bE + pD + pE}</p><p style="color:var(--text-dim);font-size:0.78rem;">Ataque, deslocamento e bloqueio ficam a critério do mestre — use as notas para registrar.</p>`;
     return;
   }
-  preview.innerHTML = `<p><strong>Teste de Acerto:</strong> 1d20${cat.testeAcerto}</p><p><strong>Dano:</strong> ${cat.dano}</p><p><strong>Deslocamento:</strong> ${cat.deslocamento}m</p><p><strong>Bloqueio:</strong> ${cat.bloqueio} (${cat.bloqueioNuca} na nuca)</p>${variation.id !== 'nenhuma' ? `<p style="margin-top:8px;color:var(--accent);">${variation.desc}</p>` : ''}`;
+  const f = lerFichaTita();
+  const padrao = fichaPadraoTita(catId, varId);
+  const mexeu = TITAN_FICHA_CAMPOS.some(k => String(f[k]) !== String(padrao[k]));
+  const sinal = Number(f.acerto) >= 0 ? '+' : '';
+  const attrs = Object.keys(TITAN_ATTR_LABELS).map(k => `${TITAN_ATTR_CURTO[k]} ${esc(f[k])}`).join(' · ');
+  preview.innerHTML = `<p style="font-family:var(--mono);font-size:0.82rem;">${attrs}</p>
+    <p style="margin-top:6px;"><strong>Teste de Acerto:</strong> 1d20${sinal}${esc(f.acerto)}</p>
+    <p><strong>Dano:</strong> ${esc(f.dano)}</p>
+    <p><strong>Deslocamento:</strong> ${esc(f.deslocamento)}m</p>
+    <p><strong>Bloqueio:</strong> ${esc(f.bloqueio)} (${esc(f.bloqueioNuca)} na nuca)</p>
+    ${variation.id !== 'nenhuma' ? `<p style="margin-top:8px;color:var(--accent);">${variation.desc}</p>` : ''}
+    ${mexeu ? '<p style="margin-top:8px;color:var(--text-dim);font-size:0.78rem;">Valores ajustados à mão. Use "Voltar ao padrão da categoria" para desfazer.</p>' : ''}`;
 }
 document.addEventListener('change', (e) => {
   const watched = ['gmTitanCategory', 'gmTitanVariation', 'gmTitanCustomNuca', 'gmTitanCustomBracoD', 'gmTitanCustomBracoE', 'gmTitanCustomPernaD', 'gmTitanCustomPernaE'];
   if (watched.includes(e.target.id)) {
     if (e.target.id === 'gmTitanVariation') toggleGMTitanCustomFields();
+    // mudar a categoria ou a variação recarrega os valores do livro
+    if (e.target.id === 'gmTitanCategory' || e.target.id === 'gmTitanVariation') {
+      preencherFichaTita(fichaPadraoTita(document.getElementById('gmTitanCategory').value, document.getElementById('gmTitanVariation').value));
+    }
     updateGMTitanPreview();
   }
+  if (Object.values(TITAN_FICHA_INPUTS).includes(e.target.id)) updateGMTitanPreview();
+});
+// o campo de dano é texto: atualiza a prévia enquanto digita
+document.addEventListener('input', (e) => {
+  if (typeof TITAN_FICHA_INPUTS === 'object' && Object.values(TITAN_FICHA_INPUTS).includes(e.target.id)) updateGMTitanPreview();
 });
 
 function saveGMTitan() {
@@ -2666,12 +2765,13 @@ function saveGMTitan() {
     };
   }
   const customNotes = document.getElementById('gmTitanCustomNotes').value.trim();
+  const ficha = lerFichaTita();
   const maxes = computeGMTitanParts(categoryId, variationId, customParts);
   if (editId) {
     const t = gmTitans.find(x => x.id === editId);
     if (t) {
       ensureGMTitanParts(t);
-      t.name = name; t.description = description; t.categoryId = categoryId; t.variationId = variationId; t.customParts = customParts; t.customNotes = customNotes; t.imageUrl = pendingGMTitanImage;
+      t.name = name; t.description = description; t.categoryId = categoryId; t.variationId = variationId; t.customParts = customParts; t.customNotes = customNotes; t.imageUrl = pendingGMTitanImage; t.ficha = ficha;
       Object.keys(maxes).forEach(k => {
         const ratio = t.parts[k].max > 0 ? t.parts[k].cur / t.parts[k].max : 1;
         t.parts[k].max = maxes[k];
@@ -2682,7 +2782,7 @@ function saveGMTitan() {
   } else {
     const parts = {};
     Object.keys(maxes).forEach(k => { parts[k] = { cur: maxes[k], max: maxes[k] }; });
-    gmTitans.push({ id: 'gmtitan_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, description, categoryId, variationId, customParts, customNotes, imageUrl: pendingGMTitanImage, parts });
+    gmTitans.push({ id: 'gmtitan_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, description, categoryId, variationId, customParts, customNotes, imageUrl: pendingGMTitanImage, parts, ficha });
     showNotification('Titã criado.', name);
   }
   saveGMTitans();

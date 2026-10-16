@@ -1,5 +1,32 @@
 # Coordenada: contas, perfis e campanhas
 
+## Novidades da versão 24 — atributos dos Titãs Puros
+
+Na aba Titãs do escudo, cada Titã agora mostra os **cinco atributos** (Agilidade, Estâmina, Força, Intelecto, Vitalidade), e tudo isso virou **editável no botão Editar**.
+
+### No cartão
+Abaixo do PV total aparece a faixa de atributos, e as linhas de **Ataque**, **Deslocamento** e **Bloqueio** passaram a ler os valores daquele Titã em vez da categoria crua. Se o mestre tiver mexido em algo, o cartão avisa: *"Valores ajustados pelo mestre."* Os botões de rolagem de acerto e dano seguem os valores editados.
+
+### No Editar
+Um bloco **"Atributos e combate"** com dez campos: os cinco atributos, o bônus do Teste de Acerto, o dano, o deslocamento, o bloqueio e o bloqueio na nuca. Vêm preenchidos pelos valores do livro conforme a categoria escolhida, e há um botão **"Voltar ao padrão da categoria"** para desfazer qualquer ajuste.
+
+Valores do livro, conferidos um a um:
+
+| Categoria | AGI | EST | FOR | INT | VIT | Acerto | Dano | Desloc. | Bloqueio |
+|---|---|---|---|---|---|---|---|---|---|
+| 3 a 5 m | 5 | 2 | 4 | 2 | 2 | +5 | 3d6+4 | 6m | 14 (17 na nuca) |
+| 6 a 9 m | 7 | 4 | 5 | 2 | 3 | +7 | 4d6+6 | 8m | 15 (18 na nuca) |
+| 10 a 14 m | 6 | 5 | 6 | 2 | 5 | +6 | 5d6+8 | 10m | 16 (19 na nuca) |
+| 15 m | 8 | 6 | 8 | 2 | 6 | +8 | 6d6+10 | 10m | 17 (20 na nuca) |
+
+### A variação agora conta nos números
+Antes, Gordo / Magro / Atlético eram só uma frase descritiva. Agora os efeitos entram nos campos: **Gordo** −2 no acerto, +1d6 de dano, −2m (e os +5 PDV por parte que já existiam); **Magro** +2 no acerto, −1d6 de dano, +2m, −1 no bloqueio; **Atlético** +1 no acerto, +1d6 de dano, +1m. Trocar a categoria ou a variação recarrega os campos com o novo padrão.
+
+### Outras melhorias
+- O campo **Notas / Habilidades Customizadas** saiu de dentro da variação "Custom" e agora está sempre disponível — dá para anotar um traço especial num Titã de 10 a 14 metros comum.
+- O seletor de "Adicionar ao Encontro" e de iniciativa mostra o resumo dos atributos de cada Titã, para escolher sem precisar abrir.
+- Titãs salvos antes desta versão continuam funcionando: sem ficha própria, os valores saem da categoria normalmente.
+
 ## Novidades da versão 23 — correção da automação das habilidades
 
 A automação da v22 não aparecia no caminho normal de uso. **Fichas criadas pelo assistente nascem no nível 0**, e as habilidades do livro só valem a partir do nível 1 — então quem criava a ficha, escolhia as habilidades e olhava a tela não via interruptor nenhum, nem bônus nenhum. Pior: o **custo permanente de PDE era cobrado mesmo no nível 0**, quando nenhum benefício estava valendo, e isso zerava o PDE máximo de ficha recém-criada.

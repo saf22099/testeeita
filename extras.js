@@ -845,10 +845,13 @@ function exAtaqueTitaPuro(t) {
   const cat = typeof getPureTitanCategory === 'function' ? getPureTitanCategory(t.categoryId) : null;
   if (!cat) return null;
   const v = VARIACOES_TITA[t.variationId] || null;
+  // os valores da ficha do Titã mandam: o mestre pode ter editado acerto e dano
+  if (typeof getGMTitanFicha === 'function') {
+    const f = getGMTitanFicha(t);
+    return { acerto: Number(f.acerto) || 0, dano: f.dano, variacao: v ? v.nome : '' };
+  }
   const base = parseInt(String(cat.testeAcerto).replace(/[^0-9+-]/g, ''), 10) || 0;
-  const acerto = base + (v ? v.acerto : 0);
-  const dano = cat.dano + (v ? ' ' + v.dano : '');
-  return { acerto, dano, variacao: v ? v.nome : '' };
+  return { acerto: base + (v ? v.acerto : 0), dano: cat.dano + (v ? ' ' + v.dano : ''), variacao: v ? v.nome : '' };
 }
 // O texto vai em atributos, nunca dentro do onclick: assim um apóstrofo
 // no nome do ataque ("Golpe d'Asa") não quebra o botão.

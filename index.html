@@ -1343,6 +1343,29 @@
         </select>
       </div>
     </div>
+    <div class="tita-ficha-campos">
+      <div class="tita-ficha-cab">
+        <label style="margin:0;">Atributos e combate</label>
+        <button type="button" class="small" onclick="restaurarFichaTita()">Voltar ao padrão da categoria</button>
+      </div>
+      <p style="color:var(--text-dim);font-size:0.75rem;margin:4px 0 10px;">Vêm preenchidos pelo livro, já com a variação aplicada. Edite à vontade para um Titã fora do padrão.</p>
+      <div class="grid grid-5" style="gap:8px;">
+        <div><label>Agilidade</label><input id="gmTitanAgi" type="number" step="1" /></div>
+        <div><label>Estâmina</label><input id="gmTitanSta" type="number" step="1" /></div>
+        <div><label>Força</label><input id="gmTitanStr" type="number" step="1" /></div>
+        <div><label>Intelecto</label><input id="gmTitanInt" type="number" step="1" /></div>
+        <div><label>Vitalidade</label><input id="gmTitanVit" type="number" step="1" /></div>
+      </div>
+      <div class="grid grid-2" style="gap:8px;margin-top:8px;">
+        <div><label>Teste de Acerto (bônus do 1d20)</label><input id="gmTitanAcerto" type="number" step="1" /></div>
+        <div><label>Dano</label><input id="gmTitanDano" type="text" placeholder="Ex: 4d6+6" /></div>
+      </div>
+      <div class="grid grid-3" style="gap:8px;margin-top:8px;">
+        <div><label>Deslocamento (m)</label><input id="gmTitanDeslocamento" type="number" min="0" step="1" /></div>
+        <div><label>Bloqueio</label><input id="gmTitanBloqueio" type="number" step="1" /></div>
+        <div><label>Bloqueio na nuca</label><input id="gmTitanBloqueioNuca" type="number" step="1" /></div>
+      </div>
+    </div>
     <div id="gmTitanCustomFields" class="hidden" style="margin-top:16px;">
       <label>PDV por Parte (edite livremente)</label>
       <div class="grid grid-3" style="margin-top:8px;">
@@ -1352,8 +1375,8 @@
         <div><label style="text-transform:none;font-weight:400;">Perna D.</label><input id="gmTitanCustomPernaD" type="number" min="1" value="20" /></div>
         <div><label style="text-transform:none;font-weight:400;">Perna E.</label><input id="gmTitanCustomPernaE" type="number" min="1" value="20" /></div>
       </div>
-      <div style="margin-top:14px;"><label>Notas / Habilidades Customizadas</label><textarea id="gmTitanCustomNotes" style="min-height:70px;" placeholder="Descreva ataques, habilidades ou traços únicos deste Titã..."></textarea></div>
     </div>
+    <div style="margin-top:14px;"><label>Notas / Habilidades Customizadas</label><textarea id="gmTitanCustomNotes" style="min-height:70px;" placeholder="Descreva ataques, habilidades ou traços únicos deste Titã..."></textarea></div>
     <div id="gmTitanPreview" class="mini-card" style="margin-top:16px;"></div>
     <div class="modal-actions">
       <button onclick="closeGMTitanModal()">Cancelar</button>

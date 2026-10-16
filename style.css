@@ -1576,3 +1576,19 @@ html{scroll-behavior:smooth;}
 .nota-dmt{margin-top:12px;padding:8px 10px;border-left:2px solid var(--accent-dim);
   background:var(--accent-fraco);border-radius:0 var(--radius-sm) var(--radius-sm) 0;
   color:var(--text-muted);font-size:var(--txt-mini);line-height:1.5;}
+
+/* ------------------------------------------------------------
+   ATRIBUTOS DO TITÃ (escudo do mestre)
+   ------------------------------------------------------------ */
+.tita-atributos{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:10px;max-width:420px;}
+.tita-atributo{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;
+  background:var(--surface-3);border:1px solid var(--border);border-radius:var(--radius-sm);min-width:0;}
+.tita-atributo span{font-size:var(--txt-mini);color:var(--text-dim);letter-spacing:0.04em;}
+.tita-atributo strong{font-family:var(--mono);font-size:1.05rem;color:var(--accent);line-height:1.1;}
+.tita-editada{margin-top:6px;font-size:var(--txt-mini);color:var(--text-dim);font-style:italic;}
+.tita-resumo{margin-top:6px;font-size:var(--txt-mini);color:var(--text-dim);font-family:var(--mono);}
+@media (max-width:420px){.tita-atributos{grid-template-columns:repeat(3,1fr);}}
+.tita-ficha-campos{margin-top:16px;}
+.tita-ficha-campos .grid > div > label{text-transform:none;font-weight:400;}
+.tita-ficha-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+@media (max-width:600px){.tita-ficha-campos .grid-5,.tita-ficha-campos .grid-3{grid-template-columns:repeat(2,1fr);}}
