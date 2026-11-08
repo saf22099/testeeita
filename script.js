@@ -1417,8 +1417,7 @@ function recalcAllModifiers(ch) {
     if (faixa === 'medio') { ch.derivedModifiers.testesAcerto += 2; ch.derivedModifiers.movementFlat += 4; }
     if (faixa === 'alto') { ch.derivedModifiers.testesAcerto += 4; ch.derivedModifiers.movementFlat += 4; }
   }
-  // Vulnerável: -4 em Testes de Defesa (esquiva ou bloqueio)
-  if (ch.conditions.vulneravel && ch.conditions.vulneravel.active) ch.derivedModifiers.defesaEsquiva -= 4;
+  // Vulnerável (-4 em Testes de Defesa) é aplicado uma única vez em renderCombatDefenses, para esquiva e bloqueio
 
   recalculateResources(ch);
   if (ch.shifter && ch.shifter.isShifter && ch.shifter.titanId) recomputeShifterParts(ch);
@@ -3419,10 +3418,10 @@ function updateAttrUI() {
   movement = Math.max(0, movement);
   document.getElementById('movement').textContent = movement;
   // deslocamento extra que só vale com o DMT equipado
-  const extraDmt = ch.derivedModifiers.movimentoDmt || 0;
+  const extraDmt = 3 + (ch.derivedModifiers.movimentoDmt || 0);   // o DMT dá +3m; os aprimoramentos somam por cima (Propulsores: +5m no total)
   const linhaDmt = document.getElementById('linhaMovDmt');
   if (linhaDmt) {
-    linhaDmt.classList.toggle('hidden', !extraDmt);
+    linhaDmt.classList.remove('hidden');
     const alvo = document.getElementById('movementDmt');
     if (alvo) alvo.textContent = movement + extraDmt;
   }

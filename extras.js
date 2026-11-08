@@ -373,6 +373,18 @@ function exEfeitosDmt(ch) {
   return ef;
 }
 function exLimiteLaminas(ch) { return exEfeitosDmt(ch).ataquesLamina; }
+// esquiva, bloqueio e deslocamento mostrados na ficha precisam refletir o aprimoramento na hora
+function exAtualizarDerivadosDmt() {
+  if (typeof updateAttrUI === 'function') updateAttrUI();
+  if (typeof updateResourceUI === 'function') updateResourceUI();
+}
+// o limite de ataques e o dano do canhão da aba DMT seguem os aprimoramentos
+function exRenderAbaDmt() {
+  const ch = exFicha(); if (!ch || !ch.dmt) return;
+  const ef = exEfeitosDmt(ch);
+  const lim = document.getElementById('bladeLimit'); if (lim) lim.textContent = ef.ataquesLamina;
+  const can = document.getElementById('cannonDamage'); if (can) can.textContent = `3d6${ef.canhaoExtra ? ` + ${ef.canhaoExtra}` : ''}`;
+}
 
 // os aprimoramentos entram nos modificadores da ficha
 const exRecalcOriginal = window.recalcAllModifiers;
@@ -384,6 +396,8 @@ window.recalcAllModifiers = function (ch) {
   ch.derivedModifiers.movimentoDmt = (ch.derivedModifiers.movimentoDmt || 0) + ef.deslocamento;
   ch.derivedModifiers.defesaEsquiva = (ch.derivedModifiers.defesaEsquiva || 0) + ef.defesa;
   ch.derivedModifiers.esquivaDmt = (ch.derivedModifiers.esquivaDmt || 0) + ef.defesa;
+  ch.derivedModifiers.defesaBloqueio = (ch.derivedModifiers.defesaBloqueio || 0) + ef.defesa;
+  ch.derivedModifiers.bloqueioDmt = (ch.derivedModifiers.bloqueioDmt || 0) + ef.defesa;
   ch.dmt.cylinderCapacity = ef.gasPorCilindro;
   ch.dmt.cylinder1 = Math.min(ch.dmt.cylinder1 ?? ef.gasPorCilindro, ef.gasPorCilindro);
   ch.dmt.cylinder2 = Math.min(ch.dmt.cylinder2 ?? ef.gasPorCilindro, ef.gasPorCilindro);
@@ -460,7 +474,7 @@ function dmtAlternarMelhoria(id, ativo) {
   const dmt = exDmt(ch);
   dmt.melhorias = ativo ? [...new Set([...dmt.melhorias, id])] : dmt.melhorias.filter(x => x !== id);
   dmt.type = dmt.melhorias.length ? (DMT_MELHORIAS.every(m => dmt.melhorias.includes(m.id)) ? 'Aprimorado' : 'Modificado') : 'Tradicional';
-  recalcAllModifiers(ch); exSalvar(); renderDMT();
+  recalcAllModifiers(ch); exSalvar(); renderDMT(); exAtualizarDerivadosDmt();
 }
 function dmtAplicarPacote(ativar) {
   const ch = exFicha(); if (!ch) return;
@@ -469,14 +483,14 @@ function dmtAplicarPacote(ativar) {
   dmt.type = ativar ? 'Aprimorado' : 'Tradicional';
   // enche os cilindros com o que os aprimoramentos escolhidos realmente dão
   if (ativar) { const g = exEfeitosDmt(ch).gasPorCilindro; dmt.cylinder1 = g; dmt.cylinder2 = g; }
-  recalcAllModifiers(ch); exSalvar(); renderDMT();
+  recalcAllModifiers(ch); exSalvar(); renderDMT(); exAtualizarDerivadosDmt();
   exAviso(ativar ? 'DMT Aprimorado ativado' : 'DMT tradicional', ativar ? 'Os seis aprimoramentos do livro foram aplicados.' : 'Os aprimoramentos oficiais foram desligados.');
 }
 function dmtRemoverCustom(id) {
   const ch = exFicha(); if (!ch) return;
   const dmt = exDmt(ch);
   dmt.custom = dmt.custom.filter(c => c.id !== id);
-  recalcAllModifiers(ch); exSalvar(); renderDMT();
+  recalcAllModifiers(ch); exSalvar(); renderDMT(); exAtualizarDerivadosDmt();
 }
 function dmtAbrirCustom() {
   document.getElementById('dmtCustomNome').value = '';
@@ -501,7 +515,7 @@ function dmtSalvarCustom() {
   exDmt(ch).custom.push({ id: 'dmtc_' + Date.now(), nome, desc: document.getElementById('dmtCustomDesc').value.trim(), ef });
   recalcAllModifiers(ch); exSalvar();
   document.getElementById('dmtCustomModal').classList.add('hidden');
-  renderDMT();
+  renderDMT(); exAtualizarDerivadosDmt();
   exAviso('Aprimoramento criado', nome);
 }
 
@@ -1074,12 +1088,12 @@ const COR_POR_CLASSE = {
   'especialista de batalha': 'ambar',
   estrategista: 'ambar', capitao: 'ambar'
 };
-let exUltimaFichaCor = null;
 function exCorDaClasse() {
-  // a ficha aberta manda; sem ficha aberta, vale a última que foi aberta
-  const ch = exFicha() || (exUltimaFichaCor && characters.find(c => c.id === exUltimaFichaCor)) || null;
+  // A cor da classe só pertence à ficha visível, nunca às outras telas.
+  const tela = document.getElementById('screenSheet');
+  if (!tela || tela.classList.contains('hidden')) return null;
+  const ch = exFicha();
   if (!ch) return null;
-  exUltimaFichaCor = ch.id;
   const classe = document.getElementById('charClass') && exFicha() === ch ? (document.getElementById('charClass').value || ch.class) : ch.class;
   return COR_POR_CLASSE[exSemAcento(classe || '')] || COR_POR_CLASSE[exSemAcento(ch.subclass || '')] || null;
 }
@@ -1650,3 +1664,795 @@ exEnvolver('acquireSkillFromLibrary', abilityId => {
     exAviso('PDE máximo zerado', `${ability ? ability.name : 'Esta habilidade'} custa ${auto.permPde} PDE permanentes, e o personagem não tinha tanto assim. Suba o nível ou a Estâmina antes de usá-la.`, true);
   }
 });
+
+/* ============================================================
+   10. BÔNUS MANUAIS DE DESLOCAMENTO (v25)
+   Usa a mesma janela dos recursos, sem alterar o núcleo. O bônus
+   entra antes da fadiga, junto aos demais ajustes a pé; o DMT
+   continua recebendo somente os seus extras na linha separada.
+   ============================================================ */
+function exBonusDeslocamento(ch) {
+  if (!Array.isArray(ch.movementModifiers)) return [];
+  return ch.movementModifiers.filter(m => m && typeof m.id === 'string' &&
+    Number.isSafeInteger(m.value));
+}
+const exRecalcDeslocamento = window.recalcAllModifiers;
+window.recalcAllModifiers = function (ch) {
+  exRecalcDeslocamento(ch);
+  if (!ch) return;
+  ch.derivedModifiers.movementFlat += exBonusDeslocamento(ch).reduce((s, m) => s + m.value, 0);
+};
+
+function exRenderBonusDeslocamento() {
+  const ch = exFicha(), alvo = document.getElementById('movementModList');
+  if (!ch || !alvo) return;
+  alvo.innerHTML = '';
+  exBonusDeslocamento(ch).forEach(m => {
+    const linha = document.createElement('div');
+    linha.className = 'modifier-row';
+    linha.innerHTML = `<span>${exEsc(m.name)}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${m.value >= 0 ? '+' : ''}${m.value}m</span> <button type="button" class="small danger" data-remover-deslocamento="${exEsc(m.id)}" ${ch._ro ? 'disabled' : ''}>Remover</button></span>`;
+    alvo.appendChild(linha);
+  });
+  const botao = document.querySelector('[data-bonus-deslocamento]');
+  if (botao) botao.disabled = !!ch._ro;
+}
+exEnvolver('updateAttrUI', exRenderBonusDeslocamento);
+
+const exAbrirBonusRecurso = window.openResourceBonusModal;
+window.openResourceBonusModal = function (key) {
+  if (key === 'movement' && (!exFicha() || exFicha()._ro)) return;
+  exAbrirBonusRecurso(key);
+  if (key === 'movement') document.getElementById('resourceBonusTitle').textContent = 'Adicionar Bônus de Deslocamento (m)';
+};
+const exAdicionarBonusRecurso = window.addResourceModifier;
+window.addResourceModifier = function () {
+  if (document.getElementById('resourceBonusTarget').value !== 'movement') return exAdicionarBonusRecurso();
+  const ch = exFicha();
+  if (!ch || ch._ro) return;
+  const entrada = document.getElementById('resourceBonusValue').value.trim();
+  const value = Number(entrada);
+  if (!entrada || !Number.isSafeInteger(value) || !value) {
+    exAviso('Informe um valor inteiro diferente de zero.', '', true);
+    return;
+  }
+  const name = document.getElementById('resourceBonusName').value.trim() || 'Bônus';
+  if (!Array.isArray(ch.movementModifiers)) ch.movementModifiers = [];
+  ch.movementModifiers.push({ id: genId(), name, value, origem: 'Manual' });
+  recalcAllModifiers(ch);
+  exSalvar();
+  closeResourceBonusModal();
+  updateAttrUI();
+};
+document.addEventListener('click', event => {
+  const botao = event.target.closest('[data-bonus-deslocamento], [data-remover-deslocamento]');
+  if (!botao) return;
+  const ch = exFicha();
+  if (!ch || ch._ro) return;
+  if (botao.hasAttribute('data-bonus-deslocamento')) {
+    openResourceBonusModal('movement');
+    return;
+  }
+  ch.movementModifiers = exBonusDeslocamento(ch).filter(m => m.id !== botao.dataset.removerDeslocamento);
+  recalcAllModifiers(ch);
+  exSalvar();
+  updateAttrUI();
+});
+
+
+/* ============================================================
+   11. BÔNUS MANUAIS DE ESQUIVA E BLOQUEIO (v26)
+   Mesma janela e mesmo padrão do bônus de Deslocamento. Cada bônus
+   tem nome (o motivo) e aparece na conta da defesa, como os demais.
+   Fórmulas do livro inalteradas: os valores só entram como
+   modificadores de defesa, antes da penalidade de Vulnerável.
+   ============================================================ */
+const EX_DEFESA = {
+  esquiva: { campo: 'dodgeModifiers', alvo: 'esquiva', rotulo: 'Esquiva', chaveDerivada: 'defesaEsquiva', lista: 'esquivaModList' },
+  bloqueio: { campo: 'blockModifiers', alvo: 'bloqueio', rotulo: 'Bloqueio', chaveDerivada: 'defesaBloqueio', lista: 'bloqueioModList' }
+};
+function exBonusDefesa(ch, tipo) {
+  const lista = ch && ch[EX_DEFESA[tipo].campo];
+  if (!Array.isArray(lista)) return [];
+  return lista.filter(m => m && typeof m.id === 'string' && Number.isSafeInteger(m.value));
+}
+function exSomaDefesa(ch, tipo) { return exBonusDefesa(ch, tipo).reduce((s, m) => s + m.value, 0); }
+
+const exRecalcDefesas = window.recalcAllModifiers;
+window.recalcAllModifiers = function (ch) {
+  exRecalcDefesas(ch);
+  if (!ch) return;
+  ch.derivedModifiers.defesaEsquiva = (ch.derivedModifiers.defesaEsquiva || 0) + exSomaDefesa(ch, 'esquiva');
+  ch.derivedModifiers.defesaBloqueio = (ch.derivedModifiers.defesaBloqueio || 0) + exSomaDefesa(ch, 'bloqueio');
+};
+
+function exSinal(n) { return (n >= 0 ? '+' : '') + n; }
+
+function exRenderBonusDefesa() {
+  const ch = exFicha(); if (!ch) return;
+  Object.keys(EX_DEFESA).forEach(tipo => {
+    const cfg = EX_DEFESA[tipo];
+    const alvo = document.getElementById(cfg.lista);
+    if (alvo) {
+      alvo.innerHTML = '';
+      exBonusDefesa(ch, tipo).forEach(m => {
+        const linha = document.createElement('div');
+        linha.className = 'modifier-row';
+        linha.innerHTML = `<span>${exEsc(m.name)}</span><span><span class="mval ${m.value >= 0 ? 'pos' : 'neg'}">${exSinal(m.value)}</span> <button type="button" class="small danger" data-remover-defesa="${exEsc(m.id)}" data-tipo-defesa="${tipo}" ${ch._ro ? 'disabled' : ''}>Remover</button></span>`;
+        alvo.appendChild(linha);
+      });
+    }
+    const botao = document.querySelector(`[data-bonus-defesa="${tipo}"]`);
+    if (botao) botao.disabled = !!ch._ro;
+  });
+  // a conta passa a mostrar cada bônus manual com o seu motivo
+  const agi = (ch.attributes.agi || 0) + ((ch.attributeBonuses && ch.attributeBonuses.agi) || 0);
+  const forca = (ch.attributes.str || 0) + ((ch.attributeBonuses && ch.attributeBonuses.str) || 0);
+  const luta = (ch.skills || []).find(s => s.name === 'Luta');
+  const lutaInvestida = luta ? luta.base : 0;
+  const vulneravel = ch.conditions && ch.conditions.vulneravel && ch.conditions.vulneravel.active ? -4 : 0;
+  const manualEsq = exBonusDefesa(ch, 'esquiva'), manualBlo = exBonusDefesa(ch, 'bloqueio');
+  const dEsq = ch.derivedModifiers.defesaEsquiva || 0, dmt = ch.derivedModifiers.esquivaDmt || 0;
+  const outrosEsq = dEsq - dmt - exSomaDefesa(ch, 'esquiva');
+  const pEsq = [`Agilidade (+${agi})`];
+  if (outrosEsq) pEsq.push(`talentos (${exSinal(outrosEsq)})`);
+  manualEsq.forEach(m => pEsq.push(`${m.name} (${exSinal(m.value)})`));
+  if (dmt) pEsq.push(`DMT (+${dmt})`);
+  if (vulneravel) pEsq.push(`Vulnerável (${vulneravel})`);
+  const elEsq = document.getElementById('esquivaBreakdown');
+  if (elEsq) elEsq.textContent = pEsq.join(' + ');
+  const dBlo = ch.derivedModifiers.defesaBloqueio || 0;
+  const bloqDmt = ch.derivedModifiers.bloqueioDmt || 0;
+  const outrosBlo = dBlo - exSomaDefesa(ch, 'bloqueio') - bloqDmt;
+  const pBlo = [`8 + Força (${forca})`, `Luta investida (${lutaInvestida})`];
+  if (outrosBlo) pBlo.push(`habilidades (${exSinal(outrosBlo)})`);
+  manualBlo.forEach(m => pBlo.push(`${m.name} (${exSinal(m.value)})`));
+  if (bloqDmt) pBlo.push(`DMT (+${bloqDmt})`);
+  if (vulneravel) pBlo.push(`Vulnerável (${vulneravel})`);
+  const elBlo = document.getElementById('bloqueioBreakdown');
+  if (elBlo) elBlo.textContent = pBlo.join(' + ');
+  const nota = document.getElementById('notaDefesaDmt');
+  if (nota && (dmt || bloqDmt)) {
+    const acertoDmt = ch.derivedModifiers.acertoDmt || 0;
+    const totEsq = agi + dEsq + vulneravel, totBlo = 8 + forca + lutaInvestida + dBlo + vulneravel;
+    const ganhos = [];
+    if (dmt) ganhos.push(`+${dmt} em Testes de Defesa com esquiva`);
+    if (bloqDmt) ganhos.push(`+${bloqDmt} com bloqueio`);
+    if (acertoDmt) ganhos.push(`+${acertoDmt} em Testes de Acerto`);
+    nota.textContent = `Enquanto usa o DMT: ${ganhos.join(' e ')}. Sem o DMT, a esquiva é ${exSinal(totEsq - dmt)}${bloqDmt ? ` e o bloqueio é ${totBlo - bloqDmt}` : ''}.`;
+  }
+}
+exEnvolver('renderCombatDefenses', exRenderBonusDefesa);
+
+const exAbrirBonusRecurso2 = window.openResourceBonusModal;
+window.openResourceBonusModal = function (key) {
+  if ((key === 'esquiva' || key === 'bloqueio') && (!exFicha() || exFicha()._ro)) return;
+  exAbrirBonusRecurso2(key);
+  if (key === 'esquiva' || key === 'bloqueio') {
+    document.getElementById('resourceBonusTitle').textContent = `Adicionar Bônus de ${EX_DEFESA[key].rotulo}`;
+    document.getElementById('resourceBonusName').placeholder = 'Motivo. Ex: Habilidade, Equipamento';
+  }
+};
+const exAdicionarBonusRecurso2 = window.addResourceModifier;
+window.addResourceModifier = function () {
+  const alvo = document.getElementById('resourceBonusTarget').value;
+  if (alvo !== 'esquiva' && alvo !== 'bloqueio') return exAdicionarBonusRecurso2();
+  const ch = exFicha();
+  if (!ch || ch._ro) return;
+  const entrada = document.getElementById('resourceBonusValue').value.trim();
+  const value = Number(entrada);
+  if (!entrada || !Number.isSafeInteger(value) || !value) {
+    exAviso('Informe um valor inteiro diferente de zero.', '', true);
+    return;
+  }
+  const name = document.getElementById('resourceBonusName').value.trim() || 'Bônus';
+  const campo = EX_DEFESA[alvo].campo;
+  if (!Array.isArray(ch[campo])) ch[campo] = [];
+  ch[campo].push({ id: genId(), name, value, origem: 'Manual' });
+  recalcAllModifiers(ch);
+  exSalvar();
+  closeResourceBonusModal();
+  renderCombatDefenses();
+};
+document.addEventListener('click', event => {
+  const botao = event.target.closest('[data-bonus-defesa], [data-remover-defesa]');
+  if (!botao) return;
+  const ch = exFicha();
+  if (!ch || ch._ro) return;
+  if (botao.hasAttribute('data-bonus-defesa')) {
+    openResourceBonusModal(botao.dataset.bonusDefesa);
+    return;
+  }
+  const tipo = botao.dataset.tipoDefesa;
+  if (!EX_DEFESA[tipo]) return;
+  ch[EX_DEFESA[tipo].campo] = exBonusDefesa(ch, tipo).filter(m => m.id !== botao.dataset.removerDefesa);
+  recalcAllModifiers(ch);
+  exSalvar();
+  renderCombatDefenses();
+});
+
+/* ============================================================
+   12. ADICIONAR LÂMINAS OU CONJUNTOS À RESERVA (v26)
+   O livro trata o conjunto como um par de lâminas ("o par não é
+   consumido"). Adicionar conjuntos soma direto na reserva. Lâminas
+   avulsas ficam guardadas em bladeLoose; cada duas completam um
+   conjunto. As regras de quebra e de troca não mudam.
+   ============================================================ */
+function exLaminasSoltas(dmt) { const n = Number(dmt.bladeLoose); return Number.isSafeInteger(n) && n > 0 ? n : 0; }
+
+function exAdicionarLaminas() {
+  const ch = exFicha(); if (!ch || ch._ro) return;
+  const dmt = exDmt(ch);
+  const campo = document.getElementById('bladeAddQty');
+  const unidade = document.getElementById('bladeAddUnit').value;
+  const qtd = Number(campo.value);
+  if (!Number.isSafeInteger(qtd) || qtd < 1 || qtd > 99) {
+    exAviso('Quantidade inválida', 'Informe um número inteiro de 1 a 99.', true);
+    return;
+  }
+  const lim = exLimiteLaminas(ch);   // ataques que um conjunto aguenta
+  let reserva = dmt.bladeReserve || 0, soltas = exLaminasSoltas(dmt);
+  let msg;
+  if (unidade === 'conjunto') {
+    reserva += qtd;
+    msg = `${qtd} ${qtd === 1 ? 'conjunto adicionado' : 'conjuntos adicionados'}.`;
+    if (!dmt.bladesEquipped && reserva > 0) {
+      reserva -= 1; dmt.bladesEquipped = true; dmt.bladeAttacksUsed = 0;
+      msg += ' Um conjunto já está equipado.';
+    }
+  } else {
+    // cada lâmina devolve 1 ataque ao conjunto atual; sem conjunto, volta o último com 1 ataque a menos gasto
+    if (!dmt.bladesEquipped) {
+      if (reserva > 0) { reserva -= 1; dmt.bladeAttacksUsed = 0; }
+      else dmt.bladeAttacksUsed = lim;
+      dmt.bladesEquipped = true;
+    }
+    const usados = dmt.bladeAttacksUsed || 0;
+    const devolvidas = Math.min(qtd, usados);
+    dmt.bladeAttacksUsed = usados - devolvidas;
+    const sobra = qtd - devolvidas + soltas;
+    reserva += Math.floor(sobra / lim);
+    soltas = sobra % lim;
+    msg = `${qtd} ${qtd === 1 ? 'lâmina adicionada' : 'lâminas adicionadas'}. Conjunto atual: ${dmt.bladeAttacksUsed}/${lim} ataques usados.`;
+    if (soltas) msg += ` ${soltas} ${soltas === 1 ? 'lâmina guardada' : 'lâminas guardadas'} na reserva.`;
+  }
+  dmt.bladeReserve = reserva; dmt.bladeLoose = soltas;
+  campo.value = 1;
+  exSalvar(); renderDMT();
+  exAviso('Lâminas atualizadas', msg);
+}
+window.adicionarLaminas = exAdicionarLaminas;
+
+const exResetLaminas = window.resetBladeSets;
+window.resetBladeSets = function () {
+  const ch = exFicha();
+  if (ch && ch.dmt) ch.dmt.bladeLoose = 0;
+  exResetLaminas();
+};
+
+function exRenderLaminasSoltas() {
+  const ch = exFicha(); if (!ch || !ch.dmt) return;
+  const reserva = document.getElementById('bladeReserve');
+  const soltas = exLaminasSoltas(ch.dmt);
+  if (reserva) reserva.textContent = (ch.dmt.bladeReserve || 0) + (soltas ? ` + ${soltas} ${soltas === 1 ? 'lâmina' : 'lâminas'}` : '');
+  ['bladeAddQty', 'bladeAddUnit', 'btnBladeAdd'].forEach(id => { const e = document.getElementById(id); if (e) e.disabled = !!ch._ro; });
+}
+exEnvolver('renderDMT', exRenderLaminasSoltas);
+exEnvolver('renderDMT', exRenderAbaDmt);
+const exAtaqueLaminas = window.registerBladeAttack;
+window.registerBladeAttack = function () {
+  exAtaqueLaminas.apply(this, arguments);
+  const ch = exFicha(); if (!ch || !ch.dmt) return;
+  const d = ch.dmt, soltas = exLaminasSoltas(d);
+  if (!d.bladesEquipped && !(d.bladeReserve > 0) && soltas > 0) {
+    const lim = exLimiteLaminas(ch);
+    d.bladesEquipped = true; d.bladeAttacksUsed = Math.max(0, lim - soltas); d.bladeLoose = 0;
+    exSalvar(); renderDMT();
+  }
+};
+
+/* ============================================================
+   13. RECORTE E ZOOM DE IMAGEM (v26)
+   Intercepta a escolha de arquivo nos campos de imagem, abre uma
+   janela para arrastar, dar zoom e ver a prévia, e entrega o recorte
+   ao tratador original como se fosse o arquivo escolhido. Nenhum
+   tratador existente foi alterado.
+   ============================================================ */
+const EX_CORTE_CAMPOS = {
+  charImageInput: { titulo: 'Foto do personagem', razoes: ['1:1', '4:5', '16:9'], padrao: '1:1' },
+  shifterImageInput: { titulo: 'Imagem do Titã', razoes: ['1:1', '4:5', '16:9'], padrao: '1:1' },
+  gmTitanImageInput: { titulo: 'Imagem do Titã', razoes: ['1:1', '4:5', '16:9'], padrao: '1:1' },
+  gmPrimordialImageInput: { titulo: 'Imagem do Titã primordial', razoes: ['1:1', '4:5', '16:9'], padrao: '1:1' },
+  initiativeImageInput: { titulo: 'Foto na iniciativa', razoes: ['1:1', '4:5', '16:9'], padrao: '1:1' },
+  nvPerfilArquivo: { titulo: 'Foto de perfil', razoes: ['1:1'], padrao: '1:1', circulo: true },
+  nvCfgArquivo: { titulo: 'Capa da campanha', razoes: ['16:9'], padrao: '16:9' }
+};
+const EX_CORTE_ROTULO = { '1:1': 'Quadrado', '4:5': 'Retrato', '16:9': 'Paisagem' };
+const EX_CORTE_MAX_SAIDA = 1400;
+const EX_CORTE_ZOOM_MAX = 6;
+let exCorteAberto = false;
+
+function exRazao(txt) { const [a, b] = txt.split(':').map(Number); return a / b; }
+
+function exAbrirCorte(arquivo, cfg) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(arquivo);
+    const img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); resolve({ original: true }); };
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) { URL.revokeObjectURL(url); resolve({ original: true }); return; }
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay corte-overlay';
+      overlay.innerHTML = `
+        <div class="modal corte-modal" role="dialog" aria-modal="true" aria-label="Ajustar imagem">
+          <h2>${exEsc(cfg.titulo)}</h2>
+          <p class="corte-dica">Arraste a imagem para posicionar e use o zoom para aproximar.</p>
+          <div class="corte-razoes" ${cfg.razoes.length < 2 ? 'hidden' : ''}></div>
+          <div class="corte-palco-externo"><div class="corte-palco" tabindex="0" aria-label="Área de recorte"></div></div>
+          <div class="corte-zoom">
+            <button type="button" class="small" data-corte="menos" aria-label="Diminuir zoom">-</button>
+            <input type="range" min="0" max="100" value="0" step="1" aria-label="Zoom" />
+            <button type="button" class="small" data-corte="mais" aria-label="Aumentar zoom">+</button>
+          </div>
+          <div class="corte-previa-linha"><span>Prévia</span><canvas class="corte-previa"></canvas></div>
+          <div class="modal-actions">
+            <button type="button" data-corte="cancelar">Cancelar</button>
+            <button type="button" data-corte="original">Usar imagem inteira</button>
+            <button type="button" class="primary" data-corte="aplicar">Aplicar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const palco = overlay.querySelector('.corte-palco');
+      const slider = overlay.querySelector('input[type=range]');
+      const previa = overlay.querySelector('.corte-previa');
+      const boxRazoes = overlay.querySelector('.corte-razoes');
+      const imgEl = document.createElement('img');
+      imgEl.src = url; imgEl.alt = ''; imgEl.draggable = false; imgEl.className = 'corte-img';
+      palco.appendChild(imgEl);
+      if (cfg.circulo) {
+        const m = document.createElement('div'); m.className = 'corte-mascara-circulo'; palco.appendChild(m);
+      } else {
+        const g = document.createElement('div'); g.className = 'corte-grade'; palco.appendChild(g);
+      }
+
+      let razaoTxt = cfg.padrao, razao = exRazao(razaoTxt);
+      let fw = 0, fh = 0, esc = 1, minEsc = 1, tx = 0, ty = 0, raf = 0;
+
+      function limitar() {
+        const iw = w * esc, ih = h * esc;
+        tx = Math.min(0, Math.max(fw - iw, tx));
+        ty = Math.min(0, Math.max(fh - ih, ty));
+      }
+      function desenhar() {
+        imgEl.style.width = (w * esc) + 'px';
+        imgEl.style.height = (h * esc) + 'px';
+        imgEl.style.transform = `translate(${tx}px, ${ty}px)`;
+        slider.value = String(Math.round(Math.log(esc / minEsc) / Math.log(EX_CORTE_ZOOM_MAX) * 100));
+        if (!raf) raf = requestAnimationFrame(() => { raf = 0; desenharPrevia(); });
+      }
+      function desenharPrevia() {
+        const ctx = previa.getContext('2d');
+        ctx.clearRect(0, 0, previa.width, previa.height);
+        ctx.fillStyle = '#16213a'; ctx.fillRect(0, 0, previa.width, previa.height);
+        ctx.drawImage(img, -tx / esc, -ty / esc, fw / esc, fh / esc, 0, 0, previa.width, previa.height);
+      }
+      function configurarPrevia() {
+        let pw = 96, ph = 96;
+        if (razaoTxt === '16:9') { pw = 160; ph = 90; }
+        else if (razaoTxt === '4:5') { pw = 80; ph = 100; }
+        if (cfg.circulo) { pw = ph = 72; }
+        previa.width = pw * 2; previa.height = ph * 2;
+        previa.style.width = pw + 'px'; previa.style.height = ph + 'px';
+        previa.classList.toggle('corte-previa-circulo', !!cfg.circulo);
+      }
+      function layout(manterZoom) {
+        const maxW = Math.min(440, Math.floor(window.innerWidth * 0.8));
+        const maxH = Math.max(140, Math.floor(window.innerHeight * (window.innerHeight < 800 ? 0.34 : 0.42)));
+        fw = maxW; fh = Math.round(fw / razao);
+        if (fh > maxH) { fh = maxH; fw = Math.round(fh * razao); }
+        palco.style.width = fw + 'px'; palco.style.height = fh + 'px';
+        const novoMin = Math.max(fw / w, fh / h);
+        const proporcao = manterZoom ? esc / minEsc : 1;
+        minEsc = novoMin;
+        esc = Math.min(minEsc * EX_CORTE_ZOOM_MAX, minEsc * proporcao);
+        tx = (fw - w * esc) / 2; ty = (fh - h * esc) / 2;
+        limitar(); configurarPrevia(); desenhar();
+      }
+      function zoomPara(novaEsc, cx, cy) {
+        novaEsc = Math.max(minEsc, Math.min(minEsc * EX_CORTE_ZOOM_MAX, novaEsc));
+        const ix = (cx - tx) / esc, iy = (cy - ty) / esc;
+        esc = novaEsc; tx = cx - ix * esc; ty = cy - iy * esc;
+        limitar(); desenhar();
+      }
+
+      cfg.razoes.forEach(r => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = EX_CORTE_ROTULO[r]; b.title = r; b.dataset.razao = r;
+        b.className = 'small' + (r === razaoTxt ? ' primary' : '');
+        boxRazoes.appendChild(b);
+      });
+      boxRazoes.addEventListener('click', e => {
+        const b = e.target.closest('[data-razao]'); if (!b) return;
+        razaoTxt = b.dataset.razao; razao = exRazao(razaoTxt);
+        boxRazoes.querySelectorAll('button').forEach(x => x.classList.toggle('primary', x === b));
+        layout(false);
+      });
+
+      // arrastar e pinça
+      const ponteiros = new Map();
+      let distPinca = 0;
+      palco.addEventListener('pointerdown', e => {
+        palco.setPointerCapture(e.pointerId);
+        ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        palco.classList.add('arrastando');
+        if (ponteiros.size === 2) { const [a, b] = [...ponteiros.values()]; distPinca = Math.hypot(a.x - b.x, a.y - b.y); }
+      });
+      palco.addEventListener('pointermove', e => {
+        const p = ponteiros.get(e.pointerId); if (!p) return;
+        if (ponteiros.size === 2) {
+          p.x = e.clientX; p.y = e.clientY;
+          const [a, b] = [...ponteiros.values()];
+          const d = Math.hypot(a.x - b.x, a.y - b.y);
+          const r = palco.getBoundingClientRect();
+          if (distPinca > 0) zoomPara(esc * d / distPinca, (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top);
+          distPinca = d;
+          return;
+        }
+        tx += e.clientX - p.x; ty += e.clientY - p.y;
+        p.x = e.clientX; p.y = e.clientY;
+        limitar(); desenhar();
+      });
+      const soltar = e => { ponteiros.delete(e.pointerId); distPinca = 0; if (!ponteiros.size) palco.classList.remove('arrastando'); };
+      palco.addEventListener('pointerup', soltar);
+      palco.addEventListener('pointercancel', soltar);
+      palco.addEventListener('wheel', e => {
+        e.preventDefault();
+        const r = palco.getBoundingClientRect();
+        zoomPara(esc * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);
+      }, { passive: false });
+      palco.addEventListener('keydown', e => {
+        const passo = e.shiftKey ? 30 : 10;
+        const mov = { ArrowLeft: [passo, 0], ArrowRight: [-passo, 0], ArrowUp: [0, passo], ArrowDown: [0, -passo] }[e.key];
+        if (mov) { e.preventDefault(); tx += mov[0]; ty += mov[1]; limitar(); desenhar(); }
+        else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomPara(esc * 1.1, fw / 2, fh / 2); }
+        else if (e.key === '-') { e.preventDefault(); zoomPara(esc / 1.1, fw / 2, fh / 2); }
+      });
+      slider.addEventListener('input', () => {
+        zoomPara(minEsc * Math.pow(EX_CORTE_ZOOM_MAX, Number(slider.value) / 100), fw / 2, fh / 2);
+      });
+
+      function fechar(resultado) {
+        document.removeEventListener('keydown', teclaGlobal, true);
+        window.removeEventListener('resize', aoRedimensionar);
+        if (raf) cancelAnimationFrame(raf);
+        overlay.remove();
+        URL.revokeObjectURL(url);
+        exCorteAberto = false;
+        resolve(resultado);
+      }
+      function aplicar() {
+        const sw = fw / esc, sh = fh / esc;
+        const outW = Math.max(1, Math.min(EX_CORTE_MAX_SAIDA, Math.round(sw)));
+        const outH = Math.max(1, Math.round(outW / razao));
+        const c = document.createElement('canvas'); c.width = outW; c.height = outH;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#16213a'; ctx.fillRect(0, 0, outW, outH);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, -tx / esc, -ty / esc, sw, sh, 0, 0, outW, outH);
+        c.toBlob(blob => {
+          if (!blob) { fechar({ original: true }); return; }
+          fechar({ arquivo: new File([blob], 'recorte.jpg', { type: 'image/jpeg' }) });
+        }, 'image/jpeg', 0.92);
+      }
+      overlay.addEventListener('click', e => {
+        const b = e.target.closest('[data-corte]'); if (!b) return;
+        const acao = b.dataset.corte;
+        if (acao === 'cancelar') fechar(null);
+        else if (acao === 'original') fechar({ original: true });
+        else if (acao === 'aplicar') aplicar();
+        else if (acao === 'mais') zoomPara(esc * 1.15, fw / 2, fh / 2);
+        else if (acao === 'menos') zoomPara(esc / 1.15, fw / 2, fh / 2);
+      });
+      function teclaGlobal(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); fechar(null); }
+        else if (e.key === 'Tab') {
+          const foco = [...overlay.querySelectorAll('button:not([hidden]), input, [tabindex="0"]')].filter(x => !x.disabled && x.offsetParent !== null);
+          if (!foco.length) return;
+          const i = foco.indexOf(document.activeElement);
+          if (e.shiftKey && i <= 0) { e.preventDefault(); foco[foco.length - 1].focus(); }
+          else if (!e.shiftKey && i === foco.length - 1) { e.preventDefault(); foco[0].focus(); }
+        }
+      }
+      function aoRedimensionar() { layout(true); }
+      document.addEventListener('keydown', teclaGlobal, true);
+      window.addEventListener('resize', aoRedimensionar);
+      layout(false);
+      palco.focus();
+    };
+    img.src = url;
+  });
+}
+
+document.addEventListener('change', async event => {
+  const input = event.target;
+  if (!input || input.type !== 'file' || !EX_CORTE_CAMPOS[input.id]) return;
+  if (input.dataset.corteLiberado === '1') { delete input.dataset.corteLiberado; return; }
+  const arquivo = input.files && input.files[0];
+  if (!arquivo || !arquivo.type.startsWith('image/')) return;   // deixa o tratador original avisar
+  event.stopImmediatePropagation();
+  if (exCorteAberto) { input.value = ''; return; }
+  exCorteAberto = true;
+  const r = await exAbrirCorte(arquivo, EX_CORTE_CAMPOS[input.id]);
+  if (!r) { input.value = ''; return; }
+  const entrega = r.arquivo || arquivo;
+  try {
+    const dt = new DataTransfer(); dt.items.add(entrega);
+    input.files = dt.files;
+  } catch (e) { /* sem DataTransfer, segue com o arquivo original */ }
+  input.dataset.corteLiberado = '1';
+  input.dispatchEvent(new Event('change', { bubbles: true }));
+}, true);
+
+/* ============================================================
+   14. TITÃ CEGO NA MESA DO MESTRE (v27)
+   Marcador da regra "Cegar um Titã": o Titã fica cego, recebe
+   Vulnerável e desvantagem em Testes de Acerto até o próximo turno
+   dele. É só um marcador visual, o mestre aplica o efeito na mesa.
+   ============================================================ */
+const exCardTita = window.buildGMTitanCard;
+window.buildGMTitanCard = function (t) {
+  const card = exCardTita.apply(this, arguments);
+  try {
+    const titulo = card.querySelector('h4');
+    if (t.cego && titulo) titulo.insertAdjacentHTML('beforeend', ' <span class="tag cego">Cego</span>');
+    const caixa = document.createElement('div');
+    caixa.className = 'titan-cego' + (t.cego ? ' ativo' : '');
+    caixa.innerHTML = t.cego
+      ? `<p>Cego: recebe Vulnerável e desvantagem em Testes de Acerto até o próximo turno dele.</p><button type="button" class="small" data-cego-titan="${exEsc(t.id)}">Remover cegueira</button>`
+      : `<button type="button" class="small" data-cego-titan="${exEsc(t.id)}">Deixar cego</button>`;
+    if (card.firstElementChild) card.firstElementChild.after(caixa); else card.appendChild(caixa);
+  } catch (e) { console.error('Titã cego:', e); }
+  return card;
+};
+exEnvolver('renderInitiative', function () {
+  const fichas = document.querySelectorAll('#initiativeList .initiative-token');
+  fichas.forEach((el, i) => {
+    const p = gmInitiative[i];
+    if (!p || !p.isNucaOnly) return;
+    const titulo = el.querySelector('h4');
+    if (p.cego && titulo) titulo.insertAdjacentHTML('beforeend', ' <span class="tag cego">Cego</span>');
+    const acoes = el.querySelector('.initiative-actions');
+    if (!acoes) return;
+    const linha = document.createElement('div');
+    linha.className = 'resource-controls';
+    linha.innerHTML = `<button type="button" class="small" data-cego-iniciativa="${exEsc(p.id)}" title="Cegar um Titã: Vulnerável e desvantagem em Testes de Acerto até o próximo turno dele">${p.cego ? 'Remover cegueira' : 'Deixar cego'}</button>`;
+    acoes.appendChild(linha);
+  });
+});
+document.addEventListener('click', event => {
+  const bt = event.target.closest('[data-cego-titan], [data-cego-iniciativa]');
+  if (!bt) return;
+  if (bt.hasAttribute('data-cego-titan')) {
+    const t = gmTitans.find(x => x.id === bt.dataset.cegoTitan);
+    if (!t) return;
+    t.cego = !t.cego;
+    saveGMTitans(); renderGMTitansList(); renderEscudoEncontro();
+    showNotification(t.cego ? 'Titã cego' : 'Cegueira removida', t.name);
+  } else {
+    const p = gmInitiative.find(x => x.id === bt.dataset.cegoIniciativa);
+    if (!p) return;
+    p.cego = !p.cego;
+    saveGMInitiative(); renderInitiative();
+  }
+});
+
+/* ============================================================
+   15. CADERNO DE ANOTAÇÕES (v27)
+   Gaveta lateral aberta pelo botão do cabeçalho. Duas estantes:
+   Geral (fica neste navegador, serve ao mestre e ao jogador) e
+   Esta ficha (guardada dentro da ficha, vai na exportação e na
+   nuvem). Cada estante tem várias folhas com título e texto.
+   ============================================================ */
+const CAD_CHAVE = 'coordenadaCaderno';
+const CAD_MAX_FOLHAS = 40, CAD_MAX_TEXTO = 10000;
+let cadEscopo = 'geral', cadFolhaId = { geral: null, ficha: null }, cadGeral = [], cadTimer = 0, cadExcluir = false, cadCriado = false;
+
+function cadLerGeral() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CAD_CHAVE) || '[]');
+    return Array.isArray(v) ? v.filter(f => f && typeof f.id === 'string') : [];
+  } catch (e) { return []; }
+}
+function cadFichaAberta() {
+  const tela = document.getElementById('screenSheet');
+  return !!(exFicha() && tela && !tela.classList.contains('hidden'));
+}
+function cadLista() {
+  if (cadEscopo === 'ficha') {
+    const ch = exFicha();
+    if (!ch) return [];
+    if (!Array.isArray(ch.caderno)) ch.caderno = [];
+    return ch.caderno;
+  }
+  return cadGeral;
+}
+function cadSomenteLeitura() { const ch = exFicha(); return cadEscopo === 'ficha' && !!(ch && ch._ro); }
+function cadPersistir() {
+  clearTimeout(cadTimer); cadTimer = 0;
+  if (cadEscopo === 'ficha') exSalvar();
+  else {
+    try { localStorage.setItem(CAD_CHAVE, JSON.stringify(cadGeral)); }
+    catch (e) { exAviso('Não foi possível salvar o caderno', 'O armazenamento do navegador está cheio.', true); return; }
+  }
+  const estado = document.querySelector('#caderno .caderno-estado');
+  if (estado) estado.textContent = 'Salvo';
+}
+function cadAgendar() {
+  const estado = document.querySelector('#caderno .caderno-estado');
+  if (estado) estado.textContent = 'Salvando...';
+  clearTimeout(cadTimer);
+  cadTimer = setTimeout(cadPersistir, 500);
+}
+function cadFolhaAtual() {
+  const l = cadLista();
+  return l.find(f => f.id === cadFolhaId[cadEscopo]) || null;
+}
+
+function cadCriar() {
+  if (cadCriado) return;
+  cadCriado = true;
+  const el = document.createElement('aside');
+  el.id = 'caderno'; el.className = 'caderno';
+  el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Caderno de anotações');
+  el.innerHTML = `
+    <div class="caderno-cab">
+      <h2>Caderno</h2>
+      <button type="button" class="caderno-fechar" data-cad="fechar" aria-label="Fechar caderno">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="caderno-escopos" role="tablist">
+      <button type="button" role="tab" data-escopo="geral">Geral</button>
+      <button type="button" role="tab" data-escopo="ficha">Esta ficha</button>
+    </div>
+    <p class="caderno-dica"></p>
+    <div class="caderno-folhas" role="tablist" aria-label="Folhas"></div>
+    <div class="caderno-folha">
+      <input type="text" class="caderno-titulo" maxlength="80" placeholder="Título da folha" aria-label="Título da folha" />
+      <textarea class="caderno-texto" maxlength="${CAD_MAX_TEXTO}" placeholder="Escreva aqui. Salva sozinho." aria-label="Texto da folha"></textarea>
+    </div>
+    <div class="caderno-vazio"><p>Nenhuma folha ainda.</p><button type="button" class="primary" data-cad="nova">Criar primeira folha</button></div>
+    <div class="caderno-rodape">
+      <span class="caderno-estado" aria-live="polite">Salvo</span>
+      <span class="caderno-contagem"></span>
+      <button type="button" class="small danger" data-cad="excluir">Excluir folha</button>
+    </div>`;
+  document.body.appendChild(el);
+
+  el.addEventListener('click', e => {
+    const esc = e.target.closest('[data-escopo]');
+    if (esc) { if (!esc.disabled) cadTrocarEscopo(esc.dataset.escopo); return; }
+    const folha = e.target.closest('[data-folha]');
+    if (folha) { cadPersistir(); cadFolhaId[cadEscopo] = folha.dataset.folha; cadExcluir = false; cadRender(); return; }
+    const acao = e.target.closest('[data-cad]');
+    if (!acao) return;
+    const a = acao.dataset.cad;
+    if (a === 'fechar') fecharCaderno();
+    else if (a === 'nova') cadNovaFolha();
+    else if (a === 'excluir') cadExcluirFolha();
+  });
+  el.querySelector('.caderno-titulo').addEventListener('input', e => {
+    const f = cadFolhaAtual(); if (!f || cadSomenteLeitura()) return;
+    f.titulo = e.target.value; f.atualizado = new Date().toISOString();
+    cadRenderFolhas(); cadAgendar();
+  });
+  el.querySelector('.caderno-texto').addEventListener('input', e => {
+    const f = cadFolhaAtual(); if (!f || cadSomenteLeitura()) return;
+    f.texto = e.target.value; f.atualizado = new Date().toISOString();
+    el.querySelector('.caderno-contagem').textContent = `${f.texto.length}/${CAD_MAX_TEXTO}`;
+    cadAgendar();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && el.classList.contains('aberto')) { e.stopPropagation(); fecharCaderno(); }
+  });
+  window.addEventListener('pagehide', () => { if (cadTimer) cadPersistir(); });
+  const tela = document.getElementById('screenSheet');
+  if (tela) new MutationObserver(() => { if (el.classList.contains('aberto')) cadRender(); }).observe(tela, { attributes: true, attributeFilter: ['class'] });
+}
+
+function cadTrocarEscopo(novo) {
+  cadPersistir();
+  cadEscopo = novo; cadExcluir = false;
+  cadRender();
+}
+function cadNovaFolha() {
+  if (cadSomenteLeitura()) return;
+  const l = cadLista();
+  if (l.length >= CAD_MAX_FOLHAS) { exAviso('Limite de folhas', `O máximo é ${CAD_MAX_FOLHAS} folhas por estante.`, true); return; }
+  const f = { id: genId(), titulo: '', texto: '', atualizado: new Date().toISOString() };
+  l.push(f); cadFolhaId[cadEscopo] = f.id; cadExcluir = false;
+  cadPersistir(); cadRender();
+  const t = document.querySelector('#caderno .caderno-titulo'); if (t) t.focus();
+}
+function cadExcluirFolha() {
+  const f = cadFolhaAtual(); if (!f || cadSomenteLeitura()) return;
+  if (!cadExcluir) {
+    cadExcluir = true;
+    const b = document.querySelector('#caderno [data-cad="excluir"]'); if (b) b.textContent = 'Confirmar exclusão';
+    return;
+  }
+  const l = cadLista(); const i = l.findIndex(x => x.id === f.id);
+  if (i >= 0) l.splice(i, 1);
+  cadFolhaId[cadEscopo] = l.length ? l[Math.min(i, l.length - 1)].id : null;
+  cadExcluir = false; cadPersistir(); cadRender();
+}
+
+function cadRenderFolhas() {
+  const caixa = document.querySelector('#caderno .caderno-folhas'); if (!caixa) return;
+  const l = cadLista(), atual = cadFolhaId[cadEscopo], ro = cadSomenteLeitura();
+  caixa.innerHTML = '';
+  l.forEach(f => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.folha = f.id;
+    b.className = 'caderno-aba' + (f.id === atual ? ' ativa' : '');
+    b.setAttribute('aria-selected', f.id === atual ? 'true' : 'false');
+    b.textContent = (f.titulo || '').trim() || 'Sem título';
+    caixa.appendChild(b);
+  });
+  const mais = document.createElement('button');
+  mais.type = 'button'; mais.className = 'caderno-aba caderno-aba-nova'; mais.dataset.cad = 'nova';
+  mais.textContent = '+ Folha'; mais.disabled = ro || l.length >= CAD_MAX_FOLHAS;
+  caixa.appendChild(mais);
+}
+function cadRender() {
+  const el = document.getElementById('caderno'); if (!el) return;
+  if (cadEscopo === 'ficha' && !cadFichaAberta()) cadEscopo = 'geral';
+  el.querySelectorAll('[data-escopo]').forEach(b => {
+    const f = b.dataset.escopo === 'ficha';
+    b.disabled = f && !cadFichaAberta();
+    b.classList.toggle('ativo', b.dataset.escopo === cadEscopo);
+    b.setAttribute('aria-selected', b.dataset.escopo === cadEscopo ? 'true' : 'false');
+  });
+  const ch = exFicha();
+  el.querySelector('.caderno-dica').textContent = cadEscopo === 'ficha'
+    ? (ch && ch._ro ? 'Ficha só para leitura: as anotações não podem ser editadas.' : 'Fica dentro desta ficha: vai na exportação e na nuvem.')
+    : 'Fica neste navegador, para qualquer ficha ou mesa.';
+  const l = cadLista();
+  if (!l.some(f => f.id === cadFolhaId[cadEscopo])) cadFolhaId[cadEscopo] = l.length ? l[0].id : null;
+  cadRenderFolhas();
+  const f = cadFolhaAtual(), ro = cadSomenteLeitura();
+  el.querySelector('.caderno-folha').classList.toggle('hidden', !f);
+  el.querySelector('.caderno-rodape').classList.toggle('hidden', !f);
+  el.querySelector('.caderno-vazio').classList.toggle('hidden', !!f);
+  el.querySelector('.caderno-vazio button').disabled = ro;
+  if (f) {
+    const t = el.querySelector('.caderno-titulo'), x = el.querySelector('.caderno-texto');
+    t.value = f.titulo || ''; x.value = f.texto || '';
+    t.readOnly = x.readOnly = ro;
+    el.querySelector('.caderno-contagem').textContent = `${(f.texto || '').length}/${CAD_MAX_TEXTO}`;
+    const b = el.querySelector('[data-cad="excluir"]');
+    b.textContent = cadExcluir ? 'Confirmar exclusão' : 'Excluir folha'; b.disabled = ro;
+  }
+}
+
+window.abrirCaderno = function () {
+  cadCriar();
+  const el = document.getElementById('caderno');
+  if (el.classList.contains('aberto')) { fecharCaderno(); return; }
+  cadGeral = cadLerGeral();
+  if (cadEscopo === 'geral' && cadFichaAberta() && !cadGeral.length && (exFicha().caderno || []).length) cadEscopo = 'ficha';
+  cadExcluir = false;
+  cadRender();
+  el.classList.add('aberto');
+  document.getElementById('btnCaderno').setAttribute('aria-expanded', 'true');
+  const foco = el.querySelector('.caderno-texto:not(.hidden)'); 
+  setTimeout(() => { const t = el.querySelector('.caderno-folha:not(.hidden) .caderno-texto'); (t || el.querySelector('.caderno-fechar')).focus(); }, 60);
+};
+window.fecharCaderno = function () {
+  const el = document.getElementById('caderno'); if (!el) return;
+  if (cadTimer) cadPersistir();
+  el.classList.remove('aberto');
+  const b = document.getElementById('btnCaderno');
+  if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
+};

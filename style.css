@@ -1592,3 +1592,89 @@ html{scroll-behavior:smooth;}
 .tita-ficha-campos .grid > div > label{text-transform:none;font-weight:400;}
 .tita-ficha-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
 @media (max-width:600px){.tita-ficha-campos .grid-5,.tita-ficha-campos .grid-3{grid-template-columns:repeat(2,1fr);}}
+
+
+/* ------------------------------------------------------------
+   v26: lâminas avulsas e recorte de imagem
+   ------------------------------------------------------------ */
+.lamina-adicionar{margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.lamina-adicionar label{display:block;margin-bottom:6px;}
+.lamina-adicionar-linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.lamina-adicionar-linha input{width:84px;}
+.lamina-adicionar-linha select{width:auto;min-width:120px;}
+
+.corte-overlay{z-index:2500;}
+.corte-modal{max-width:520px;display:flex;flex-direction:column;gap:12px;}
+.corte-modal h2{margin:0;}
+.corte-dica{margin:0;color:var(--text-muted);font-size:var(--txt-peq);}
+.corte-razoes{display:flex;gap:8px;flex-wrap:wrap;}
+.corte-razoes[hidden]{display:none;}
+.corte-palco-externo{display:flex;justify-content:center;}
+.corte-palco{position:relative;overflow:hidden;background:var(--bg-2);border:1px solid var(--border-light);
+  border-radius:var(--radius-sm);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;outline:none;}
+.corte-palco:focus-visible{border-color:var(--accent);}
+.corte-palco.arrastando{cursor:grabbing;}
+.corte-img{position:absolute;left:0;top:0;max-width:none;max-height:none;will-change:transform;pointer-events:none;}
+.corte-grade{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(to right,transparent 33.2%,rgba(255,255,255,0.22) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,0.22) 66.6%,transparent 66.8%),
+  linear-gradient(to bottom,transparent 33.2%,rgba(255,255,255,0.22) 33.3%,transparent 33.5%,transparent 66.5%,rgba(255,255,255,0.22) 66.6%,transparent 66.8%);
+  opacity:0;transition:opacity .15s ease;}
+.corte-palco.arrastando .corte-grade{opacity:1;}
+.corte-mascara-circulo{position:absolute;inset:0;pointer-events:none;border-radius:50%;
+  box-shadow:0 0 0 999px rgba(8,11,17,0.62);border:2px solid rgba(255,255,255,0.7);box-sizing:border-box;}
+.corte-zoom{display:flex;align-items:center;gap:10px;}
+.corte-zoom input[type=range]{flex:1;padding:0;}
+.corte-previa-linha{display:flex;align-items:center;gap:14px;}
+.corte-previa-linha span{font-size:var(--txt-mini);color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;}
+.corte-previa{border:1px solid var(--border-light);border-radius:var(--radius);background:var(--bg-2);display:block;}
+.corte-previa.corte-previa-circulo{border-radius:50%;}
+.corte-modal .modal-actions{position:sticky;bottom:-26px;background:var(--surface);margin-top:4px;padding-bottom:2px;z-index:3;}
+@media (max-width:480px){.corte-modal{padding:18px;gap:10px;}.corte-modal .modal-actions{flex-wrap:wrap;bottom:-18px;}
+  .corte-dica{display:none;}.corte-previa-linha{gap:10px;}}
+
+/* ------------------------------------------------------------
+   v27: bônus alinhados, dica das perícias, Titã cego, caderno
+   ------------------------------------------------------------ */
+.rotulo-bonus{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;}
+:is(#movementModList,#esquivaModList,#bloqueioModList) .modifier-row{align-items:center;padding:6px 10px;}
+:is(#movementModList,#esquivaModList,#bloqueioModList) .modifier-row > span:last-child{display:inline-flex;align-items:center;gap:12px;}
+:is(#movementModList,#esquivaModList,#bloqueioModList) .mval{display:inline-flex;align-items:center;justify-content:center;
+  min-width:52px;height:28px;padding:0 8px;line-height:1;text-align:center;border-radius:var(--radius-sm);
+  background:var(--surface-2);border:1px solid var(--border);font-variant-numeric:tabular-nums;}
+:is(#movementModList,#esquivaModList,#bloqueioModList) button.small{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 12px;line-height:1;}
+.rotulo-bonus button.small{display:inline-flex;align-items:center;justify-content:center;height:28px;padding:0 12px;line-height:1;}
+
+.dica-pericia{margin:-4px 0 12px;font-size:0.78rem;color:var(--text-dim);}
+
+.tag.cego{color:var(--danger);border-color:var(--danger);}
+.titan-cego{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.titan-cego p{flex:1;min-width:180px;margin:0;padding:8px 10px;background:var(--surface-3);border-left:3px solid var(--danger);font-size:0.78rem;color:var(--text-muted);}
+
+.caderno{position:fixed;top:0;right:0;bottom:0;width:min(400px,100vw);z-index:900;display:flex;flex-direction:column;gap:10px;
+  padding:16px 16px 14px;background:var(--surface);border-left:1px solid var(--border-light);box-shadow:-12px 0 32px rgba(0,0,0,0.35);
+  transform:translateX(105%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s;}
+.caderno.aberto{transform:none;visibility:visible;transition:transform .2s ease;}
+@media (prefers-reduced-motion:reduce){.caderno,.caderno.aberto{transition:none;}}
+.caderno-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.caderno-cab h2{margin:0;}
+.caderno-fechar{width:34px;height:34px;padding:0;display:flex;align-items:center;justify-content:center;background:transparent;}
+.caderno-fechar svg{width:18px;height:18px;}
+.caderno-escopos{display:flex;gap:6px;}
+.caderno-escopos button{flex:1;}
+.caderno-escopos button.ativo{background:var(--accent);color:var(--bg);border-color:var(--accent);}
+.caderno-escopos button:disabled{opacity:0.45;cursor:not-allowed;}
+.caderno-dica{margin:0;font-size:0.74rem;color:var(--text-dim);}
+.caderno-folhas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;flex-shrink:0;}
+.caderno-aba{flex:0 0 auto;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:5px 11px;font-size:0.78rem;
+  background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.caderno-aba.ativa{border-color:var(--accent);color:var(--accent);background:var(--surface-3);}
+.caderno-aba-nova{color:var(--text-muted);border-style:dashed;}
+.caderno-folha{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;}
+.caderno-titulo{font-family:var(--serif,inherit);font-size:1.05rem;}
+.caderno-texto{flex:1;min-height:180px;resize:none;line-height:28px;padding:0 10px;font-family:var(--sans);font-size:0.95rem;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,var(--border-light) 27px,var(--border-light) 28px);background-attachment:local;}
+.caderno-vazio{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text-dim);}
+.caderno-vazio p{margin:0;}
+.caderno-rodape{display:flex;align-items:center;gap:10px;font-size:0.74rem;color:var(--text-dim);}
+.caderno-rodape .caderno-contagem{flex:1;text-align:right;font-family:var(--mono);}
+.caderno .hidden{display:none;}

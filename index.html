@@ -22,6 +22,9 @@
       <button type="button" class="btn-config" onclick="abrirConfiguracoes()" title="Configurações" aria-label="Configurações">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.4a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.3 14.1a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.8 1.8 0 1 1 0-3.6h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1A1.8 1.8 0 1 1 7.5 3.7l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.8 1.8 0 1 1 3.6 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6h-.1a1.5 1.5 0 0 0-1.4.9Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
       </button>
+      <button type="button" class="btn-config" id="btnCaderno" onclick="abrirCaderno()" title="Caderno de anotações" aria-label="Caderno de anotações" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h10.5a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10.5 8.5h5M10.5 12h5M10.5 15.5h3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4.5 7h3M4.5 12h3M4.5 17h3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
       <div id="nuvemConta" class="nuvem-conta"></div>
       <button class="ghost btn-hub" onclick="goToMainMenu()">&larr; Hub</button>
       <div id="appHeaderActions" class="hidden">
@@ -647,7 +650,8 @@
               </div>
             </div>
           </div>
-          <div class="derived-stat"><span><strong>Deslocamento:</strong></span><span><span id="movement">0</span>m (5 + Agilidade)</span></div>
+          <div class="derived-stat"><span class="rotulo-bonus"><strong>Deslocamento:</strong> <button type="button" class="small" data-bonus-deslocamento aria-label="Adicionar bônus de Deslocamento">+ Bônus</button></span><span><span id="movement">0</span>m (5 + Agilidade + modificadores)</span></div>
+          <div id="movementModList"></div>
           <div class="derived-stat hidden" id="linhaMovDmt"><span><strong>Deslocamento com o DMT:</strong></span><span><span id="movementDmt">0</span>m</span></div>
           <div class="derived-stat"><span><strong>PDE de Estâmina:</strong></span><span>+<span id="staPDEBonus">0</span></span></div>
           <div class="derived-stat"><span><strong>Espaços de Inventário:</strong></span><span>+<span id="strInvBonus">0</span></span></div>
@@ -705,23 +709,26 @@
           <div class="resource-head"><h3>Esquiva e Bloqueio</h3></div>
           <p style="color:var(--text-muted);font-size:0.8rem;">Esquiva — Teste de Agilidade; se superar o acerto do oponente, anula o dano e pode mover até 1m opcionalmente.</p>
           <div class="derived-stat" style="margin-top:8px;">
-            <span><strong>Bônus total no teste:</strong></span>
+            <span class="rotulo-bonus"><strong>Bônus total no teste:</strong> <button type="button" class="small" data-bonus-defesa="esquiva" aria-label="Adicionar bônus de Esquiva">+ Bônus</button></span>
             <span id="esquivaTotal" style="font-family:var(--mono);font-size:1.05rem;color:var(--accent);">+0</span>
           </div>
           <div id="esquivaBreakdown" style="color:var(--text-dim);font-size:0.75rem;margin-top:4px;"></div>
+          <div id="esquivaModList"></div>
 
           <p style="color:var(--text-muted);font-size:0.8rem;margin-top:14px;">Bloqueio — Resultado fixo: 8 + Força + Luta; se superar o acerto do oponente, anula o dano.</p>
           <div class="derived-stat" style="margin-top:8px;">
-            <span><strong>Resultado de bloqueio:</strong></span>
+            <span class="rotulo-bonus"><strong>Resultado de bloqueio:</strong> <button type="button" class="small" data-bonus-defesa="bloqueio" aria-label="Adicionar bônus de Bloqueio">+ Bônus</button></span>
             <span id="bloqueioTotal" style="font-family:var(--mono);font-size:1.05rem;color:var(--accent);">8</span>
           </div>
           <div id="bloqueioBreakdown" style="color:var(--text-dim);font-size:0.75rem;margin-top:4px;"></div>
+          <div id="bloqueioModList"></div>
         </div>
       </div>
 
       <div class="card" style="margin-top:18px;">
         <h2>Perícias</h2>
         <p style="color:var(--text-muted);margin-bottom:10px;">Limite atual por perícia: <strong style="color:var(--accent);"><span id="skillLimit">3</span></strong> pontos</p>
+        <p class="dica-pericia">Clique na perícia para saber mais ou adicionar um bônus.</p>
         <div id="skillList"></div>
       </div>
 
@@ -897,7 +904,7 @@
           <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: 2d10 + Força (<span id="bladeDamageAttr">0</span>) — Perícia: Luta — Margem de Crítico: 20 — Alcance: Corpo-a-Corpo. Um conjunto se quebra a cada 3 ataques. Cada soldado carrega 3 conjuntos (1 em uso + 2 de reserva).</p>
           <div class="derived-stat">
             <span><strong>Conjunto Atual:</strong></span>
-            <span><span id="bladeAttacksUsed">0</span> / 3 ataques</span>
+            <span><span id="bladeAttacksUsed">0</span> / <span id="bladeLimit">3</span> ataques</span>
           </div>
           <div class="derived-stat">
             <span><strong>Conjuntos de Reserva:</strong></span>
@@ -909,11 +916,22 @@
             <button onclick="swapBladeSet()">Trocar Conjunto</button>
             <button onclick="resetBladeSets()">Reabastecer (3 conjuntos)</button>
           </div>
+          <div class="lamina-adicionar">
+            <label for="bladeAddQty">Adicionar à reserva</label>
+            <div class="lamina-adicionar-linha">
+              <input id="bladeAddQty" type="number" min="1" max="99" step="1" value="1" inputmode="numeric" />
+              <select id="bladeAddUnit" aria-label="Unidade">
+                <option value="conjunto">conjunto(s)</option>
+                <option value="lamina">lâmina(s)</option>
+              </select>
+              <button type="button" id="btnBladeAdd" onclick="adicionarLaminas()">Adicionar</button>
+            </div>
+          </div>
         </div>
 
         <div id="cannonSection" class="hidden" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border);">
           <h3>Canhão de Mão</h3>
-          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: 3d6 — Perícia: Pontaria — Margem de Crítico: 18 — Alcance: 10 metros. Cada soldado carrega 10 munições adicionais; após cada disparo, a munição usada deve ser reposta manualmente.</p>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:10px;">Dano Padrão: <span id="cannonDamage">3d6</span> — Perícia: Pontaria — Margem de Crítico: 18 — Alcance: 10 metros. Cada soldado carrega 10 munições adicionais; após cada disparo, a munição usada deve ser reposta manualmente.</p>
           <div class="derived-stat">
             <span><strong>Munição:</strong></span>
             <span><span id="cannonAmmo">10</span> / 10</span>
