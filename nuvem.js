@@ -1948,7 +1948,7 @@ function renderNpcsGM() {
     const noEnc = gmShownSoldiers.includes(ch.id);
     return cardFicha(ch, `
       <button class="small primary" onclick="nuvem.verFicha('${esc(ch.id)}','gm-npcs')">Abrir ficha</button>
-      <button class="small ${noEnc ? '' : 'ghost'}" onclick="nuvem.npcNoEncontro('${esc(ch.id)}', ${!noEnc})">${noEnc ? 'No encontro ✓' : 'Pôr no encontro'}</button>
+      <button class="small ${noEnc ? '' : 'ghost'}" onclick="nuvem.npcNoEncontro('${esc(ch.id)}', ${!noEnc})">${noEnc ? 'No encontro' : 'Pôr no encontro'}</button>
       <button class="small ghost" onclick="pullSoldierToInitiative('${esc(ch.id)}')">Iniciativa</button>
       <button class="small ghost" onclick="nuvem.devolverNpc('${esc(ch.id)}')" title="Volta para as suas fichas em Soldados">Devolver</button>
       <button class="small danger" onclick="nuvem.excluirNpc('${esc(ch.id)}')">Excluir</button>`);

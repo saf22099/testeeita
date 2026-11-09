@@ -912,7 +912,7 @@ function exChipsAcerto(teste, attrs, nome, desvantagem) {
   return chaves.map(k => {
     const v = (attrs && attrs[k]) || 0;
     return exChipDado(`1d20 + ${v}`, `Acerto (${ATRIB_NOMES[k]}) — ${nome}`,
-      `Acerto ${ATRIB_NOMES[k].slice(0, 3)} 1d20+${v}${desvantagem ? ' ↓' : ''}`, '', desvantagem ? 'desvantagem' : '');
+      `Acerto ${ATRIB_NOMES[k].slice(0, 3)} 1d20+${v}`, '', desvantagem ? 'desvantagem' : '');
   }).join('');
 }
 // coloca os botões logo abaixo da linha "Ataque:" do cartão, e nunca duas vezes
@@ -1146,7 +1146,7 @@ function abrirConfiguracoes() {
         return `<button type="button" class="config-cor ${ativa ? 'ativa' : ''}" onclick="definirCor('${id}')" title="${c.nome}"
           style="--p-bg:${pal.bg};--p-surface:${pal['surface-2']};--p-accent:${pal.accent};--p-text:${pal.text};--p-borda:${pal['border-light']}">
           <span class="config-cor-amostra" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></span>
-          <span class="config-cor-nome">${c.nome}</span>${ativa ? '<span class="config-cor-ok" aria-hidden="true">✓</span>' : ''}</button>`;
+          <span class="config-cor-nome">${c.nome}</span></button>`;
       }).join('')}
     </div>
     <label class="nv-opcao"><input type="checkbox" ${p.corClasse ? 'checked' : ''} onchange="definirCor(this.checked ? 'classe' : '${p.cor || 'aco'}')" />
@@ -2320,7 +2320,33 @@ function cadCriar() {
     <div class="caderno-folhas" role="tablist" aria-label="Folhas"></div>
     <div class="caderno-folha">
       <input type="text" class="caderno-titulo" maxlength="80" placeholder="Título da folha" aria-label="Título da folha" />
-      <textarea class="caderno-texto" maxlength="${CAD_MAX_TEXTO}" placeholder="Escreva aqui. Salva sozinho." aria-label="Texto da folha"></textarea>
+      <div class="caderno-papel">
+        <div class="caderno-conteudo">
+          <div class="cad-camada cad-atras"></div>
+          <div class="cad-flut"></div>
+          <div class="caderno-texto" contenteditable="plaintext-only" role="textbox" aria-multiline="true" aria-label="Texto da folha" data-placeholder="Escreva aqui. Salva sozinho." spellcheck="true"></div>
+          <div class="cad-camada cad-frente"></div>
+          <div class="cad-selecao hidden" tabindex="0" aria-label="Imagem selecionada. Setas movem, Delete remove.">
+            <i data-alca="nw"></i><i data-alca="ne"></i><i data-alca="sw"></i><i data-alca="se"></i>
+          </div>
+        </div>
+      </div>
+      <div class="cad-ferramentas">
+        <div class="cad-linha">
+          <button type="button" class="small" data-cadimg="nova">Adicionar imagem</button>
+          <div class="cad-miniaturas"></div>
+        </div>
+        <div class="cad-linha cad-opcoes hidden">
+          <div class="cad-camadas" role="group" aria-label="Posição da imagem">
+            <button type="button" class="small" data-cadimg="atras">Atrás do texto</button>
+            <button type="button" class="small" data-cadimg="frente">Na frente do texto</button>
+            <button type="button" class="small" data-cadimg="quebra">Quebrar texto</button>
+          </div>
+          <label class="cad-opac">Opacidade <input type="range" min="20" max="100" step="5" value="100" aria-label="Opacidade da imagem" /></label>
+          <button type="button" class="small danger" data-cadimg="remover">Remover imagem</button>
+        </div>
+        <input type="file" accept="image/*" class="hidden" id="cadInputImagem" />
+      </div>
     </div>
     <div class="caderno-vazio"><p>Nenhuma folha ainda.</p><button type="button" class="primary" data-cad="nova">Criar primeira folha</button></div>
     <div class="caderno-rodape">
@@ -2349,7 +2375,8 @@ function cadCriar() {
   });
   el.querySelector('.caderno-texto').addEventListener('input', e => {
     const f = cadFolhaAtual(); if (!f || cadSomenteLeitura()) return;
-    f.texto = e.target.value; f.atualizado = new Date().toISOString();
+    if (!e.target.textContent) e.target.innerHTML = '';
+    f.texto = cadLerTexto(e.target); f.atualizado = new Date().toISOString();
     el.querySelector('.caderno-contagem').textContent = `${f.texto.length}/${CAD_MAX_TEXTO}`;
     cadAgendar();
   });
@@ -2428,8 +2455,8 @@ function cadRender() {
   el.querySelector('.caderno-vazio button').disabled = ro;
   if (f) {
     const t = el.querySelector('.caderno-titulo'), x = el.querySelector('.caderno-texto');
-    t.value = f.titulo || ''; x.value = f.texto || '';
-    t.readOnly = x.readOnly = ro;
+    t.value = f.titulo || ''; cadEscreverTexto(x, f.texto || '');
+    t.readOnly = ro; cadEditavel(x, !ro);
     el.querySelector('.caderno-contagem').textContent = `${(f.texto || '').length}/${CAD_MAX_TEXTO}`;
     const b = el.querySelector('[data-cad="excluir"]');
     b.textContent = cadExcluir ? 'Confirmar exclusão' : 'Excluir folha'; b.disabled = ro;
@@ -2456,3 +2483,288 @@ window.fecharCaderno = function () {
   const b = document.getElementById('btnCaderno');
   if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); }
 };
+
+
+/* ------------------------------------------------------------
+   15b. IMAGENS NO CADERNO (v31)
+   Cada folha pode ter imagens livres: arrastar, redimensionar pelos
+   cantos, opacidade e posição atrás ou na frente do texto, como no
+   Google Docs. As imagens são reduzidas antes de salvar. Posição e
+   tamanho são guardados em frações da largura da folha, então a
+   gaveta pode mudar de largura sem desalinhar nada.
+   ------------------------------------------------------------ */
+const CAD_IMG = { geral: { max: 10, lado: 900, bytes: 220000, total: 3500000 }, ficha: { max: 4, lado: 640, bytes: 120000, total: 450000 } };
+let cadImgSel = null, cadImgIniciado = false, cadImgRO = null;
+
+function cadImagensDa(f) { if (!f) return []; if (!Array.isArray(f.imagens)) f.imagens = []; return f.imagens; }
+function cadPapelLargura() { const c = document.querySelector('#caderno .caderno-conteudo'); return c ? c.clientWidth : 0; }
+function cadImgPorId(id) { const f = cadFolhaAtual(); return cadImagensDa(f).find(i => i.id === id) || null; }
+
+function cadAjustarAltura() {
+  const papel = document.querySelector('#caderno .caderno-papel'), ta = document.querySelector('#caderno .caderno-texto');
+  if (!papel || !ta) return;
+  const W = cadPapelLargura() || 1;
+  let fundo = 0;
+  cadImagensDa(cadFolhaAtual()).forEach(i => { fundo = Math.max(fundo, (i.y + i.w * i.ar) * W); });
+  ta.style.minHeight = Math.max(papel.clientHeight - 2, fundo + 28) + 'px';
+}
+
+// campo de texto editável (aceita imagens flutuando ao redor)
+const CAD_PLANO = (() => { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only'; })();
+function cadEditavel(el, on) { el.contentEditable = on ? (CAD_PLANO ? 'plaintext-only' : 'true') : 'false'; }
+function cadLerTexto(el) {
+  let out = '';
+  const andar = n => n.childNodes.forEach(c => {
+    if (c.nodeType === 3) out += c.nodeValue;
+    else if (c.nodeName === 'BR') out += '\n';
+    else { if (/^(DIV|P)$/.test(c.nodeName) && out && !out.endsWith('\n')) out += '\n'; andar(c); }
+  });
+  andar(el);
+  out = out.replace(/\r/g, '');
+  return out.endsWith('\n') ? out.slice(0, -1) : out;   // o navegador acrescenta um \n final para mostrar a última linha vazia
+}
+function cadEscreverTexto(el, t) { el.textContent = t.endsWith('\n') ? t + '\n' : t; }
+
+function cadFlutEstilo(d, i) {
+  const W = cadPapelLargura() || 1, dir = i.lado === 'dir';
+  d.className = 'cad-flut-item ' + (dir ? 'dir' : 'esq');
+  d.style.width = (i.w * W) + 'px'; d.style.height = (i.w * i.ar * W) + 'px'; d.style.marginTop = (i.y * W) + 'px';
+  d.style.marginLeft = dir ? '0' : (i.x * W) + 'px';
+  d.style.marginRight = dir ? Math.max(0, (1 - i.x - i.w) * W) + 'px' : '0';
+  d.style.opacity = String(i.op || 1);
+}
+function cadRenderFlut() {
+  const flut = document.querySelector('#caderno .cad-flut'); if (!flut) return;
+  flut.innerHTML = '';
+  cadImagensDa(cadFolhaAtual()).filter(i => i.camada === 'quebra').sort((a, b) => a.y - b.y).forEach(i => {
+    const d = document.createElement('div'); d.dataset.img = i.id; cadFlutEstilo(d, i);
+    const g = document.createElement('img'); g.src = i.src; g.alt = ''; g.draggable = false; g.dataset.img = i.id;
+    d.appendChild(g); flut.appendChild(d);
+  });
+}
+
+function cadImgEstilo(el, i) {
+  const W = cadPapelLargura();
+  if (el.classList && el.classList.contains('cad-selecao') && i.camada === 'quebra') {
+    const g = document.querySelector(`#caderno .cad-flut-item[data-img="${i.id}"] img`);
+    if (g) {
+      const c = document.querySelector('#caderno .caderno-conteudo').getBoundingClientRect(), r = g.getBoundingClientRect();
+      el.style.left = (r.left - c.left) + 'px'; el.style.top = (r.top - c.top) + 'px'; el.style.width = r.width + 'px'; el.style.height = r.height + 'px'; return;
+    }
+  }
+  el.style.left = (i.x * W) + 'px'; el.style.top = (i.y * W) + 'px';
+  el.style.width = (i.w * W) + 'px'; el.style.height = (i.w * i.ar * W) + 'px';
+}
+function cadRenderSelecao() {
+  const sel = document.querySelector('#caderno .cad-selecao'); if (!sel) return;
+  const i = cadImgSel ? cadImgPorId(cadImgSel) : null;
+  if (!i) { cadImgSel = null; sel.classList.add('hidden'); } else { sel.classList.remove('hidden'); cadImgEstilo(sel, i); }
+  const ro = cadSomenteLeitura();
+  sel.classList.toggle('somente-leitura', ro);
+  const op = document.querySelector('#caderno .cad-opcoes');
+  if (op) {
+    op.classList.toggle('hidden', !i);
+    if (i) {
+      op.querySelector('[data-cadimg="atras"]').classList.toggle('ativo', i.camada === 'atras');
+      op.querySelector('[data-cadimg="frente"]').classList.toggle('ativo', i.camada !== 'atras' && i.camada !== 'quebra');
+      op.querySelector('[data-cadimg="quebra"]').classList.toggle('ativo', i.camada === 'quebra');
+      op.querySelector('input[type=range]').value = Math.round((i.op || 1) * 100);
+      op.querySelectorAll('button,input').forEach(e => { e.disabled = ro; });
+    }
+  }
+  document.querySelectorAll('#caderno .cad-miniatura').forEach(b => b.classList.toggle('ativa', b.dataset.img === cadImgSel));
+}
+function cadRenderImagens() {
+  const el = document.getElementById('caderno'); if (!el) return;
+  const atras = el.querySelector('.cad-atras'), frente = el.querySelector('.cad-frente'), minis = el.querySelector('.cad-miniaturas');
+  if (!atras) return;
+  atras.innerHTML = ''; frente.innerHTML = ''; minis.innerHTML = '';
+  const f = cadFolhaAtual(), lista = cadImagensDa(f), ro = cadSomenteLeitura();
+  if (cadImgSel && !lista.some(i => i.id === cadImgSel)) cadImgSel = null;
+  lista.forEach((i, n) => {
+    if (i.camada !== 'quebra') {
+      const img = document.createElement('img');
+      img.src = i.src; img.alt = ''; img.draggable = false; img.dataset.img = i.id;
+      img.style.opacity = String(i.op || 1);
+      cadImgEstilo(img, i);
+      (i.camada === 'atras' ? atras : frente).appendChild(img);
+    }
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cad-miniatura'; b.dataset.img = i.id; b.title = `Imagem ${n + 1}`;
+    b.setAttribute('aria-label', `Selecionar imagem ${n + 1}`);
+    const t = document.createElement('img'); t.src = i.src; t.alt = ''; b.appendChild(t);
+    minis.appendChild(b);
+  });
+  const novo = el.querySelector('[data-cadimg="nova"]');
+  if (novo) novo.disabled = ro || lista.length >= CAD_IMG[cadEscopo].max;
+  cadRenderFlut(); cadRenderSelecao(); cadAjustarAltura();
+}
+
+function cadReduzirImagem(arquivo, cfg) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(arquivo), im = new Image();
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem')); };
+    im.onload = () => {
+      URL.revokeObjectURL(url);
+      const w0 = im.naturalWidth, h0 = im.naturalHeight;
+      if (!w0 || !h0) { reject(new Error('imagem')); return; }
+      let lado = cfg.lado, q = 0.82, saida = '';
+      for (let t = 0; t < 7; t++) {
+        const k = Math.min(1, lado / Math.max(w0, h0));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+        const ctx = c.getContext('2d'); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(im, 0, 0, c.width, c.height);
+        saida = c.toDataURL('image/webp', q);
+        if (!saida.startsWith('data:image/webp')) saida = c.toDataURL('image/jpeg', q);
+        if (saida.length <= cfg.bytes) { resolve({ src: saida, ar: c.height / c.width }); return; }
+        lado = Math.round(lado * 0.82); q = Math.max(0.5, q - 0.06);
+      }
+      reject(new Error('grande'));
+    };
+    im.src = url;
+  });
+}
+
+async function cadAdicionarImagem(arquivo) {
+  const f = cadFolhaAtual(); if (!f || cadSomenteLeitura() || !arquivo || !arquivo.type.startsWith('image/')) return;
+  const cfg = CAD_IMG[cadEscopo], lista = cadImagensDa(f);
+  if (lista.length >= cfg.max) { exAviso('Limite de imagens', `Cada folha desta estante aceita até ${cfg.max} imagens.`, true); return; }
+  let r;
+  try { r = await cadReduzirImagem(arquivo, cfg); }
+  catch (e) { exAviso('Não foi possível usar a imagem', e.message === 'grande' ? 'Ela continua grande demais depois de reduzida. Tente uma menor.' : 'O arquivo não pôde ser lido como imagem.', true); return; }
+  const W = cadPapelLargura() || 340, papel = document.querySelector('#caderno .caderno-papel');
+  const w = 0.5, y = Math.max(0, ((papel ? papel.scrollTop : 0) / W) + 0.04);
+  const novo = { id: genId(), src: r.src, ar: r.ar, x: 0.25, y, w, camada: 'frente', op: 1 };
+  lista.push(novo);
+  if (JSON.stringify(cadLista()).length > cfg.total) {
+    lista.pop();
+    exAviso('Espaço do caderno cheio', cadEscopo === 'ficha' ? 'A ficha não comporta mais imagens nas anotações. Use a estante Geral ou remova alguma.' : 'O armazenamento do navegador não comporta mais imagens.', true);
+    return;
+  }
+  cadImgSel = novo.id; cadPersistir(); cadRenderImagens();
+}
+
+function cadImgSelecionar(id) { cadImgSel = id; cadRenderSelecao(); const sel = document.querySelector('#caderno .cad-selecao'); if (sel && id) sel.focus({ preventScroll: true }); }
+
+// imagem com texto ao redor encosta na lateral do lado escolhido, para o texto não sobrar em fatias estreitas
+function cadEncostarQuebra(i) { i.x = i.lado === 'dir' ? Math.max(0, 1 - i.w) : 0; }
+
+function cadAtualizarImg(i) {
+  const sel = document.querySelector('#caderno .cad-selecao');
+  if (i.camada === 'quebra') {
+    i.lado = (i.x + i.w / 2) < 0.5 ? 'esq' : 'dir';
+    const d = document.querySelector(`#caderno .cad-flut-item[data-img="${i.id}"]`);
+    if (d) cadFlutEstilo(d, i);
+  } else {
+    document.querySelectorAll(`#caderno .cad-camada img[data-img="${i.id}"]`).forEach(g => cadImgEstilo(g, i));
+  }
+  if (sel) cadImgEstilo(sel, i);
+  cadAjustarAltura();
+}
+
+function cadImgArrastar(e, modo, alca) {
+  const i = cadImgSel ? cadImgPorId(cadImgSel) : null; if (!i || cadSomenteLeitura()) return;
+  e.preventDefault();
+  const W = cadPapelLargura(), ini = { px: e.clientX, py: e.clientY, x: i.x, y: i.y, w: i.w };
+  const el = e.currentTarget; try { el.setPointerCapture(e.pointerId); } catch (x) {}
+  const mover = ev => {
+    const dx = (ev.clientX - ini.px) / W, dy = (ev.clientY - ini.py) / W;
+    if (modo === 'mover') {
+      i.x = Math.min(Math.max(0, ini.x + dx), Math.max(0, 1 - i.w)); i.y = Math.max(0, ini.y + dy);
+    } else {
+      const dir = alca.includes('e') ? 1 : -1;
+      let w = Math.min(1, Math.max(0.08, ini.w + dir * dx));
+      const dir2 = alca.includes('s') ? 1 : -1;
+      if (Math.abs(dy) > Math.abs(dx) * i.ar) w = Math.min(1, Math.max(0.08, ini.w + dir2 * dy / i.ar));
+      const ancX = alca.includes('e') ? ini.x : ini.x + ini.w, ancY = alca.includes('s') ? ini.y : ini.y + ini.w * i.ar;
+      i.w = w; i.x = alca.includes('e') ? ancX : ancX - w; i.y = alca.includes('s') ? ancY : Math.max(0, ancY - w * i.ar);
+      if (i.x < 0) i.x = 0; if (i.x + i.w > 1) i.x = 1 - i.w;
+    }
+    cadAtualizarImg(i);
+  };
+  const fim = () => {
+    el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', fim); el.removeEventListener('pointercancel', fim);
+    if (i.camada === 'quebra') { cadEncostarQuebra(i); cadRenderFlut(); }
+    cadAgendar(); cadRenderSelecao();
+  };
+  el.addEventListener('pointermove', mover); el.addEventListener('pointerup', fim); el.addEventListener('pointercancel', fim);
+}
+
+function cadImgIniciar() {
+  if (cadImgIniciado) return;
+  const el = document.getElementById('caderno'); if (!el) return;
+  cadImgIniciado = true;
+  const sel = el.querySelector('.cad-selecao'), papel = el.querySelector('.caderno-papel'), ta = el.querySelector('.caderno-texto');
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-cadimg]'); if (b) {
+      const a = b.dataset.cadimg, i = cadImgSel ? cadImgPorId(cadImgSel) : null;
+      if (a === 'nova') { el.querySelector('#cadInputImagem').click(); return; }
+      if (!i || cadSomenteLeitura()) return;
+      if (a === 'atras' || a === 'frente' || a === 'quebra') { i.camada = a; if (a === 'quebra') { i.lado = (i.x + i.w / 2) < 0.5 ? 'esq' : 'dir'; cadEncostarQuebra(i); } cadPersistir(); cadRenderImagens(); }
+      else if (a === 'remover') { const l = cadImagensDa(cadFolhaAtual()); l.splice(l.indexOf(i), 1); cadImgSel = null; cadPersistir(); cadRenderImagens(); }
+      return;
+    }
+    const m = e.target.closest('.cad-miniatura'); if (m) cadImgSelecionar(m.dataset.img);
+  });
+  el.querySelector('#cadInputImagem').addEventListener('change', async ev => {
+    const arq = ev.target.files && ev.target.files[0]; ev.target.value = '';
+    if (arq) await cadAdicionarImagem(arq);
+  });
+  el.querySelector('.cad-opcoes input[type=range]').addEventListener('input', ev => {
+    const i = cadImgSel ? cadImgPorId(cadImgSel) : null; if (!i || cadSomenteLeitura()) return;
+    i.op = Number(ev.target.value) / 100;
+    document.querySelectorAll(`#caderno .cad-camada img[data-img="${i.id}"], #caderno .cad-flut-item[data-img="${i.id}"]`).forEach(g => { g.style.opacity = String(i.op); });
+    cadAgendar();
+  });
+  // selecionar pelo clique em imagem que está na frente do texto
+  el.querySelector('.cad-frente').addEventListener('pointerdown', e => {
+    const g = e.target.closest('img[data-img]'); if (!g) return;
+    cadImgSelecionar(g.dataset.img);
+    cadImgArrastar({ clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, preventDefault() { e.preventDefault(); }, currentTarget: sel }, 'mover');
+  });
+  sel.addEventListener('pointerdown', e => {
+    const alca = e.target.closest('[data-alca]');
+    cadImgArrastar(e, alca ? 'alca' : 'mover', alca ? alca.dataset.alca : null);
+  });
+  sel.addEventListener('keydown', e => {
+    const i = cadImgSel ? cadImgPorId(cadImgSel) : null; if (!i || cadSomenteLeitura()) return;
+    const p = e.shiftKey ? 0.05 : 0.01;
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); const l = cadImagensDa(cadFolhaAtual()); l.splice(l.indexOf(i), 1); cadImgSel = null; cadPersistir(); cadRenderImagens(); el.querySelector('.caderno-texto').focus(); return; }
+    const mov = { ArrowLeft: [-p, 0], ArrowRight: [p, 0], ArrowUp: [0, -p], ArrowDown: [0, p] }[e.key];
+    if (mov) { e.preventDefault(); i.x = Math.min(Math.max(0, i.x + mov[0]), Math.max(0, 1 - i.w)); i.y = Math.max(0, i.y + mov[1]); cadAgendar(); cadRenderImagens(); sel.focus({ preventScroll: true }); }
+    else if (e.key === 'Escape') { e.stopPropagation(); cadImgSel = null; cadRenderSelecao(); ta.focus(); }
+  });
+  ta.addEventListener('pointerdown', e => {
+    const hit = [...el.querySelectorAll('.cad-flut-item img')].find(g => { const r = g.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; });
+    if (hit) {
+      e.preventDefault(); cadImgSelecionar(hit.dataset.img);
+      cadImgArrastar({ clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, preventDefault() {}, currentTarget: sel }, 'mover');
+      return;
+    }
+    if (cadImgSel) { cadImgSel = null; cadRenderSelecao(); }
+  });
+  ta.addEventListener('input', cadAjustarAltura);
+  ta.addEventListener('paste', ev => {
+    const cd = ev.clipboardData; if (!cd) return;
+    ev.preventDefault();
+    const it = [...cd.items].find(x => x.kind === 'file' && x.type.startsWith('image/'));
+    if (it) { cadAdicionarImagem(it.getAsFile()); return; }
+    const livre = Math.max(0, CAD_MAX_TEXTO - cadLerTexto(ta).length);
+    const txt = (cd.getData('text/plain') || '').slice(0, livre);
+    if (txt) document.execCommand('insertText', false, txt);
+  });
+  ta.addEventListener('beforeinput', ev => {
+    if (!ev.inputType || !ev.inputType.startsWith('insert') || ev.inputType === 'insertFromPaste') return;
+    const add = ev.data || '';
+    if (cadLerTexto(ta).length + Math.max(add.length, 1) > CAD_MAX_TEXTO) ev.preventDefault();
+  });
+  papel.addEventListener('dragover', ev => { if ([...(ev.dataTransfer ? ev.dataTransfer.types : [])].includes('Files')) ev.preventDefault(); });
+  papel.addEventListener('drop', ev => {
+    const arq = ev.dataTransfer && [...ev.dataTransfer.files].find(x => x.type.startsWith('image/'));
+    if (!arq) return;
+    ev.preventDefault(); cadAdicionarImagem(arq);
+  });
+  if (window.ResizeObserver) { cadImgRO = new ResizeObserver(() => { if (el.classList.contains('aberto')) cadRenderImagens(); }); cadImgRO.observe(el.querySelector('.caderno-conteudo')); }
+}
+exEnvolver('cadCriar', cadImgIniciar);
+exEnvolver('cadRender', cadRenderImagens);
