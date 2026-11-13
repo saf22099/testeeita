@@ -187,7 +187,7 @@ textarea{min-height:100px;resize:vertical;line-height:1.5;}
 .skill-name:hover{color:var(--accent);}
 .skill-row-info{text-align:right;font-size:0.78rem;color:var(--text-muted);line-height:1.4;}
 .skill-row-total{text-align:right;font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--accent);white-space:nowrap;display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;}
-.skill-row-total::before{content:'Total';font-family:var(--sans);font-size:0.62rem;font-weight:600;color:var(--text-dim);}
+.skill-row-total::before{content:'No teste';font-family:var(--sans);font-size:0.62rem;font-weight:600;color:var(--text-dim);}
 .skill-row-controls{display:flex;gap:6px;justify-self:end;}
 @media (max-width:760px){
   .skill-row{grid-template-columns:1fr auto;row-gap:8px;}
@@ -1840,3 +1840,74 @@ body{padding-bottom:0;}
 .cad-camadas button{flex:1 1 auto;white-space:nowrap;}
 body.sem-dado{padding-bottom:0;}
 body.sem-dado .container > footer{padding-bottom:var(--rodape-folga,24px);}
+
+/* camadas do caderno, de baixo para cima: imagem atrás, linhas do papel, imagem com texto ao redor, texto, imagem na frente, seleção */
+.caderno-conteudo::before{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,var(--border-light) 27px,var(--border-light) 28px);}
+.caderno-conteudo .caderno-texto{background-image:none;z-index:3;}
+.cad-flut-item{z-index:2;}
+.cad-frente{z-index:4;}
+.cad-selecao{z-index:5;}
+
+
+/* v33: faixa de condições, cartão do mestre com gás e lâminas, molduras temáticas */
+.cond-faixa{padding:12px 16px;}
+.cond-faixa-cab{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.cond-faixa-rotulo{font-family:var(--serif);font-size:1.05rem;color:var(--accent);}
+.cond-faixa-acoes{margin-left:auto;display:flex;gap:6px;}
+.cond-faixa .cond-resumo{margin:0;}
+.cond-faixa .cond-nada{margin:0;font-size:0.82rem;color:var(--text-dim);}
+.cond-faixa .cond-chip{cursor:pointer;}
+.cond-modal{max-width:460px;display:flex;flex-direction:column;gap:12px;}
+.cond-modal-corpo{display:flex;flex-direction:column;gap:12px;}
+.cond-modal h2{margin:0;}
+.cond-modal-cab{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+.cond-modal-estado{font-size:0.72rem;padding:3px 10px;border-radius:999px;border:1px solid var(--border-light);color:var(--text-dim);}
+.cond-modal-estado.on{color:var(--text);border-color:var(--accent);background:var(--accent-suave);}
+.cond-modal-quando{margin:0;color:var(--accent);font-size:0.82rem;}
+.cond-modal-desc{margin:0;line-height:1.55;}
+.cond-modal-nota{margin:0;padding:8px 10px;border-left:3px solid var(--accent-dim);background:var(--surface-3);font-size:0.82rem;color:var(--text-muted);}
+.cond-modal-dica{margin:0;color:var(--text-dim);font-size:0.82rem;}
+.cond-modal-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+.cond-modal-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px 12px;}
+.cond-modal-item span{font-size:0.74rem;color:var(--text-dim);font-weight:400;}
+.cond-modal-item.ativa{border-color:var(--accent);background:var(--accent-suave);}
+.cond-modal-item.ativa span{color:var(--text);}
+.cond-modal-item.grave{border-color:var(--danger-2);}
+.cond-modal-faixas{display:grid;gap:6px;}
+.cond-modal-faixa{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:0.84rem;}
+.cond-modal-faixa span{color:var(--text-muted);}
+.cond-modal-faixa.ativa{border-color:var(--accent);background:var(--accent-suave);}
+.cond-modal-membro{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);}
+.cond-modal-membro p{margin:2px 0 0;font-size:0.8rem;color:var(--text-muted);}
+@media (max-width:480px){.cond-modal-lista{grid-template-columns:1fr;}}
+
+.nv-ficha-dmt{display:grid;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);font-size:0.76rem;}
+.nv-dmt-gas{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;}
+.nv-dmt-rot{color:var(--text-dim);}
+.nv-dmt-val{font-family:var(--mono);color:var(--text);text-align:right;}
+.nv-dmt-val.zero{color:var(--danger);}
+.nv-dmt-trilho{height:6px;border-radius:999px;background:var(--bg-2);overflow:hidden;border:1px solid var(--border);}
+.nv-dmt-trilho div{height:100%;background:linear-gradient(90deg,var(--accent-dim),var(--info));}
+.nv-dmt-trilho.low div{background:linear-gradient(90deg,var(--warning),var(--danger-2));}
+.nv-dmt-trilho.crit div{background:var(--danger);}
+.nv-dmt-arma{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline;}
+
+/* cantoneiras de mapa nos cartões (desligam em Configurações) */
+html.sem-molduras .card::after{display:none;}
+
+.aviso-regra{margin:0 0 14px;padding:10px 12px;border-left:3px solid var(--accent-dim);background:var(--surface-3);border-radius:0 var(--radius-sm) var(--radius-sm) 0;font-size:0.82rem;line-height:1.5;color:var(--text-muted);}
+.aviso-regra strong{color:var(--text);}
+
+.aviso-pericias{margin:0 0 14px;border:1px solid var(--border-light);border-left:3px solid var(--accent);border-radius:var(--radius-sm);
+  background:linear-gradient(180deg,var(--surface-3),var(--surface-2));overflow:hidden;}
+.aviso-pericias.hidden{display:none;}
+.aviso-pericias-cab{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px;}
+.aviso-pericias-cab strong{font-family:var(--serif);font-weight:500;font-size:1rem;color:var(--accent);}
+.aviso-pericias-botoes{display:flex;gap:4px;}
+.aviso-pericias-corpo{padding:0 14px 12px;display:grid;gap:8px;font-size:0.86rem;line-height:1.55;color:var(--text-muted);}
+.aviso-pericias-corpo p{margin:0;}
+.aviso-pericias-corpo strong{color:var(--text);}
+.aviso-pericias-ex{padding:8px 10px;background:var(--bg-2);border-radius:var(--radius-sm);}
+.aviso-pericias[data-estado="min"] .aviso-pericias-corpo{display:none;}
+#avisoPericiasReabrir{margin-bottom:12px;}

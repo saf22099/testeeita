@@ -492,7 +492,7 @@
 
       <div class="wizard-step" data-step="2">
         <h3>Passo 2: Escolha sua Origem</h3>
-        <p style="color:var(--text-muted);margin-bottom:14px;">Sua Origem define seus status iniciais, passiva e habilidade de origem.</p>
+        <p style="color:var(--text-muted);margin-bottom:14px;">Sua Origem define seus status iniciais, passiva e segunda passiva de origem.</p>
         <button onclick="openFamilyCreatorModal('wizard')" style="margin-bottom:14px;">Criar Família Customizada</button>
         <div id="originSelection" class="origin-selection"></div>
         <div class="wizard-nav">
@@ -605,6 +605,16 @@
     </div>
 
     <div id="tabGeneral" class="section active">
+      <div class="card cond-faixa" id="condFaixa" style="margin-top:18px;">
+        <div class="cond-faixa-cab">
+          <span class="cond-faixa-rotulo">Condições</span><span id="condFaixaN" class="nv-contador"></span>
+          <div class="cond-faixa-acoes">
+            <button type="button" class="small" onclick="condAbrirLista()">+ Condição</button>
+            <button type="button" class="small ghost" onclick="condIrParaAba()">Gerenciar</button>
+          </div>
+        </div>
+        <div id="condFaixaLista" class="cond-resumo" aria-live="polite"></div>
+      </div>
       <div class="grid grid-2" style="margin-top:18px;">
         <div class="card">
           <h2>Atributos</h2>
@@ -727,6 +737,21 @@
 
       <div class="card" style="margin-top:18px;">
         <h2>Perícias</h2>
+        <div id="avisoPericias" class="aviso-pericias" data-estado="aberto">
+          <div class="aviso-pericias-cab">
+            <strong>Perícia e bônus no teste não são a mesma coisa</strong>
+            <span class="aviso-pericias-botoes">
+              <button type="button" class="small ghost" data-aviso="minimizar" aria-expanded="true">Minimizar</button>
+              <button type="button" class="small ghost" data-aviso="fechar">Fechar</button>
+            </span>
+          </div>
+          <div class="aviso-pericias-corpo">
+            <p>Em um teste de perícia você rola 1d20 e soma o <strong>valor da perícia</strong> mais <strong>metade do atributo</strong> relacionado, arredondando para baixo. Essa soma é o <strong>Bônus no teste</strong>, o número grande de cada linha, e serve só para o teste.</p>
+            <p>O <strong>valor da perícia</strong> é apenas o que foi <strong>investido</strong> nela. Quando uma regra ou habilidade pedir o valor ou o total da perícia, use o investido, nunca o bônus no teste.</p>
+            <p class="aviso-pericias-ex">Exemplo: Intelecto 5 e Medicina 4. Bônus no teste: 4 + 2 = <strong>6</strong>. Valor da perícia para habilidades: <strong>4</strong>.</p>
+          </div>
+        </div>
+        <button type="button" id="avisoPericiasReabrir" class="small ghost hidden" data-aviso="abrir">Ver aviso sobre bônus de perícia</button>
         <p style="color:var(--text-muted);margin-bottom:10px;">Limite atual por perícia: <strong style="color:var(--accent);"><span id="skillLimit">3</span></strong> pontos</p>
         <p class="dica-pericia">Clique na perícia para saber mais ou adicionar um bônus.</p>
         <div id="skillList"></div>
@@ -746,7 +771,7 @@
         </div>
 
         <div class="ability-category">
-          <h4>Habilidade de Origem</h4>
+          <h4>Segunda Passiva de Origem</h4>
           <div id="originAbilityDisplay"></div>
         </div>
 
@@ -840,6 +865,7 @@
 
       <div class="card" style="margin-top:18px;">
         <h2>DMT — Dispositivo de Manobra Tridimensional</h2>
+        <p class="aviso-regra"><strong>Recarregamento.</strong> Durante a utilização do DMT, o personagem deverá, em diversos momentos, trocar as lâminas, repor as munições ou substituir os cilindros de gás. Qualquer um desses três processos consome metade do deslocamento do personagem ou uma Ação Bônus, e, caso sejam realizados a até 5 metros de um inimigo, o personagem sofrerá um ataque de oportunidade.</p>
         <div class="grid grid-2" style="margin-bottom:14px;">
           <div><label>Modelo</label><input id="dmtType" value="Tradicional" oninput="updateDMTType()" /></div>
           <div><label>Capacidade por Cilindro</label><input id="dmtCylinderCapacity" type="number" min="1" value="20" onchange="updateDMTCapacity()" /></div>
@@ -1051,7 +1077,7 @@
         </div>
         <div class="ability-category">
           <h4>Sexto Membro (Combate entre Titãs)</h4>
-          <p style="font-size:0.85rem;color:var(--text-muted);">Com mais de um Titã em combate, adiciona-se a cabeça como sexto "membro", com PDV base igual ao da nuca antes do bônus de Vitalidade×2 (sem esse bônus adicional). Só sofre dano de outros Titãs ou armamentos de grande impacto. Ao zerar, o portador desmaia e o Titã fica atordoado e Vulnerável — qualquer ataque contra ele é acerto garantido e crítico, sem esquiva ou bloqueio. O portador volta a si quando a cabeça atinge metade da regeneração; até estar 100% regenerada, o titã se move a metade do deslocamento e só volta a agir sem penalidades quando a cabeça estiver totalmente restaurada.</p>
+          <p style="font-size:0.85rem;color:var(--text-muted);">Com mais de um Titã em combate, adiciona-se a cabeça como sexto "membro", com PDV base igual ao da nuca antes do bônus de Vitalidade×3 (sem esse bônus adicional). Só sofre dano de outros Titãs ou armamentos de grande impacto. Ao zerar, o portador desmaia e o Titã fica atordoado e Vulnerável — qualquer ataque contra ele é acerto garantido e crítico, sem esquiva ou bloqueio. O portador volta a si quando a cabeça atinge metade da regeneração; até estar 100% regenerada, o titã se move a metade do deslocamento e só volta a agir sem penalidades quando a cabeça estiver totalmente restaurada.</p>
         </div>
         <div class="ability-category">
           <h4>Ataques à Nuca</h4>
@@ -1315,7 +1341,7 @@
       </div>
     </div>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="famHasAbility" style="width:auto;" /> Possui Habilidade de Origem (desbloqueia no Nível 8)</label>
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;cursor:pointer;"><input type="checkbox" id="famHasAbility" style="width:auto;" /> Possui Segunda Passiva de Origem (desbloqueia no Nível 8)</label>
       <div class="grid grid-2" style="margin-top:10px;">
         <div><label>Nome da Habilidade</label><input id="famAbilityName" /></div>
         <div><label>Descrição da Habilidade</label><input id="famAbilityDesc" /></div>
@@ -1664,7 +1690,7 @@
     </div>
     <div class="card" style="background:var(--surface-3);padding:14px;margin-bottom:18px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <span>TOTAL</span>
+        <span>BÔNUS NO TESTE<br><small style="color:var(--text-dim);">perícia (investido) + metade do atributo</small></span>
         <span style="font-family:var(--mono);font-size:1.8rem;font-weight:600;color:var(--accent);" id="skillTotalValue">0</span>
       </div>
     </div>

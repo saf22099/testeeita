@@ -630,7 +630,7 @@ const FICHAS_OFICIAIS = [
     pericias: { 'Exploração': 1, 'Fortitude': 2, 'Furtividade': 3, 'Intimidação': 3, 'Luta': 6 },
     habilidades: ['Esquiva Avançada', 'Investida Relâmpago', 'Tamanho Não é Documento', 'Ataques em Série', 'Proficiência com o DMT'],
     talentos: ['Reflexos Aguçados', 'Guerreiro Experiente', 'Sangue Frio', 'Mau Nome', 'Trauma'],
-    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+1 em Testes de Acerto e +1d4 em danos (Passiva de Classe)\n+1 nível em Investida Relâmpago (Habilidade de Origem)\nTrauma de perda: Mikasa teme perder de novo quem considera família.'
+    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+1 em Testes de Acerto e +1d4 em danos (Passiva de Classe)\n+1 nível em Investida Relâmpago (Segunda Passiva de Origem)\nTrauma de perda: Mikasa teme perder de novo quem considera família.'
   },
   {
     nome: 'Armin Arlert', nivel: 3, origem: 'Historiador', classe: 'Especialista de Batalha', subclasse: 'Estrategista',
@@ -651,7 +651,7 @@ const FICHAS_OFICIAIS = [
       desc: 'Nível 3 — Role 1d4+1: o resultado é a quantidade de ataques que pode fazer contra o mesmo alvo. No fim da sequência, as lâminas quebram. Custo: 12 PDE, uma Ação Padrão e uma Ação Bônus.\nNível 4 — A rolagem passa a ser 1d6+1. Custo: 15 PDE, uma Ação Padrão e uma Ação Bônus.',
       cost: '12 PDE'
     }],
-    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+3 em Testes de Acerto e +1d8 em danos (Passiva de Classe)\n+1 nível em Ataque Giratório (Habilidade de Origem)'
+    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+3 em Testes de Acerto e +1d8 em danos (Passiva de Classe)\n+1 nível em Ataque Giratório (Segunda Passiva de Origem)'
   },
   {
     nome: 'Erwin Smith', nivel: 15, origem: 'Historiador', classe: 'Especialista de Batalha', subclasse: 'Capitão',
@@ -664,7 +664,7 @@ const FICHAS_OFICIAIS = [
       desc: 'Nível 3 — Teste de Carisma ou Tática; com 16 ou mais, escolha 1 aliado para ter todas as habilidades aumentadas em 1 nível por 2 turnos. Custo: 7 PDE e uma Ação Padrão.\nNível 4 — Até 2 aliados, e a dificuldade do teste passa a ser 18. Custo: 9 PDE e uma Ação Padrão.',
       cost: '7 PDE'
     }],
-    anotacoes: 'Vantagem em testes de História (Passiva de Origem)\n+1 nos Testes de Acerto de quantos aliados quiser (e dele mesmo) durante combates (Passiva de Classe)\nPode trocar um teste de morte por História uma vez ao dia (Habilidade de Origem)\nErwin é obcecado por descobrir os mistérios do mundo.'
+    anotacoes: 'Vantagem em testes de História (Passiva de Origem)\n+1 nos Testes de Acerto de quantos aliados quiser (e dele mesmo) durante combates (Passiva de Classe)\nPode trocar um teste de morte por História uma vez ao dia (Segunda Passiva de Origem)\nErwin é obcecado por descobrir os mistérios do mundo.'
   },
   {
     nome: 'Hange Zoe', nivel: 14, origem: 'Cientista', classe: 'Suporte de Campo', subclasse: 'Inventor',
@@ -677,7 +677,7 @@ const FICHAS_OFICIAIS = [
       desc: 'Nível 3 — Analisa um Titã Puro à escolha: o narrador revela os PDV restantes de cada parte, os atributos e, se for Anômalo, a peculiaridade mecânica. Custo: 5 PDE e uma Ação Bônus.\nNível 4 — Também funciona em Titãs Primordiais, revelando habilidades e propriedades exclusivas. Custo: 8 PDE e uma Ação Bônus.',
       cost: '5 PDE'
     }],
-    anotacoes: 'Vantagem em testes de Mecânica (Passiva de Origem)\nEquipamentos curativos recuperam +1d6 PDV e reparos recebem +2 (Passiva de Classe)\nHabilidades da subclasse Inventor custam 1 PDE a menos (Habilidade de Origem)'
+    anotacoes: 'Vantagem em testes de Mecânica (Passiva de Origem)\nEquipamentos curativos recuperam +1d6 PDV e reparos recebem +2 (Passiva de Classe)\nHabilidades da subclasse Inventor custam 1 PDE a menos (Segunda Passiva de Origem)'
   },
   {
     nome: 'Kenny Ackerman', nivel: 11, origem: 'Ackerman', classe: 'Linha de Frente', subclasse: 'Atirador',
@@ -685,7 +685,7 @@ const FICHAS_OFICIAIS = [
     pericias: { 'Crime': 3, 'Exploração': 3, 'Furtividade': 3, 'Intimidação': 3, 'Luta': 2, 'Pontaria': 8 },
     habilidades: ['Ocultação Treinada', 'Resposta Imediata', 'Melhoria Geral', 'Tiro de Raspão', 'Tiro de Auxílio', 'Sede de Sangue', 'Olhos de Águia'],
     talentos: ['Visão Aguçada', 'Guerreiro Experiente', 'Robusto', 'Arrogante', 'Mal Encarado', 'Mau Nome'],
-    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+2 em Testes de Acerto e +1d6 em danos (Passiva de Classe)\n+1 nível em Sede de Sangue (Habilidade de Origem)'
+    anotacoes: '+1 nos Atributos Força e Agilidade, +1 em Testes de Acerto e −2 em SAN permanentemente (Passiva de Origem)\n+2 em Testes de Acerto e +1d6 em danos (Passiva de Classe)\n+1 nível em Sede de Sangue (Segunda Passiva de Origem)'
   },
   {
     nome: 'Petra Ral', nivel: 9, origem: 'Cidadão', classe: 'Suporte de Campo', subclasse: 'Médico',
@@ -693,7 +693,7 @@ const FICHAS_OFICIAIS = [
     pericias: { 'Carisma': 3, 'Exploração': 3, 'Furtividade': 1, 'Luta': 5, 'Medicina': 7, 'Natureza': 1, 'Tática': 3 },
     habilidades: ['Finta', 'Impulso Aprimorado', 'Apoiar', 'Medicina Avançada', 'Golpe Baixo', 'Concentração Total', 'Ataque Atordoante'],
     talentos: ['Aparência Inofensiva', 'Guerreiro Experiente', 'Contra Golpe', 'Reflexos Aguçados', 'Azarado', 'Medo da Morte'],
-    anotacoes: '4 perícias diferentes recebem +1 (Passiva de Origem)\nEquipamentos curativos recuperam +1d6 PDV e reparos recebem +2 (Passiva de Classe)\n1 habilidade geral adicional (Habilidade de Origem)'
+    anotacoes: '4 perícias diferentes recebem +1 (Passiva de Origem)\nEquipamentos curativos recuperam +1d6 PDV e reparos recebem +2 (Passiva de Classe)\n1 habilidade geral adicional (Segunda Passiva de Origem)'
   },
   {
     nome: 'Sasha Braus', nivel: 10, origem: 'Fazendeiro', classe: 'Linha de Frente', subclasse: 'Atirador',
@@ -701,7 +701,7 @@ const FICHAS_OFICIAIS = [
     pericias: { 'Carisma': 4, 'Exploração': 2, 'Fortitude': 1, 'Luta': 2, 'Natureza': 2, 'Pontaria': 5 },
     habilidades: ['Golpe de Sorte', 'Instinto de Sobrevivência', 'Crítico Aprimorado', 'Concentração de Mira', 'Ataque Fatal', 'Olhos de Águia'],
     talentos: ['Caçador', 'Bom Apetite', 'Aparência Inofensiva', 'Barulhento'],
-    anotacoes: 'Vantagem em testes de Natureza (Passiva de Origem)\n+2 em Testes de Acerto e +1d6 em danos (Passiva de Classe)\n−1 na margem de crítico em ambientes rurais (Habilidade de Origem)'
+    anotacoes: 'Vantagem em testes de Natureza (Passiva de Origem)\n+2 em Testes de Acerto e +1d6 em danos (Passiva de Classe)\n−1 na margem de crítico em ambientes rurais (Segunda Passiva de Origem)'
   }
 ];
 
@@ -1115,6 +1115,7 @@ function exAplicarTema() {
   raiz.setProperty('--accent-forte', pal.forte);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', pal.bg);
+  exAplicarMolduras();
 }
 function definirTema(tema) { const p = exPrefs(); p.tema = tema; exSalvarPrefs(p); exAplicarTema(); abrirConfiguracoes(); }
 function definirCor(cor) {
@@ -1122,6 +1123,8 @@ function definirCor(cor) {
   if (cor === 'classe') { p.corClasse = true; } else { p.corClasse = false; p.cor = cor; }
   exSalvarPrefs(p); exAplicarTema(); abrirConfiguracoes();
 }
+function exAplicarMolduras() { document.documentElement.classList.toggle('sem-molduras', exPrefs().molduras === false); }
+function definirMolduras(v) { const p = exPrefs(); p.molduras = !!v; exSalvarPrefs(p); exAplicarMolduras(); }
 function definirAbrirDados(v) { const p = exPrefs(); p.abrirDados = !!v; exSalvarPrefs(p); }
 function definirEnviarRolagens(v) { const p = exPrefs(); p.enviarRolagens = !!v; exSalvarPrefs(p); }
 
@@ -1152,6 +1155,10 @@ function abrirConfiguracoes() {
     <label class="nv-opcao"><input type="checkbox" ${p.corClasse ? 'checked' : ''} onchange="definirCor(this.checked ? 'classe' : '${p.cor || 'aco'}')" />
       <span><strong>Usar a cor da classe do personagem</strong>
       <small>Linha de Frente fica vermelho, Suporte de Campo verde e Especialista de Batalha amarelo. A cor muda conforme a ficha aberta${p.corClasse ? ` (agora: ${(CORES_TEMA[exCorAtual()] || {}).nome})` : ''}.</small></span></label>
+
+    <h3>Molduras</h3>
+    <label class="nv-opcao"><input type="checkbox" ${p.molduras !== false ? 'checked' : ''} onchange="definirMolduras(this.checked)" />
+      <span><strong>Molduras temáticas</strong><small>Cantoneiras de mapa nos cantos dos cartões. Desligado, ficam só as bordas simples.</small></span></label>
 
     <h3>Rolagens</h3>
     <label class="nv-opcao"><input type="checkbox" ${p.enviarRolagens !== false ? 'checked' : ''} onchange="definirEnviarRolagens(this.checked)" />
@@ -1324,12 +1331,16 @@ if (document.readyState !== 'loading') { exObservarTelas(); exMontarPainelDados(
 const HAB_AUTO = {
   /* ---- passivas permanentes ---- */
   proficiencia_dmt: {
-    permPde: 6, dmt: true,
+    permPde: 7, dmt: true,
     sempre: [
-      { esquiva: 2, gasMov: 1 },
-      { esquiva: 2, gasMov: 2, movDmt: 2 },
-      { esquiva: 2, gasMov: 2, movDmt: 4, acerto: 1 },
-      { esquiva: 2, gasMov: 2, movDmt: 4, acerto: 2 }
+      { esquiva: 1, gasMov: 1 },
+      { esquiva: 1, gasMov: 1, movDmt: 2 },
+      { esquiva: 1, gasMov: 1, movDmt: 4, acerto: 1 },
+      { esquiva: 1, gasMov: 1, movDmt: 4, acerto: 1 }
+    ],
+    notasNivel: [
+      { de: 2, texto: 'Pode trocar lâminas, repor munição ou trocar cilindros no ar sem provocar ataque de oportunidade, mesmo a até 5m de um inimigo.' },
+      { de: 4, texto: 'Vantagem em testes de fuga e em testes de aumento de velocidade usando o DMT.' }
     ]
   },
   melhoria_geral: { permPorEscolha: 2, nota: 'O +1 de cada perícia escolhida já entra na lista de Perícias.' },
@@ -1569,6 +1580,7 @@ function habPainel(acquired) {
   }
   if (sempre) linhas.push(`<li>Sempre ativo: <strong>${exEsc(habTextoEfeito(sempre))}</strong>${auto.dmt ? ' <em>(enquanto usa o DMT)</em>' : ''}.</li>`);
   if (auto.nota) linhas.push(`<li>${exEsc(auto.nota)}</li>`);
+  (auto.notasNivel || []).filter(n => nivel >= n.de).forEach(n => linhas.push(`<li>${exEsc(n.texto)}</li>`));
   let controle = '';
   if (ativo) {
     const marcado = acquired.ativo ? 'checked' : '';
@@ -2734,14 +2746,15 @@ function cadImgIniciar() {
     if (mov) { e.preventDefault(); i.x = Math.min(Math.max(0, i.x + mov[0]), Math.max(0, 1 - i.w)); i.y = Math.max(0, i.y + mov[1]); cadAgendar(); cadRenderImagens(); sel.focus({ preventScroll: true }); }
     else if (e.key === 'Escape') { e.stopPropagation(); cadImgSel = null; cadRenderSelecao(); ta.focus(); }
   });
-  ta.addEventListener('pointerdown', e => {
-    const hit = [...el.querySelectorAll('.cad-flut-item img')].find(g => { const r = g.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; });
-    if (hit) {
-      e.preventDefault(); cadImgSelecionar(hit.dataset.img);
-      cadImgArrastar({ clientX: e.clientX, clientY: e.clientY, pointerId: e.pointerId, preventDefault() {}, currentTarget: sel }, 'mover');
-      return;
-    }
-    if (cadImgSel) { cadImgSel = null; cadRenderSelecao(); }
+  ta.addEventListener('pointerdown', () => { if (cadImgSel) { cadImgSel = null; cadRenderSelecao(); } });
+  // dois cliques sobre a imagem (atrás do texto ou com texto ao redor) a seleciona; a área é exatamente a da imagem
+  ta.addEventListener('dblclick', e => {
+    const alvos = [...el.querySelectorAll('.cad-flut-item img'), ...el.querySelectorAll('.cad-atras img')];
+    const hit = alvos.find(g => { const r = g.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; });
+    if (!hit) return;
+    e.preventDefault();
+    const sl = window.getSelection(); if (sl) sl.removeAllRanges();
+    cadImgSelecionar(hit.dataset.img);
   });
   ta.addEventListener('input', cadAjustarAltura);
   ta.addEventListener('paste', ev => {
@@ -2768,3 +2781,161 @@ function cadImgIniciar() {
 }
 exEnvolver('cadCriar', cadImgIniciar);
 exEnvolver('cadRender', cadRenderImagens);
+
+
+/* ============================================================
+   16. CONDIÇÕES NA FICHA (v33)
+   Faixa no alto da aba Ficha com as condições ativas. Clicar abre o
+   que a condição faz, com o texto das regras que já está na aba
+   Condições, e dá para ligar, desligar ou ajustar dali.
+   ============================================================ */
+const COND_CHAVES = {
+  condCardAdrenalina: ['adrenalina', 'active'], condCardSangramento: ['sangramento', 'active'], condCardMorrendo: ['morrendo', 'active'],
+  condCardVulneravel: ['vulneravel', 'active'], condCardEnlouquecendo: ['enlouquecendo', 'active'], condCardFerido: ['ferido', 'active'],
+  condCardTraumatizado: ['traumatizado', 'active']
+};
+let condModoLista = false, condAtual = null;
+
+function condTexto(card, sel) { const e = card && card.querySelector(sel); return e ? e.textContent.trim() : ''; }
+
+function exRenderFaixaCond() {
+  const ch = exFicha(), lista = document.getElementById('condFaixaLista'); if (!ch || !lista || !ch.conditions) return;
+  const c = ch.conditions, ativos = CONDICOES_CARTOES.filter(d => d.ativo(c));
+  document.getElementById('condFaixaN').textContent = ativos.length ? `${ativos.length} ativa${ativos.length > 1 ? 's' : ''}` : '';
+  lista.innerHTML = '';
+  if (!ativos.length) { const p = document.createElement('p'); p.className = 'cond-nada'; p.textContent = 'Nenhuma condição ativa. O personagem está bem.'; lista.appendChild(p); }
+  ativos.forEach(d => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'cond-chip' + (d.grave ? ' grave' : ''); b.dataset.cond = d.card;
+    b.setAttribute('aria-label', `${d.nome}: ver o que faz`);
+    b.textContent = d.nome;
+    const det = d.extra ? d.extra(c) : '';
+    if (det) { const sm = document.createElement('small'); sm.textContent = det; b.appendChild(sm); }
+    lista.appendChild(b);
+  });
+  if (document.getElementById('condModal') && !document.getElementById('condModal').classList.contains('hidden')) condRenderModal();
+}
+exEnvolver('renderConditions', exRenderFaixaCond);
+
+function condCriarModal() {
+  if (document.getElementById('condModal')) return;
+  const m = document.createElement('div');
+  m.id = 'condModal'; m.className = 'modal-overlay hidden';
+  m.innerHTML = '<div class="modal cond-modal" role="dialog" aria-modal="true" aria-labelledby="condModalTitulo"><div class="cond-modal-corpo"></div></div>';
+  document.body.appendChild(m);
+  m.addEventListener('click', e => {
+    if (e.target === m) { condFechar(); return; }
+    const a = e.target.closest('[data-condacao]'); if (!a) return;
+    const ch = exFicha(), acao = a.dataset.condacao;
+    if (acao === 'fechar') condFechar();
+    else if (acao === 'voltar') { condModoLista = true; condRenderModal(); }
+    else if (acao === 'abrir') { condAtual = a.dataset.card; condModoLista = false; condRenderModal(); }
+    else if (acao === 'aba') { const card = condAtual; condFechar(); condIrParaAba(card); }
+    else if (ch && !ch._ro) {
+      if (acao === 'alternar') { const [k, f] = COND_CHAVES[condAtual]; toggleCondition(k, f, a.dataset.valor === '1'); }
+      else if (acao === 'membro') toggleCondition('perdaMembros', a.dataset.membro, a.dataset.valor === '1');
+      else if (acao === 'fadiga') modFadiga(Number(a.dataset.delta));
+      condRenderModal();
+    }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !m.classList.contains('hidden')) { e.stopPropagation(); condFechar(); } }, true);
+}
+function condFechar() { const m = document.getElementById('condModal'); if (m) m.classList.add('hidden'); }
+function condAbrirLista() { condCriarModal(); condModoLista = true; condRenderModal(); document.getElementById('condModal').classList.remove('hidden'); }
+function condAbrirDetalhe(card) { condCriarModal(); condAtual = card; condModoLista = false; condRenderModal(); document.getElementById('condModal').classList.remove('hidden'); }
+function condIrParaAba(card) {
+  const tab = document.querySelector('.tab[data-tab="tabConditions"]'); if (tab) tab.click();
+  if (card) setTimeout(() => { const el = document.getElementById(card); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 60);
+}
+window.condAbrirLista = condAbrirLista; window.condIrParaAba = condIrParaAba;
+
+function condRenderModal() {
+  const ch = exFicha(), corpo = document.querySelector('#condModal .cond-modal-corpo'); if (!ch || !corpo) return;
+  const c = ch.conditions, ro = !!ch._ro;
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e; };
+  const btn = (txt, acao, extra = {}, cls = 'small') => { const b = el('button', cls, txt); b.type = 'button'; b.dataset.condacao = acao; Object.assign(b.dataset, extra); if (ro && ['alternar', 'membro', 'fadiga'].includes(acao)) b.disabled = true; return b; };
+  corpo.innerHTML = '';
+  if (condModoLista) {
+    const h = el('h2', '', 'Condições'); h.id = 'condModalTitulo'; corpo.appendChild(h);
+    corpo.appendChild(el('p', 'cond-modal-dica', 'Toque em uma condição para ver o que ela faz e ligar ou desligar.'));
+    const g = el('div', 'cond-modal-lista');
+    CONDICOES_CARTOES.forEach(d => {
+      const on = !!d.ativo(c), card = document.getElementById(d.card);
+      const b = el('button', 'cond-modal-item' + (on ? ' ativa' : '') + (d.grave ? ' grave' : ''));
+      b.type = 'button'; b.dataset.condacao = 'abrir'; b.dataset.card = d.card;
+      b.appendChild(el('strong', '', d.nome));
+      b.appendChild(el('span', '', on ? 'Ativa' : condTexto(card, '.cond-quando')));
+      g.appendChild(b);
+    });
+    corpo.appendChild(g);
+    const ac = el('div', 'modal-actions'); ac.appendChild(btn('Fechar', 'fechar', {}, '')); corpo.appendChild(ac);
+    return;
+  }
+  const def = CONDICOES_CARTOES.find(d => d.card === condAtual); if (!def) { condModoLista = true; return condRenderModal(); }
+  const card = document.getElementById(def.card), on = !!def.ativo(c);
+  const cab = el('div', 'cond-modal-cab');
+  const h = el('h2', '', def.nome); h.id = 'condModalTitulo'; cab.appendChild(h);
+  cab.appendChild(el('span', 'cond-modal-estado' + (on ? ' on' : ''), on ? 'Ativa' : 'Inativa'));
+  corpo.appendChild(cab);
+  const quando = condTexto(card, '.cond-quando'); if (quando) corpo.appendChild(el('p', 'cond-modal-quando', quando));
+  const desc = condTexto(card, '.cond-desc'); if (desc) corpo.appendChild(el('p', 'cond-modal-desc', desc));
+  if (def.card === 'condCardAdrenalina') {
+    const f = el('div', 'cond-modal-faixas');
+    card.querySelectorAll('.cond-faixas button').forEach(b => {
+      const t = b.querySelector('strong').textContent, e = b.querySelector('span').textContent;
+      const x = el('div', 'cond-modal-faixa' + (b.classList.contains('ativa') ? ' ativa' : '')); x.appendChild(el('strong', '', t)); x.appendChild(el('span', '', e)); f.appendChild(x);
+    });
+    corpo.appendChild(f);
+  }
+  if (def.card === 'condCardMorrendo') corpo.appendChild(el('p', 'cond-modal-desc', `Dificuldade atual do teste: ${18 + Math.floor((c.morrendo.danoAdicional || 0) / 5)}.`));
+  if (def.card === 'condCardTraumatizado' && c.traumatizado.desc) corpo.appendChild(el('p', 'cond-modal-desc', `Trauma: ${c.traumatizado.desc}`));
+  const nota = condTexto(card, '.cond-nota'); if (nota) corpo.appendChild(el('p', 'cond-modal-nota', nota));
+  if (def.card === 'condCardMembros') {
+    [['perna', 'Perna'], ['braco', 'Braço']].forEach(([k, nome]) => {
+      const caixa = card.querySelector(k === 'perna' ? '#condMembroPerna p' : '#condMembroBraco p');
+      const linha = el('div', 'cond-modal-membro'); const t = el('div'); t.appendChild(el('strong', '', nome)); t.appendChild(el('p', '', caixa ? caixa.textContent.trim() : ''));
+      linha.appendChild(t); linha.appendChild(btn(c.perdaMembros[k] ? 'Desativar' : 'Ativar', 'membro', { membro: k, valor: c.perdaMembros[k] ? '0' : '1' }));
+      corpo.appendChild(linha);
+    });
+  }
+  if (def.card === 'condCardFadiga') {
+    const pts = c.fadiga.points || 0;
+    corpo.appendChild(el('p', 'cond-modal-desc', `Pontos de Fadiga: ${pts} de 8.`));
+    const l = el('div', 'cond-fadiga-lista');
+    FADIGA_EFFECTS.forEach(([n, t]) => { const i = el('div', 'cond-fadiga-item' + (pts >= n ? ' ativo' : '')); i.appendChild(el('span', '', String(n))); i.appendChild(el('p', '', t)); l.appendChild(i); });
+    corpo.appendChild(l);
+  }
+  const ac = el('div', 'modal-actions');
+  ac.appendChild(btn('Todas as condições', 'voltar', {}, ''));
+  if (def.card === 'condCardFadiga') { ac.appendChild(btn('-1', 'fadiga', { delta: '-1' }, '')); ac.appendChild(btn('+1', 'fadiga', { delta: '1' }, '')); }
+  else if (COND_CHAVES[def.card]) ac.appendChild(btn(on ? 'Desativar' : 'Ativar', 'alternar', { valor: on ? '0' : '1' }, on ? 'danger' : 'primary'));
+  if (['condCardAdrenalina', 'condCardMorrendo', 'condCardTraumatizado', 'condCardMembros', 'condCardFadiga'].includes(def.card)) ac.appendChild(btn('Abrir na aba Condições', 'aba', {}, ''));
+  ac.appendChild(btn('Fechar', 'fechar', {}, ''));
+  corpo.appendChild(ac);
+}
+document.addEventListener('click', e => {
+  const c = e.target.closest('#condFaixaLista [data-cond]'); if (c) condAbrirDetalhe(c.dataset.cond);
+});
+exAplicarMolduras();
+
+
+/* ============================================================
+   17. AVISO SOBRE PERÍCIAS (v34)
+   Aberto, minimizado ou fechado. A escolha fica salva nas preferências.
+   ============================================================ */
+function exAplicarAvisoPericias() {
+  const av = document.getElementById('avisoPericias'), bt = document.getElementById('avisoPericiasReabrir'); if (!av || !bt) return;
+  const est = ['aberto', 'min', 'fechado'].includes(exPrefs().avisoPericias) ? exPrefs().avisoPericias : 'aberto';
+  av.dataset.estado = est;
+  av.classList.toggle('hidden', est === 'fechado');
+  bt.classList.toggle('hidden', est !== 'fechado');
+  const mn = av.querySelector('[data-aviso="minimizar"]');
+  if (mn) { mn.textContent = est === 'min' ? 'Expandir' : 'Minimizar'; mn.setAttribute('aria-expanded', est === 'min' ? 'false' : 'true'); }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-aviso]'); if (!b) return;
+  const p = exPrefs(), atual = p.avisoPericias || 'aberto', a = b.dataset.aviso;
+  p.avisoPericias = a === 'fechar' ? 'fechado' : a === 'abrir' ? 'aberto' : (atual === 'min' ? 'aberto' : 'min');
+  exSalvarPrefs(p); exAplicarAvisoPericias();
+});
+exAplicarAvisoPericias();

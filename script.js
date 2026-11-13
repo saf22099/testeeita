@@ -127,8 +127,8 @@ const SUBCLASS_BONUSES = {
 };
 
 const PROGRESSION = {
-  0: ['origin', 'initial_attributes', 'initial_skills'], 1: ['class', 'ability'], 2: ['pdv', 'pde', 'ability', 'skill'],
-  3: ['pdv', 'pde', 'subclass', 'attribute'], 4: ['pdv', 'pde', 'ability', 'skill', 'skill_limit'], 5: ['pdv', 'pde', 'ability_upgrade'],
+  0: ['origin', 'initial_attributes', 'initial_skills'], 1: ['class', 'ability'], 2: ['pdv', 'pde', 'attribute', 'skill'],
+  3: ['pdv', 'pde', 'subclass', 'ability'], 4: ['pdv', 'pde', 'ability', 'skill', 'skill_limit'], 5: ['pdv', 'pde', 'ability_upgrade'],
   6: ['pdv', 'pde', 'ability', 'attribute'], 7: ['pdv', 'pde', 'ability', 'skill'], 8: ['pdv', 'pde', 'attribute', 'origin_ability'],
   9: ['pdv', 'pde', 'ability', 'skill', 'skill_limit'], 10: ['pdv', 'pde', 'ability_upgrade'], 11: ['pdv', 'pde', 'ability', 'attribute'],
   12: ['pdv', 'pde', 'new_ability'], 13: ['pdv', 'pde', 'ability', 'skill'], 14: ['pdv', 'pde', 'attribute'], 15: ['pdv', 'pde', 'ability_upgrade'],
@@ -148,11 +148,11 @@ const SUBCLASS_CATEGORY_KEY = { 'Soldado': 'soldier', 'Atirador': 'shooter', 'M�
 
 const ABILITIES_DB = [
   { id: 'nova_tentativa', name: 'Nova Tentativa', scope: 'general', subclasses: null, passive: false,
-    description: 'Permite oferecer uma segunda chance a si mesmo ou a um aliado, revertendo uma rolagem falha ao permitir uma nova tentativa.',
-    reminder: 'Só pode ser utilizada uma vez por sessão.',
-    levels: ['Nível 1 - Permite ao personagem ou a um aliado re-rolar um dado falho em qualquer rolagem. Custo: 8 PDE e uma Ação Bônus.',
+    description: 'Durante a aventura, é comum que os personagens falhem em rolagens decisivas para o desenrolar da história. Quando esses momentos críticos ocorrerem, esta habilidade pode ser usada para oferecer uma segunda chance, seja para um aliado ou para você mesmo, revertendo o rumo de uma situação potencialmente catastrófica ao permitir uma nova rolagem.',
+    reminder: 'Esta habilidade só pode ser utilizada uma vez por sessão.',
+    levels: ['Nível 1 - Permite ao personagem ou a um aliado re-rolar um dado falho em qualquer rolagem. Custo: 7 PDE e uma Ação Bônus ou uma Ação de Reação.',
       'Nível 2 - Sem alterações.',
-      'Nível 3 - Além de re-rolar o dado falho, o novo teste é realizado com vantagem. Custo: 10 PDE e uma Ação Bônus.',
+      'Nível 3 - Além de re-rolar o dado falho, o novo teste é realizado com vantagem. Custo: 9 PDE e uma Ação Bônus ou uma Ação de Reação.',
       'Nível 4 - Sem alterações.'] },
   { id: 'concentracao_total', name: 'Concentração Total', scope: 'general', subclasses: null, passive: false,
     description: 'O personagem foca sua mente e corpo para maximizar seu desempenho em combate.',
@@ -205,12 +205,12 @@ const ABILITIES_DB = [
       'Nível 3 - Redução de -5. Custo: 5 PDE e uma Ação Bônus.',
       'Nível 4 - Redução de -6. Custo: 6 PDE e uma Ação Bônus.'] },
   { id: 'proficiencia_dmt', name: 'Proficiência com o DMT', scope: 'general', subclasses: null, passive: true,
-    description: 'Habilidade passiva que aprimora progressivamente o uso do DMT.',
-    reminder: 'Custo: 6 PDE permanentes, pagos apenas no desbloqueio.',
-    levels: ['Nível 1 - Reduz o consumo de gás do DMT em 1 unidade ao usar a ação de movimento e concede +2 em Testes de Defesa com esquiva enquanto usa o DMT.',
-      'Nível 2 - Mantém o Nível 1; redução de gás aumenta para 2 unidades; deslocamento com DMT +2 metros; vantagem em testes de fuga e de aumento de velocidade com o DMT.',
-      'Nível 3 - Mantém os efeitos anteriores; deslocamento adicional aumenta para +4 metros; +1 em Testes de Acerto usando o DMT.',
-      'Nível 4 - Mantém os efeitos anteriores; o bônus em Testes de Acerto usando o DMT passa a ser +2.'] },
+    description: 'O Dispositivo de Manobra Tridimensional (DMT) é a maior arma da humanidade contra os Titãs, dominá-lo com maestria é extremamente importante e, muitas vezes, decisivo para o sucesso em missão. Esta é uma habilidade passiva, sempre ativa, que aprimora progressivamente o uso do DMT pelo personagem.',
+    reminder: 'Custo: 7 PDE permanentes (pago apenas no desbloqueio da habilidade; evoluções posteriores não exigem custo adicional).',
+    levels: ['Nível 1 - Reduz o consumo de gás do DMT em 1 unidade sempre que for utilizado com a ação de movimento e concede +1 em Testes de Defesa com esquiva enquanto estiver utilizando o DMT.',
+      'Nível 2 - Todos os efeitos do nível anterior são mantidos. O deslocamento do personagem enquanto estiver utilizando o DMT aumenta em +2 metros. Além disso, o personagem passa a poder trocar suas lâminas, repor munições ou substituir cilindros de gás enquanto estiver no ar, sem provocar ataques de oportunidade, mesmo que esteja a até 5 metros de um inimigo.',
+      'Nível 3 - Todos os efeitos dos níveis anteriores se mantêm, mas o deslocamento adicional da habilidade aumenta para +4 metros e o personagem recebe +1 em Testes de Acerto enquanto estiver utilizando o equipamento.',
+      'Nível 4 - Todos os efeitos dos níveis anteriores se mantêm, mas o personagem recebe vantagem em testes de fuga e em testes relacionados ao aumento de velocidade enquanto estiver utilizando o DMT.'] },
   { id: 'melhoria_geral', name: 'Melhoria Geral', scope: 'general', subclasses: null, passive: true,
     description: 'Habilidade passiva e cumulativa: a cada nível, o personagem escolhe uma nova Perícia diferente para receber +1 permanente.',
     reminder: 'Não é permitido aplicar mais de um ponto em uma mesma Perícia. Se adquirida em nível superior, os bônus anteriores também são concedidos.',
@@ -275,6 +275,19 @@ const ABILITIES_DB = [
       'Nível 3 - Mantém o Nível 2; dano extra +3d12; margem de crítico -6. Custo: Todos os PDE restantes.',
       'Nível 4 - Mantém tudo; recebe Dupla Vantagem em todos os Testes de Acerto nos últimos 2 turnos de vida. Custo: Todos os PDE restantes.'] },
 
+  { id: 'estilhaco_cegante', name: 'Estilhaço Cegante', scope: 'exclusive', subclasses: ['Soldado'], passive: false,
+    description: 'Em combate, um soldado deve aproveitar ao máximo seus equipamentos, mesmo quando já estão danificados. Com esta habilidade, o personagem utiliza os fragmentos de suas lâminas quebradas como projéteis, lançando-os em direção aos olhos de um titã por meio de um movimento rápido com os braços, seguido da liberação das lâminas acopladas ao DMT. Essa habilidade permite cegar o inimigo enquanto realiza a substituição de suas lâminas.',
+    levels: ['Nível 1 - Ao recarregar suas lâminas, o personagem pode arremessar as lâminas quebradas contra um titã que esteja a até 8 metros de distância, realizando um Teste de Acerto conforme as regras para cegar um titã. Se for bem-sucedido, o titã é cegado. Independentemente do resultado do teste, as lâminas são substituídas automaticamente, sem consumir ações adicionais ou provocar Ataques de Oportunidade. O arremesso é considerado um ataque adicional no turno. Custo: 4 PDE e uma Ação Bônus.',
+      'Nível 2 - Mantém os efeitos do Nível 1. Além disso, o Teste de Acerto para cegar o titã recebe +2. Custo: 4 PDE e uma Ação Bônus.',
+      'Nível 3 - Mantém os efeitos dos Níveis anteriores. O personagem agora pode utilizar a habilidade independentemente do estado de suas lâminas, podendo arremessá-las e substituí-las mesmo que ainda não estejam completamente quebradas. Custo: 5 PDE e uma Ação Bônus.',
+      'Nível 4 - Mantém todos os efeitos anteriores. O personagem passa a realizar o Teste de Acerto para cegar o titã com vantagem. Custo: 6 PDE e uma Ação Bônus.'] },
+  { id: 'sobrecura', name: 'Sobrecura', scope: 'exclusive', subclasses: ['Médico'], passive: false,
+    description: 'Além de curar e manter seus aliados estáveis, um médico experiente pode utilizar seus conhecimentos para torná-los ainda mais resistentes. Esta habilidade permite conceder PDVs adicionais acima do limite máximo de vida dos aliados.',
+    reminder: 'A Sobrecura concede PDVs temporários, consumidos antes dos PDVs normais. A habilidade só pode ser aplicada uma vez por dia em cada personagem.',
+    levels: ['Nível 1 - Durante um combate real, caso o personagem cure um aliado até seus PDVs máximos, ou ele já esteja com a vida completa, o médico pode aplicar uma sobrecura de 2d6 PDVs adicionais, que permanecem até o final do combate, ou até serem consumidos. A sobrecura não é considerada uma cura convencional. Custo: 3 PDE e uma Ação Bônus.',
+      'Nível 2 - A sobrecura passa a conceder 2d6 + o valor da perícia de Medicina do personagem em PDVs adicionais. Custo: 4 PDE e uma Ação Bônus.',
+      'Nível 3 - O personagem agora pode utilizar a habilidade como preparação para uma missão. Durante um Descanso Curto ou Longo, pode conceder 1d6 + Medicina PDVs adicionais a cada aliado, que permanecem até o final do dia ou até serem consumidos. Custo: 3 PDE por aliado.',
+      'Nível 4 - A sobrecura em combate passa a conceder 2d10 + Medicina PDVs adicionais. Custo: 5 PDE e uma Ação Bônus.'] },
   { id: 'investida_relampago', name: 'Investida Relâmpago', scope: 'exclusive', subclasses: ['Soldado'], passive: false,
     description: 'Canaliza a agilidade do personagem em uma ofensiva veloz e precisa.',
     reminder: 'Só pode ser usada se o personagem estiver usando Agilidade para o bônus no teste de Luta do ataque realizado no mesmo turno.',
@@ -837,11 +850,12 @@ const BIOMAS_DB = [
 function getBioma(id) { return BIOMAS_DB.find(b => b.id === id); }
 
 const RULES_REFERENCE = [
+  { category: 'DMT', title: 'Recarregamento', text: 'Durante a utilização do DMT, o personagem deverá, em diversos momentos, trocar as lâminas, repor as munições ou substituir os cilindros de gás. Qualquer um desses três processos consome metade do deslocamento do personagem ou uma Ação Bônus, e, caso sejam realizados a até 5 metros de um inimigo, o personagem sofrerá um ataque de oportunidade.' },
   { category: 'DMT', title: 'Combustível', text: 'Cada cilindro possui 20 pontos de gás (40 no total, em dois cilindros). Consumo: Movimentação — 1 gás a cada 5 metros. Ataque — 2 gás por ataque. Esquiva — 1 gás por Teste de Defesa com esquiva.' },
   { category: 'DMT', title: 'Movimentação', text: 'O deslocamento base é 5 + Agilidade. O DMT permite atingir esse deslocamento consumindo gás conforme a distância percorrida.' },
   { category: 'DMT', title: 'Esquiva', text: 'Teste de Agilidade; se o resultado superar o acerto do oponente, anula o dano e permite mover-se até 1m opcionalmente. Consome 1 gás quando realizada com o DMT.' },
   { category: 'DMT', title: 'Ataques', text: 'Lâminas: 2d10 + Força, perícia Luta, margem de crítico 20, alcance corpo-a-corpo, quebram a cada 3 ataques (3 conjuntos disponíveis). Canhão de Mão: 3d6, perícia Pontaria, margem de crítico 18, alcance 10m, 10 munições, recarga manual.' },
-  { category: 'DMT', title: 'DMT Aprimorado (Proficiência com o DMT)', text: 'Habilidade geral passiva que reduz o consumo de gás em movimentação e concede bônus crescentes em Testes de Defesa com esquiva, deslocamento e Testes de Acerto usando o DMT, conforme o nível da habilidade.' },
+  { category: 'DMT', title: 'DMT Aprimorado (Proficiência com o DMT)', text: 'Habilidade geral passiva, sempre ativa. Nível 1: −1 de gás em ação de movimento e +1 em Testes de Defesa com esquiva usando o DMT. Nível 2: +2m de deslocamento com o DMT e recarregar no ar sem provocar ataque de oportunidade. Nível 3: deslocamento adicional de +4m e +1 em Testes de Acerto usando o DMT. Nível 4: vantagem em testes de fuga e de aumento de velocidade com o DMT. Custo: 7 PDE permanentes, pagos só no desbloqueio.' },
   { category: 'Combate', title: 'Defesa', text: 'Contra ataques humanos, o personagem escolhe entre esquiva (teste de Agilidade) ou bloqueio (8 + Força + Luta investida). Contra Titãs, apenas esquiva é possível — bloqueios são inviáveis.' },
   { category: 'Combate', title: 'Bloqueio', text: 'Resultado fixo: 8 + Força + pontos investidos em Luta. Se superar o acerto do oponente, anula todo o dano.' },
   { category: 'Combate', title: 'Esquiva', text: 'Teste de Agilidade. Se o resultado superar o acerto do oponente, anula todo o dano e permite mover-se até 1m.' },
@@ -959,8 +973,8 @@ function saveCustomFamily() {
       ? { id: id + '_passiva', name: document.getElementById('famPassiveName').value.trim() || 'Passiva', description: document.getElementById('famPassiveDesc').value.trim() || 'Sem descrição.', effects: [] }
       : { id: id + '_passiva', name: 'Nenhuma', description: 'Esta família não possui passiva.', effects: [] },
     originAbility: hasAbility
-      ? { id: id + '_habilidade', name: document.getElementById('famAbilityName').value.trim() || 'Habilidade de Origem', description: document.getElementById('famAbilityDesc').value.trim() || 'Sem descrição.', unlockLevel: 8, effects: [] }
-      : { id: id + '_habilidade', name: 'Nenhuma', description: 'Esta família não possui habilidade de origem.', unlockLevel: 8, effects: [] }
+      ? { id: id + '_habilidade', name: document.getElementById('famAbilityName').value.trim() || 'Segunda Passiva de Origem', description: document.getElementById('famAbilityDesc').value.trim() || 'Sem descrição.', unlockLevel: 8, effects: [] }
+      : { id: id + '_habilidade', name: 'Nenhuma', description: 'Esta família não possui segunda passiva de origem.', unlockLevel: 8, effects: [] }
   };
   customOrigins.push(origin);
   saveCustomOrigins();
@@ -1035,14 +1049,18 @@ function recomputeShifterParts(ch) {
   const titan = getTitanById(ch.shifter.titanId);
   if (!titan) return;
   const portadorVit = ch.attributes.vit + (ch.attributeBonuses.vit || 0);
-  const maxes = { nuca: titan.pdvNuca + (portadorVit * 2), cabeca: titan.pdvNuca, bracoD: titan.pdvBraco, bracoE: titan.pdvBraco, pernaD: titan.pdvPerna, pernaE: titan.pdvPerna };
+  const maxes = { nuca: titan.pdvNuca + (portadorVit * 3), cabeca: titan.pdvNuca, bracoD: titan.pdvBraco, bracoE: titan.pdvBraco, pernaD: titan.pdvPerna, pernaE: titan.pdvPerna };
+  // fichas antigas calculavam a nuca com Vitalidade×2: quem estava com a nuca cheia continua cheio no novo máximo
+  const migrarNuca = !ch.shifter.nuca3x;
   Object.keys(maxes).forEach(part => {
     if (!ch.shifter.parts[part]) ch.shifter.parts[part] = { cur: maxes[part], max: maxes[part] };
     else {
+      if (part === 'nuca' && migrarNuca && ch.shifter.parts[part].cur >= ch.shifter.parts[part].max) ch.shifter.parts[part].cur = maxes[part];
       ch.shifter.parts[part].max = maxes[part];
       if (ch.shifter.parts[part].cur > maxes[part]) ch.shifter.parts[part].cur = maxes[part];
     }
   });
+  ch.shifter.nuca3x = true;
 }
 
 function renderShifterTab() {
@@ -1729,7 +1747,7 @@ function renderOriginSelection() {
         <h5>Passiva de Origem</h5>
         <p><strong>${origin.passive.name}:</strong> ${origin.passive.description}</p>
         ${origin.passive.choices ? `<p style="color:var(--warning);"><strong>Escolha necessária:</strong> ${choicesText}</p>` : ''}
-        <h5>Habilidade de Origem — Nível ${origin.originAbility.unlockLevel}</h5>
+        <h5>Segunda Passiva de Origem — Nível ${origin.originAbility.unlockLevel}</h5>
         <p><strong>${origin.originAbility.name}:</strong> ${origin.originAbility.description}</p>
         ${origin.originAbility.manualUnlock ? `<p style="color:var(--info);">Desbloqueio manual/narrativo</p>` : ''}
       </div>`;
@@ -1742,7 +1760,7 @@ function renderOriginSelection() {
       <p style="font-size:0.78rem;color:var(--text-dim);">${origin.family ? `Família: ${origin.family}` : ''}</p>
       <p>${origin.description.substring(0, 100)}...</p>
       <div class="origin-stats"><span class="origin-stat pdv">${origin.initialStats.pdv}</span><span class="origin-stat san">${origin.initialStats.san}</span><span class="origin-stat pde">${origin.initialStats.pde}</span></div>
-      <div style="margin-top:10px;font-size:0.8rem;"><span class="tag passive">Passiva</span><span class="tag origin">Hab. N${origin.originAbility.unlockLevel}</span></div>
+      <div style="margin-top:10px;font-size:0.8rem;"><span class="tag passive">Passiva</span><span class="tag origin">2ª Passiva N${origin.originAbility.unlockLevel}</span></div>
       ${origin.custom ? `<button class="small danger" style="margin-top:10px;" onclick="deleteCustomFamily('${origin.id}', event)">Excluir Família</button>` : ''}
       ${expandedContent}`;
     container.appendChild(div);
@@ -3591,7 +3609,7 @@ function renderSkills() {
     if (result.modifiers.length > 0) bonusText = result.modifiers.map(m => `${m.value > 0 ? '+' : ''}${m.value} ${esc(m.source)}`).join(', ');
     const flag = (ch.skillFlags || {})[skill.name];
     const row = document.createElement('div'); row.className = 'skill-row';
-    row.innerHTML = `<div><span class="skill-name" onclick="openSkillDetailModal('${skill.name}')">${skill.name}</span>${bonusText ? `<span class="bonus-badge">${bonusText}</span>` : ''}${flag === 'disadvantage' ? '<span class="flag-badge">Desvantagem</span>' : ''}</div><div class="skill-row-info">${ATTRIBUTES[result.selectedAttribute].name} ${result.attributeValue} (metade +${result.attributeBonus})<br>Investido +${result.investedPoints}</div><div class="skill-row-total">${result.total}</div><div class="skill-row-controls"><button onclick="modSkill('${skill.name}', -1)" ${skill.base <= 0 ? 'disabled' : ''}>-</button><button onclick="modSkill('${skill.name}', 1)" ${!canAddSkillPoint(ch, skill.name) ? 'disabled' : ''}>+</button></div>`;
+    row.innerHTML = `<div><span class="skill-name" onclick="openSkillDetailModal('${skill.name}')">${skill.name}</span>${bonusText ? `<span class="bonus-badge">${bonusText}</span>` : ''}${flag === 'disadvantage' ? '<span class="flag-badge">Desvantagem</span>' : ''}</div><div class="skill-row-info">${ATTRIBUTES[result.selectedAttribute].name} ${result.attributeValue} (metade +${result.attributeBonus})<br>Perícia (investido) ${result.investedPoints}</div><div class="skill-row-total">${result.total}</div><div class="skill-row-controls"><button onclick="modSkill('${skill.name}', -1)" ${skill.base <= 0 ? 'disabled' : ''}>-</button><button onclick="modSkill('${skill.name}', 1)" ${!canAddSkillPoint(ch, skill.name) ? 'disabled' : ''}>+</button></div>`;
     container.appendChild(row);
   });
 }
@@ -3683,7 +3701,7 @@ function removeSkillModifier(skillName, modifierId) {
 }
 
 const PROGRESSION_INFO = {
-  origin: { title: 'Origem', desc: 'Escolha a Origem do personagem, definindo status iniciais, passiva e habilidade de origem.' },
+  origin: { title: 'Origem', desc: 'Escolha a Origem do personagem, definindo status iniciais, passiva e segunda passiva de origem.' },
   initial_attributes: { title: 'Atributos Iniciais', desc: 'Distribua os valores 4, 3, 2, 2, 1 entre os atributos.' },
   initial_skills: { title: 'Perícias Iniciais', desc: 'Distribua os pontos de perícia iniciais entre suas perícias.' },
   class: { title: 'Classe', desc: 'Escolha sua Classe: Linha de Frente, Suporte de Campo ou Especialista de Batalha.' },
@@ -3696,7 +3714,7 @@ const PROGRESSION_INFO = {
   attribute: { title: 'Atributo', desc: 'Distribua 1 ponto de Atributo na ficha do personagem como quiser.' },
   skill: { title: 'Perícia', desc: 'Distribua 2 pontos de perícia entre as suas perícias, seguindo as regras de limite.' },
   skill_limit: { title: 'Limite de Perícia', desc: 'O limite base de pontos por perícia é 3 pontos; no nível 4 passa a ser 5; no nível 9 passa a ser 10; e no nível 16, passa a ser 15.' },
-  origin_ability: { title: 'Habilidade de Origem', desc: 'A habilidade de origem do personagem se torna disponível (respeitando exceções narrativas).' }
+  origin_ability: { title: 'Segunda Passiva de Origem', desc: 'A segunda passiva de origem do personagem se torna disponível (respeitando exceções narrativas).' }
 };
 
 function renderProgression() {
@@ -4267,12 +4285,7 @@ function updateDMTType() {
 function consumeDMTGas(baseAmount, label) {
   const ch = getCurrentChar(); if (!ch) return;
   let amount = baseAmount;
-  const prof = ch.abilities.find(a => a.id === 'proficiencia_dmt');
-  if (prof && label.indexOf('Movimentação') === 0) {
-    const lvl = getAbilityLevelForCharLevel(ch.level);
-    if (lvl >= 2) amount = Math.max(0, amount - 2);
-    else if (lvl >= 1) amount = Math.max(0, amount - 1);
-  }
+  if (label.indexOf('Movimentação') === 0) amount = Math.max(0, amount - ((ch.derivedModifiers && ch.derivedModifiers.gasMovimento) || 0));
   const total = ch.dmt.cylinder1 + ch.dmt.cylinder2;
   if (total < amount) { showNotification('Gás insuficiente.', `${label} exige ${amount} pontos de gás.`, true); return; }
   let remaining = amount;

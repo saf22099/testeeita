@@ -1774,6 +1774,26 @@ function imgFicha(ch) {
   if (u && /^(data:image\/|https?:)/.test(u)) return `<img class="nv-ficha-img" src="${esc(u)}" alt="" />`;
   return `<div class="nv-ficha-img nv-ficha-img-vazia">${esc((ch.name || '?').charAt(0).toUpperCase())}</div>`;
 }
+// gás e lâminas da ficha, lidos sem alterar a ficha do jogador
+function linhaDmt(ch) {
+  const d = ch && ch.dmt; if (!d || typeof d !== 'object') return '';
+  const n = v => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
+  const cap = n(d.cylinderCapacity) * 2, gas = n(d.cylinder1) + n(d.cylinder2);
+  let lim = 3;
+  try { if (typeof window.exLimiteLaminas === 'function') lim = Number(window.exLimiteLaminas({ dmt: JSON.parse(JSON.stringify(d)) })) || 3; } catch (e) { }
+  const pct = cap > 0 ? Math.min(100, gas / cap * 100) : 0;
+  const baixo = pct <= 25 ? 'crit' : pct <= 50 ? 'low' : '';
+  let arma;
+  if (d.weaponType === 'canhao') {
+    arma = `<span class="nv-dmt-rot">Munição do canhão</span><span class="nv-dmt-val">${n(d.cannonAmmo)}</span>`;
+  } else {
+    const restam = d.bladesEquipped ? Math.max(0, lim - n(d.bladeAttacksUsed)) : 0;
+    const reserva = n(d.bladeReserve), soltas = n(d.bladeLoose);
+    arma = `<span class="nv-dmt-rot">Conjunto em uso</span><span class="nv-dmt-val ${d.bladesEquipped ? '' : 'zero'}">${d.bladesEquipped ? `${restam}/${lim} ataques` : 'sem lâminas'}</span>
+      <span class="nv-dmt-rot">Reserva</span><span class="nv-dmt-val">${reserva} ${reserva === 1 ? 'conjunto' : 'conjuntos'}${soltas ? ` + ${soltas} ${soltas === 1 ? 'lâmina' : 'lâminas'}` : ''}</span>`;
+  }
+  return `<div class="nv-ficha-dmt"><div class="nv-dmt-gas"><span class="nv-dmt-rot">Gás</span><div class="nv-dmt-trilho ${baixo}"><div style="width:${pct}%"></div></div><span class="nv-dmt-val">${gas}/${cap}</span></div><div class="nv-dmt-arma">${arma}</div></div>`;
+}
 function cardFicha(ch, botoes, dono) {
   const origem = typeof getOriginById === 'function' ? getOriginById(ch.originId) : null;
   const r = ch.resources || {};
@@ -1785,6 +1805,7 @@ function cardFicha(ch, botoes, dono) {
       </div>
     </div>
     ${barra('PDV', r.hp, 'hp')}${barra('PDE', r.sta, 'sta')}${barra('SAN', r.san, 'san')}
+    ${linhaDmt(ch)}
     <div class="nv-ficha-botoes">${botoes}</div>
   </div>`;
 }
@@ -2157,6 +2178,7 @@ function montarModais() {
 montarModais();
 
 window.nuvem = {
+  linhaDmt,
   abrirLogin, fecharLogin, trocarAbaLogin, entrarGoogle, enviarLoginEmail, esqueciSenha,
   abrirPerfil: () => abrirPerfil(false), confirmarPerfil, menuConta,
   previewPerfil: () => atualizarPreviewPerfil(),
