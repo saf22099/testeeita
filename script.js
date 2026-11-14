@@ -1928,9 +1928,10 @@ function renderSkillLibrary() {
     const acquired = ch.abilities.some(s => s.id === ability.id);
     const eligible = ability.scope === 'general' || (ch.subclass && ability.subclasses.includes(ch.subclass));
     const scopeTag = ability.scope === 'general' ? `<span class="tag class">Geral</span>` : (ability.subclasses || []).map(s => `<span class="tag subclass">${s}</span>`).join('');
-    const card = document.createElement('div'); card.className = 'mini-card';
+    const card = document.createElement('div'); card.className = 'mini-card hab-escolha';
     const firstLevelText = ability.levels && ability.levels.length ? ability.levels[0] : (ability.baseCost || '');
-    card.innerHTML = `<h4>${ability.name}</h4><p>${scopeTag}${ability.passive ? '<span class="tag origin">Passiva</span>' : ''}</p><p class="desc">${ability.description}</p>${firstLevelText ? `<p style="font-size:0.78rem;color:var(--text-dim);margin-top:6px;">${firstLevelText}</p>` : ''}<button ${acquired || !eligible ? 'disabled' : ''} onclick="handleAcquireAbility('${ability.id}')" style="margin-top:12px;width:100%;">${acquired ? 'Adquirida' : (eligible ? 'Adicionar' : 'Requer Subclasse')}</button>`;
+    const longo = ability.description.length > 150 || firstLevelText.length > 200;
+    card.innerHTML = `<h4>${ability.name}</h4><p>${scopeTag}${ability.passive ? '<span class="tag origin">Passiva</span>' : ''}</p><p class="desc hab-texto">${ability.description}</p>${firstLevelText ? `<p class="hab-nivel1 hab-texto">${firstLevelText}</p>` : ''}${longo ? '<button type="button" class="hab-vermais ghost small" aria-expanded="false">Ver mais</button>' : ''}<button class="hab-add" ${acquired || !eligible ? 'disabled' : ''} onclick="handleAcquireAbility('${ability.id}')">${acquired ? 'Adquirida' : (eligible ? 'Adicionar' : 'Requer Subclasse')}</button>`;
     container.appendChild(card);
   });
 }

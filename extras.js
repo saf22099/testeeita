@@ -2939,3 +2939,13 @@ document.addEventListener('click', e => {
   exSalvarPrefs(p); exAplicarAvisoPericias();
 });
 exAplicarAvisoPericias();
+
+
+/* cartões do catálogo de habilidades: textos longos recolhidos, com "Ver mais" */
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('.hab-vermais'); if (!b) return;
+  const card = b.closest('.hab-escolha'); if (!card) return;
+  const aberto = card.classList.toggle('expandido');
+  b.textContent = aberto ? 'Ver menos' : 'Ver mais';
+  b.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+});

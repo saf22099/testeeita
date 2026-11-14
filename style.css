@@ -1911,3 +1911,13 @@ html.sem-molduras .card::after{display:none;}
 .aviso-pericias-ex{padding:8px 10px;background:var(--bg-2);border-radius:var(--radius-sm);}
 .aviso-pericias[data-estado="min"] .aviso-pericias-corpo{display:none;}
 #avisoPericiasReabrir{margin-bottom:12px;}
+
+/* catálogo de habilidades: cartões do mesmo tamanho, texto longo recolhido e botão sempre embaixo */
+.hab-escolha{display:flex;flex-direction:column;}
+.hab-escolha .hab-texto{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;}
+.hab-escolha .desc.hab-texto{-webkit-line-clamp:4;line-clamp:4;}
+.hab-escolha .hab-nivel1{-webkit-line-clamp:3;line-clamp:3;font-size:0.78rem;color:var(--text-dim);margin:6px 0 0;}
+.hab-escolha.expandido .hab-texto{display:block;-webkit-line-clamp:unset;line-clamp:unset;}
+.hab-vermais{align-self:flex-start;margin-top:8px;padding:2px 8px;font-size:0.74rem;color:var(--accent);}
+.hab-escolha .hab-add{margin-top:auto;width:100%;}
+.hab-escolha > :nth-last-child(2){margin-bottom:12px;}
